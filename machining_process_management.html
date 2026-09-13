@@ -32,7 +32,7 @@ function render(){body.innerHTML=view.map((r,i)=>`<tr onclick="select('${r.code}
 function select(c,tr){selected=data.findIndex(x=>x.code===c);document.querySelectorAll('tbody tr').forEach(x=>x.classList.remove('sel'));tr?.classList.add('sel');const r=data[selected];if(!r)return;code.value=r.code;document.getElementById('name').value=r.name;group.value=r.group;order.value=r.order;completeProgress.value=r.complete;useProgress.value=r.progress;usePlan.value=r.plan;remark.value=r.remark;msg(`${r.code} ${r.name} 공정을 선택했습니다.`)}
 function search(){const q=query.value.trim().toLowerCase();view=!q?[...data]:data.filter(r=>Object.values(r).some(v=>String(v).toLowerCase().includes(q)));render();msg(`검색 결과 ${view.length}건입니다.`)}
 function clearSearch(){query.value='';view=[...data];render();msg('검색조건을 초기화했습니다.')}
-function add(){selected=-1;code.value='';document.getElementById('name').value='';group.value='가공';order.value=0;completeProgress.value=0;useProgress.value='N';usePlan.value='Y';remark.value='';msg('신규 가공공정을 입력하세요.')}
+function add(){selected=-1;code.value='';document.getElementById('name').value='';group.value='가공';order.value=0;completeProgress.value=0;useProgress.value='N';usePlan.value='Y';remark.value='';const c=window.MESCODE?MESCODE.fill('code',data.map(x=>x.code)):'';msg(c?`신규 가공공정을 입력하세요. 코드는 ${c} 로 자동 생성했습니다.`:'신규 가공공정을 입력하세요. 코드는 도면·QR 에 그대로 쓰이므로 직접 정하세요.')}
 function save(){const c=code.value.trim().toUpperCase(),n=document.getElementById('name').value.trim();if(!c||!n)return msg('가공공정코드와 공정명을 입력하세요.');let r=selected>=0?data[selected]:data.find(x=>x.code===c);if(!r){r={};data.push(r)}r.code=c;r.name=n;r.group=group.value;r.order=Number(order.value)||0;r.complete=Number(completeProgress.value)||0;r.progress=useProgress.value;r.plan=usePlan.value;r.remark=remark.value.trim();selected=data.indexOf(r);view=[...data];render();msg(`${c} 공정을 저장했습니다.`)}
 function remove(){if(selected<0)return msg('삭제할 공정을 선택하세요.');if(!confirm('선택한 공정을 삭제하시겠습니까?'))return;const c=data[selected].code;data.splice(selected,1);selected=-1;view=[...data];render();add();msg(`${c} 공정을 삭제했습니다.`)}
 function exportCsv(){const out=[['가공공정코드','가공공정명','공정그룹','정렬','완료시진척률','진척률 사용여부','계획 사용여부','비고'],...data.map(r=>[r.code,r.name,r.group,r.order,r.complete,r.progress,r.plan,r.remark])];const csv='\ufeff'+out.map(a=>a.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='machining_process_management.csv';a.click();URL.revokeObjectURL(a.href);msg('CSV 파일을 생성했습니다.')}
@@ -46,7 +46,7 @@ function sampleFill(){
 window.sampleFill=sampleFill;
 </script>
 <script src="mes_sample.js?v=67"></script><script src="mes_demo.js?v=67"></script>
-<script src="mes_db.js?v=67"></script>
+<script src="mes_autocode.js?v=114"></script><script src="mes_db.js?v=67"></script>
 <script src="mes_paste.js?v=67"></script>
 <script>MESDB.master({page:"machining_process_management",table:"processes",pk:"code",map:{"code": "process_code", "name": "process_name", "group": "process_group", "order": {"col": "sort_order", "type": "num"}, "complete": {"col": "completion_progress", "type": "num"}, "progress": {"col": "use_progress", "type": "ynbool"}, "plan": {"col": "use_plan", "type": "ynbool"}, "remark": "remark"},get:()=>data,render:()=>{view=[...data];render()}});</script>
 <script src="mes_ctx.js?v=67"></script>
