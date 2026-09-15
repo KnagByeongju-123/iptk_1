@@ -65,12 +65,16 @@ async function loadSrc(){
   (ps||[]).forEach(r=>{DSRC[r.job_no]=(r.design_outsourced===true||r.design_outsourced==='true')?'외주':'사내'});
  }catch(e){}
 }
-/* v77: 정산완료된 제번(sale_orders.completion_date 있음)은 설계계획 대상에서 뺀다 */
-const DONE=new Set();
+/* v77: 정산완료된 제번(sale_orders.completion_date 있음)은 설계계획 대상에서 뺀다
+ * v115: 정산완료일이 오늘 이후(예정일로 미리 적어 둔 경우)면 아직 정산완료가 아니므로 빼지 않는다.
+ *       제외된 제번은 DONE_DT 에 날짜를 남겨 안내문에 보여 준다. */
+const DONE=new Set(),DONE_DT={};
 async function loadDone(){
  if(!online())return;
  try{const rs=await MESDB.table('sale_orders').select('select=job_no,completion_date');
-  DONE.clear();(rs||[]).forEach(r=>{if(r.completion_date)DONE.add(r.job_no)});
+  const today=new Date().toISOString().slice(0,10);
+  DONE.clear();Object.keys(DONE_DT).forEach(k=>delete DONE_DT[k]);
+  (rs||[]).forEach(r=>{const d=String(r.completion_date||'').slice(0,10);if(d&&d<=today){DONE.add(r.job_no);DONE_DT[r.job_no]=d}});
  }catch(e){}
 }
 /* v78: 콤보 목록 — 담당자(users) · 설계 세부공정(processes 설계그룹) · 제작계획(기간-설계) */
@@ -126,13 +130,19 @@ function fillJobList(){
  const e=v=>String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
  const ps=pickable();
  dl.innerHTML=ps.map(r=>`<option value="${e(r.job_no)}">${e([r.item_name,r.customer_name].filter(Boolean).join(' · '))}</option>`).join('');
- q_job.placeholder=ps.length?`제번 입력/선택 (${ps.length}건)`:'선택 가능한 제번이 없습니다';
+ if(ps.length){q_job.placeholder=`제번 입력/선택 (${ps.length}건)`;return}
+ /* v115: 왜 비었는지 이유를 함께 보여 준다 */
+ const all=allHeads(),out=all.filter(r=>srcOf(r.job_no)==='외주').map(r=>r.job_no),
+       done=all.filter(r=>srcOf(r.job_no)!=='외주'&&DONE.has(r.job_no)).map(r=>`${r.job_no}(${DONE_DT[r.job_no]})`);
+ q_job.placeholder=all.length?'선택 가능한 제번이 없습니다':'제작계획(job_pool)에 제번이 없습니다';
+ if(out.length||done.length)msg(`설계계획 대상 제번이 없습니다 — 제외: `+[out.length?`외주설계 ${out.join(', ')}`:'',done.length?`정산완료 ${done.join(', ')} (수주등록 › 정산완료일)`:''].filter(Boolean).join(' / '));
 }
 function search(){const j=q_job.value.trim().toLowerCase(),it=q_item.value.trim().toLowerCase();
  view=pickable().filter(r=>(!j||r.job_no.toLowerCase().includes(j))&&(!it||String(r.item_name??'').toLowerCase().includes(it)));
  sbody.innerHTML='';dbody.innerHTML='';render();
- const done=allHeads().filter(r=>DONE.has(r.job_no)).length, out=allHeads().filter(r=>srcOf(r.job_no)==='외주').length;
- msg(`조회결과 ${view.length}건`+((out||done)?` (제외 — 외주설계 ${out}건 / 정산완료 ${done}건)`:''));
+ const outL=allHeads().filter(r=>srcOf(r.job_no)==='외주').map(r=>r.job_no),
+       doneL=allHeads().filter(r=>srcOf(r.job_no)!=='외주'&&DONE.has(r.job_no)).map(r=>`${r.job_no}(${DONE_DT[r.job_no]})`);
+ msg(`조회결과 ${view.length}건`+((outL.length||doneL.length)?` (제외 — ${[outL.length?`외주설계 ${outL.join(', ')}`:'',doneL.length?`정산완료 ${doneL.join(', ')}`:''].filter(Boolean).join(' / ')})`:''));
  if(j){const k=view.findIndex(r=>r.job_no.toLowerCase()===j);
   if(k>=0){const tr=hbody.querySelectorAll('tr')[k];if(tr)pick(k,tr)}}
 }

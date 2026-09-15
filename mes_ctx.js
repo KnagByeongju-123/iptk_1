@@ -1284,25 +1284,41 @@ window.MESCTX={confirm:dlgConfirm};
 /* ── v78: 제번 입력칸을 드롭다운+직접입력 콤보로 (전 화면 공용) ─────────
  * 구매·조립·원가 등 화면마다 제번을 손으로 치던 칸에 job_pool 목록을 붙인다.
  * 글자를 치면 걸러지고, 고르면 그 화면의 조회가 자동으로 실행된다.
- * 화면이 이미 list= 를 가진 콤보면 건드리지 않는다. data-nojoblist 로 제외 가능. */
+ * 화면이 이미 list= 를 가진 콤보면 건드리지 않는다. data-nojoblist 로 제외 가능.
+ * v115: ① 정산완료 판정은 정산완료일 ≤ 오늘 일 때만 (미래 날짜는 예정으로 보고 목록에 남긴다 —
+ *          미래 정산완료일 때문에 목록이 비어 콤보가 아예 안 붙던 문제)
+ *       ② 품명/품번 칸(q_item·qItem·item_name… 또는 라벨 '품 명'/'품번')에도 같은 방식의 콤보를 붙인다.
+ *          품명을 고르면 제번이 하나뿐일 때 제번 칸을 채우고 조회한다. data-nojoblist 로 제외 가능. */
 (function(){
- const DLID='mes_dl_job';
+ const DLID='mes_dl_job',DLITEM='mes_dl_item';
  const IDPAT=/^(q_?job|jobq|job_no|qjob|job)$/i;
+ const ITEMPAT=/^(q_?item|qitem|item_?name|item|q_?item_?name|item_?no|part_?no|part_?name|q_?part)$/i;
  const isLab=n=>!!n&&n.nodeType===1&&/(^|\s)(label|lab|lb)(\s|$)/.test(n.className);
  function labelText(el){
   let n=el.previousElementSibling;if(isLab(n))return n.textContent.trim();
   const p=el.parentElement;if(p){n=p.previousElementSibling;if(isLab(n))return n.textContent.trim()}
   return '';
  }
- function isJobBox(el){
+ function plainBox(el){
   if(!el||el.tagName!=='INPUT')return false;
   const t=(el.getAttribute('type')||'text').toLowerCase();
   if(t!=='text'&&t!=='search')return false;
   if(el.readOnly||el.disabled||el.hasAttribute('list')||el.hasAttribute('data-nojoblist'))return false;
   if(el.closest('#meslk,#mesdlg,.mescb-pop'))return false;
+  return true;
+ }
+ function isJobBox(el){
+  if(!plainBox(el))return false;
   const id=(el.id||el.name||'');
   if(IDPAT.test(id))return true;
   return /^제\s*번$/.test(labelText(el).replace(/\s+/g,' ').trim());
+ }
+ function isItemBox(el){
+  if(!plainBox(el))return false;
+  const id=(el.id||el.name||'');
+  if(IDPAT.test(id))return false;
+  if(ITEMPAT.test(id))return true;
+  return /^품\s*(명|번)$/.test(labelText(el).replace(/\s+/g,' ').trim());
  }
  /* v99: 빈 결과는 캐시하지 않는다 (첫 ping 실패 순간에 한 번 비면 그 화면은 끝까지 콤보가 안 붙던 문제).
   *       정산완료 제번은 목록에서 뺀다 — 진행 중인 제번만 고르게. */
@@ -1317,8 +1333,9 @@ window.MESCTX={confirm:dlgConfirm};
     const [pool,so]=await Promise.all([
      MESDB.table('job_pool').select('select=job_no,item_name,customer_name,order_date&order=order_date.desc.nullslast'),
      MESDB.table('sale_orders').select('select=job_no,completion_date')]);
-    const done=new Set();(so||[]).forEach(r=>{if(r.completion_date)done.add(r.job_no)});
-    JOBS=(pool||[]).filter(r=>!done.has(r.job_no)).map(r=>({job:r.job_no,
+    const today=new Date().toISOString().slice(0,10);
+    const done=new Set();(so||[]).forEach(r=>{const d=String(r.completion_date||'').slice(0,10);if(d&&d<=today)done.add(r.job_no)});
+    JOBS=(pool||[]).filter(r=>!done.has(r.job_no)).map(r=>({job:r.job_no,item:r.item_name||'',
       sub:[r.item_name,r.customer_name].filter(Boolean).join(' · ')}));
     return JOBS;
    }catch(e){JOBS=null;return []}
@@ -1326,11 +1343,19 @@ window.MESCTX={confirm:dlgConfirm};
   })();
   return loading;
  }
+ const e=v=>String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
  function ensureDL(list){
   let dl=document.getElementById(DLID);
   if(!dl){dl=document.createElement('datalist');dl.id=DLID;document.body.appendChild(dl)}
-  const e=v=>String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   dl.innerHTML=list.map(r=>`<option value="${e(r.job)}">${e(r.sub)}</option>`).join('');
+  return dl;
+ }
+ /* v115: 품명 → 제번 목록 (같은 품명이 여러 제번에 있으면 제번을 모두 라벨에) */
+ function itemMap(list){const m=new Map();list.forEach(r=>{if(!r.item)return;if(!m.has(r.item))m.set(r.item,[]);m.get(r.item).push(r.job)});return m}
+ function ensureItemDL(list){
+  let dl=document.getElementById(DLITEM);
+  if(!dl){dl=document.createElement('datalist');dl.id=DLITEM;document.body.appendChild(dl)}
+  dl.innerHTML=[...itemMap(list)].map(([it,js])=>`<option value="${e(it)}">${e(js.join(', '))}</option>`).join('');
   return dl;
  }
  /* 제번을 고르면 그 화면의 조회를 실행한다 */
@@ -1348,25 +1373,40 @@ window.MESCTX={confirm:dlgConfirm};
   if(!el.title)el.title='등록된 제번 목록입니다. 글자를 입력하면 걸러집니다.';
   el.addEventListener('change',()=>{const v=(el.value||'').trim();if(v&&list.some(r=>r.job===v))fire(el)});
  }
+ /* v115: 품명 콤보 — 고르면 제번이 하나뿐일 때 제번 칸을 채우고 조회 */
+ function attachItem(el,list){
+  if(el.__mesItem)return;el.__mesItem=1;
+  ensureItemDL(list);
+  el.setAttribute('list',DLITEM);el.setAttribute('autocomplete','off');
+  if(!el.getAttribute('placeholder')||/^품\s*(명|번)$/.test(el.getAttribute('placeholder')))el.setAttribute('placeholder','품명 입력/선택');
+  if(!el.title)el.title='제작계획 제번의 품명 목록입니다. 글자를 입력하면 걸러집니다.';
+  el.addEventListener('change',()=>{const v=(el.value||'').trim();if(!v)return;
+   const js=itemMap(list).get(v);if(!js)return;
+   if(js.length===1){const jb=[...document.querySelectorAll('input[list="'+DLID+'"],input[data-list="'+DLID+'"]')].find(x=>!x.value.trim());if(jb)jb.value=js[0]}
+   try{if(window.MES&&typeof MES.search==='function')MES.search()}catch(e){}});
+ }
  let retry=0;
  async function scan(root){
-  const els=[...((root&&root.querySelectorAll?root:document).querySelectorAll('input'))].filter(el=>{
-   try{return isJobBox(el)}catch(e){return false}});
-  if(!els.length)return;
+  const R=(root&&root.querySelectorAll?root:document);
+  const els=[...R.querySelectorAll('input')].filter(el=>{try{return isJobBox(el)}catch(e){return false}});
+  const its=[...R.querySelectorAll('input')].filter(el=>{try{return isItemBox(el)}catch(e){return false}});
+  if(!els.length&&!its.length)return;
   const list=await jobs();
   if(!list.length){if(retry<8){retry++;setTimeout(()=>scan(document),1000*retry)}return}   /* v99: 연결이 늦으면 최대 8회 재시도 */
   retry=0;
   els.forEach(el=>{try{attach(el,list)}catch(e){}});
+  its.forEach(el=>{try{attachItem(el,list)}catch(e){}});
   try{window.MESCOMBO&&MESCOMBO.scan()}catch(e){}   /* 목록형 콤보 UI 로 승격 */
  }
  const run=()=>{scan(document)};
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run);else run();
  setTimeout(run,700);setTimeout(run,2000);
  try{if(window.MESDB&&MESDB.onChange)MESDB.onChange(['sale_orders','jobs'],()=>{JOBS=null;loading=null;
-   document.querySelectorAll('input[list="'+DLID+'"]').forEach(el=>{el.__mesJob=0});run()})}catch(e){}
+   document.querySelectorAll('input[list="'+DLID+'"],input[data-list="'+DLID+'"]').forEach(el=>{el.__mesJob=0});
+   document.querySelectorAll('input[list="'+DLITEM+'"],input[data-list="'+DLITEM+'"]').forEach(el=>{el.__mesItem=0});run()})}catch(e){}
  new MutationObserver(ms=>{for(const m of ms)for(const n of m.addedNodes)if(n.nodeType===1)scan(n.parentNode||document)})
   .observe(document.documentElement,{childList:true,subtree:true});
- window.MESJOBLIST={scan:run,jobs,isJobBox};
+ window.MESJOBLIST={scan:run,jobs,isJobBox,isItemBox};
 })();
 
 /* ── v85: 하단 상태 메시지 가시성 (전 화면 공용) ──

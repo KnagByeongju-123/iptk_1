@@ -272,6 +272,20 @@ renderAtt();
 
 window.MES={save,clearForm,setMessage:msg,load,loadJob};
 clearForm();
+/* v115: 정산완료일이 오늘 이후면 경고 — 설계계획등록·공용 제번 콤보가 '정산완료'로 보고 제번을 숨기는 원인이 된다 */
+(function(){const el=document.getElementById('comp_date');if(!el)return;
+ const today=()=>new Date().toISOString().slice(0,10);
+ function chk(){const v=el.value||'',bad=!!v&&v>today();
+  el.style.borderColor=bad?'#d9534f':'';el.style.background=bad?'#fff3f3':'';el.style.color=bad?'#b02a37':'';
+  if(bad)msg(`⚠ 정산완료일 ${v} 은(는) 오늘(${today()}) 이후입니다. 정산완료일은 실제로 종결한 날만 입력하세요 — 예정이면 비워 두세요. (입력 시 설계계획·제번 목록에서 이 제번이 빠집니다)`);
+  return bad}
+ el.addEventListener('change',chk);el.addEventListener('input',chk);
+ const _load=window.load;window.load=function(o){const r=_load.apply(this,arguments);setTimeout(chk,0);return r};
+ const _save=window.save;window.save=async function(m){
+  if(chk()&&!confirm(`정산완료일(${el.value})이 오늘 이후입니다.\n정산완료일은 제번 종결 후에 입력하는 날짜입니다.\n그래도 저장하시겠습니까?`)){msg('저장하지 않았습니다. 정산완료일을 확인하세요.');return false}
+  return _save.apply(this,arguments)};
+ window.MES.save=window.save;window.MES.load=window.load;
+})();
 </script><script src="mes_sample.js?v=67"></script><script src="mes_demo.js?v=67"></script><script src="mes_db.js?v=67"></script>
 <script src="mes_ctx.js?v=67"></script>
 
