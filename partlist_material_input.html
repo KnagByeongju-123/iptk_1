@@ -47,7 +47,13 @@ table{border-collapse:collapse;min-width:1040px;width:100%;table-layout:fixed}th
 .xdlg{margin-top:56px;width:min(680px,94vw);background:#f3f6f8;border:1px solid #7d8d99;box-shadow:0 8px 26px rgba(0,0,0,.25)}
 .xhead{display:flex;align-items:center;height:30px;padding:0 6px 0 10px;background:linear-gradient(#eef4f9,#dbe6ef);border-bottom:1px solid #b9c6d0;font-weight:700}
 .xhead button{margin-left:auto;width:26px;height:20px;border:1px solid #b04a4a;background:#c9484a;color:#fff;cursor:pointer;line-height:1}
-</style></head><body><div class="screen"><div class="title"><h1>PartList 등록(원재료)</h1><small>설계관리 · PARTLIST</small></div><section class="filt"><div class="f2"><div class="lb">제 번</div><div><input id="q_job" class="field"></div><div class="lb">품 명</div><div><input id="q_item" class="field"></div><div></div><div></div></div></section><div class="pane" style="margin:0 14px 8px;height:240px"><div class="ph">제번 / 공정(조)</div><div class="pb"><table style="min-width:520px"><thead><tr><th style="width:180px">제번</th><th style="width:110px">공정(조)</th><th>품목</th></tr></thead><tbody id="pbody"></tbody></table></div></div><div class="gridbox"><table style="min-width:1380px"><thead><tr><th style="width:44px">NO</th><th style="width:36px"></th><th style="width:110px">품번</th><th style="width:190px">품명</th><th style="width:90px">재질</th><th style="width:60px">수량</th><th style="width:80px">두께/Ø</th><th style="width:88px">세로/길이</th><th style="width:80px">가로</th><th style="width:170px">규격</th><th style="width:84px">등록자</th><th style="width:100px">등록일자</th><th>비고</th></tr></thead><tbody id="body"></tbody></table></div><div style="display:flex;gap:4px;padding:6px;align-items:center;flex-wrap:wrap;border-top:1px solid #c3ccd4;background:#f4f8fb"><span class="lb">공정(조)</span><select id="fProc" class="field" style="width:72px" data-jo title="제번의 공정(조)수만큼 1조,2조… 로 나뉩니다"></select><span class="lb">품번</span><input id="fPart" class="field" style="width:80px"><span class="lb">품명</span><input id="fName" class="field" style="width:140px"><span class="lb">재질</span><input id="fMat" class="field" style="width:80px"><span class="lb">두께</span><input id="fThk" class="field" style="width:60px"><span class="lb">길이</span><input id="fLen" class="field" style="width:60px"><span class="lb">폭</span><input id="fWid" class="field" style="width:60px"><span class="lb">수량</span><input id="fQty" class="field" style="width:56px"><span class="lb">규격</span><input id="fSpec" class="field" style="width:130px"><span class="lb">등록자</span><input id="fBy" class="field" style="width:70px"></div><footer class="foot"><button class="btn" onclick="search()">⌕ 검색</button><button class="btn" onclick="save()">▤ 저장</button><button class="btn" onclick="del_()">✕ 삭제</button><button class="btn" onclick="tplDown()" title="엑셀 서식(템플릿) 내려받기">⤓ 템플릿</button><button class="btn" onclick="xls()">▤ 엑셀불러오기</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">조를 선택하면 해당 조의 품목이 표시됩니다.</span><span class="right" id="countText"></span></footer><div class="xmask" id="xMask" onclick="if(event.target===xMask)xlsClose()"><div class="xdlg"><div class="xhead"><span>엑셀 불러오기 - 제번 <b id="xJob"></b></span><button onclick="xlsClose()">×</button></div><div style="padding:8px"><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px;padding:6px;background:#e9f1f8;border:1px solid #bfd2e2"><button class="btn" onclick="tplDown()">⤓ 템플릿 받기</button><span style="color:#456">엑셀에서 작성 후 →</span><input type="file" id="xFile" accept=".csv,.tsv,.txt,.xlsx,.xls" onchange="xlsFile(this)" style="flex:1;min-width:180px"></div><div style="color:#5a6a78;margin-bottom:5px">또는 엑셀에서 행을 복사(Ctrl+C)한 뒤 아래에 붙여넣기(Ctrl+V) 하세요. <b>공정·품번·품명·재질·두께·길이·폭·수량·규격·비고</b> 순서(탭 구분), 첫 행이 제목이면 자동으로 건너뜁니다. (「예)」로 시작하는 예시행은 자동 제외)</div><textarea id="xText" style="width:100%;height:220px;border:1px solid #aeb9c3;font:12px Consolas,monospace;padding:6px;box-sizing:border-box"></textarea><div style="display:flex;justify-content:center;gap:8px;margin-top:8px"><button class="btn" onclick="xlsApply()">▤ 등록</button><button class="btn" onclick="xlsClose()">⊠ 취소</button></div></div></div></div></div><script>const data=[];const procs=[];const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+</style></head><body><div class="screen"><div class="title"><h1>PartList 등록(원재료)</h1><small>설계관리 · PARTLIST</small></div><section class="filt"><div class="f2"><div class="lb">제 번</div><div><input id="q_job" class="field"></div><div class="lb">품 명</div><div><input id="q_item" class="field"></div><div></div><div></div></div></section><div class="pane" style="margin:0 14px 8px;height:240px"><div class="ph">제번 / 공정(조)</div><div class="pb"><table style="min-width:520px"><thead><tr><th style="width:180px">제번</th><th style="width:110px">공정(조)</th><th>품목</th></tr></thead><tbody id="pbody"></tbody></table></div></div><div class="gridbox"><table style="min-width:1380px"><thead><tr><th style="width:44px">NO</th><th style="width:36px"></th><th style="width:110px">품번</th><th style="width:190px">품명</th><th style="width:90px">재질</th><th style="width:60px">수량</th><th style="width:80px">두께/Ø</th><th style="width:88px">세로/길이</th><th style="width:80px">가로</th><th style="width:170px">규격</th><th style="width:84px">등록자</th><th style="width:100px">등록일자</th><th>비고</th></tr></thead><tbody id="body"></tbody></table></div><div style="display:flex;gap:4px;padding:6px;align-items:center;flex-wrap:wrap;border-top:1px solid #c3ccd4;background:#f4f8fb"><span class="lb">공정(조)</span><select id="fProc" class="field" style="width:72px" data-jo title="제번의 공정(조)수만큼 1조,2조… 로 나뉩니다"></select><span class="lb">품번</span><input id="fPart" class="field" style="width:80px"><span class="lb">품명</span><input id="fName" class="field" style="width:140px"><span class="lb">재질</span><input id="fMat" class="field" style="width:80px"><span class="lb">두께</span><input id="fThk" class="field" style="width:60px"><span class="lb">길이</span><input id="fLen" class="field" style="width:60px"><span class="lb">폭</span><input id="fWid" class="field" style="width:60px"><span class="lb">수량</span><input id="fQty" class="field" style="width:56px"><span class="lb">규격</span><input id="fSpec" class="field" style="width:130px"><span class="lb">등록자</span><input id="fBy" class="field" style="width:70px"></div><footer class="foot"><button class="btn" onclick="search()">⌕ 검색</button><button class="btn" onclick="save()">▤ 저장</button><button class="btn" onclick="del_()">✕ 삭제</button><button class="btn" onclick="bulkOpen()" style="border-color:#b04a4a;color:#a03235" title="제번 단위로 PartList 전체를 삭제합니다">⌧ 일괄삭제</button><button class="btn" onclick="tplDown()" title="엑셀 서식(템플릿) 내려받기">⤓ 템플릿</button><button class="btn" onclick="xls()">▤ 엑셀불러오기</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">조를 선택하면 해당 조의 품목이 표시됩니다.</span><span class="right" id="countText"></span></footer><div class="xmask" id="xMask" onclick="if(event.target===xMask)xlsClose()"><div class="xdlg"><div class="xhead"><span>엑셀 불러오기 - 제번 <b id="xJob"></b></span><button onclick="xlsClose()">×</button></div><div style="padding:8px"><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px;padding:6px;background:#e9f1f8;border:1px solid #bfd2e2"><button class="btn" onclick="tplDown()">⤓ 템플릿 받기</button><span style="color:#456">엑셀에서 작성 후 →</span><input type="file" id="xFile" accept=".csv,.tsv,.txt,.xlsx,.xls" onchange="xlsFile(this)" style="flex:1;min-width:180px"></div><div style="color:#5a6a78;margin-bottom:5px">또는 엑셀에서 행을 복사(Ctrl+C)한 뒤 아래에 붙여넣기(Ctrl+V) 하세요. <b>공정·품번·품명·재질·두께·길이·폭·수량·규격·비고</b> 순서(탭 구분), 첫 행이 제목이면 자동으로 건너뜁니다. (「예)」로 시작하는 예시행은 자동 제외)</div><textarea id="xText" style="width:100%;height:220px;border:1px solid #aeb9c3;font:12px Consolas,monospace;padding:6px;box-sizing:border-box"></textarea><div style="display:flex;justify-content:center;gap:8px;margin-top:8px"><button class="btn" onclick="xlsApply()">▤ 등록</button><button class="btn" onclick="xlsClose()">⊠ 취소</button></div></div></div></div><div class="xmask" id="dMask" onclick="if(event.target===dMask)bulkClose()"><div class="xdlg" style="width:min(560px,94vw)"><div class="xhead"><span>PartList 일괄삭제 - 원재료</span><button onclick="bulkClose()">&times;</button></div><div style="padding:10px">
+<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px"><span class="lb">제 번</span><input id="dJob" class="field" style="width:170px" placeholder="예) 26ZZA001A" oninput="bulkReset()" onkeydown="if(event.key==='Enter')bulkCount()"><button class="btn" onclick="bulkCount()">⌕ 건수확인</button><span class="lb" style="margin-left:6px">공정(조)</span><select id="dProc" class="field" style="width:130px" onchange="bulkChk()"><option value="">전체 (모든 조)</option></select></div>
+<div id="dInfo" style="padding:8px;background:#fff;border:1px solid #cfd8e0;min-height:56px;color:#455;margin-bottom:8px">제번을 입력하고 [건수확인]을 누르세요.</div>
+<div style="padding:7px 8px;background:#fdecec;border:1px solid #e0b4b4;color:#8a3a3a;margin-bottom:8px">⚠ 삭제된 PartList는 복구할 수 없습니다. 확인을 위해 아래에 제번을 다시 입력하세요.</div>
+<div style="display:flex;gap:6px;align-items:center"><span class="lb">확인 입력</span><input id="dConfirm" class="field" style="width:170px" oninput="bulkChk()" placeholder="위 제번과 동일하게"></div>
+<div style="display:flex;justify-content:center;gap:8px;margin-top:10px"><button class="btn" id="dBtn" onclick="bulkRun()" style="border-color:#b04a4a;color:#a03235" disabled>✕ 일괄삭제 실행</button><button class="btn" onclick="bulkClose()">⊞ 취소</button></div>
+</div></div></div></div><script>const data=[];const procs=[];const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const n=v=>v==null?'':Number(v).toLocaleString();const p=v=>v==null?'':Number(v).toFixed(2)+'%';
 const msg=t=>message.textContent=t;
 let pc='1';
@@ -254,6 +260,56 @@ MESJOB.attach("q_job",{onPick:j=>{if(typeof loadJob==="function")loadJob(j)}});<
 function sampleFill(){
   if(window.MESDEMO)return MESDEMO.run('partlist_material_input',{});
   var e=document.getElementById('message'); if(e)e.textContent='예제 모듈을 불러오지 못했습니다.';
+}
+
+/* v69: PartList 일괄삭제 (제번 단위) ──────────────────
+ * [⌧ 일괄삭제] → 제번 입력 → 건수확인 → 제번 재입력(확인) → 실행
+ * 공정(조)를 고르면 해당 조만, '전체'면 제번의 모든 조를 삭제 */
+const PLTBL='partlist_materials';
+let dRows=[];
+function bulkOpen(){
+ if(!online()){msg('DB 미연결 상태에서는 삭제할 수 없습니다.');return}
+ dJob.value=(q_job.value||curJob||'').trim();
+ dConfirm.value='';dRows=[];dBtn.disabled=true;
+ dProc.innerHTML='<option value="">전체 (모든 조)</option>';
+ dInfo.textContent='제번을 입력하고 [건수확인]을 누르세요.';
+ dMask.classList.add('on');
+ if(dJob.value)bulkCount();else setTimeout(()=>dJob.focus(),50);
+}
+function bulkClose(){dMask.classList.remove('on')}
+function bulkReset(){dRows=[];dBtn.disabled=true;dProc.innerHTML='<option value="">전체 (모든 조)</option>';
+ dInfo.textContent='제번을 입력하고 [건수확인]을 누르세요.'}
+function bulkChk(){const j=(dJob.value||'').trim();
+ dBtn.disabled=!(j&&dRows.length&&(dConfirm.value||'').trim()===j)}
+async function bulkCount(){
+ const job=(dJob.value||'').trim();
+ if(!job){dInfo.textContent='제번을 입력하세요.';return}
+ if(!online()){dInfo.textContent='DB 미연결 상태입니다.';return}
+ dBtn.disabled=true;dInfo.textContent='조회 중…';
+ try{
+  const rs=await MESDB.table(PLTBL).select(`select=row_no,process_code,part_no&job_no=eq.${encodeURIComponent(job)}&order=row_no`);
+  dRows=rs;
+  const cs=[...new Set(rs.map(r=>r.process_code))].sort((a,b)=>(Number(JO(a))||99)-(Number(JO(b))||99)||String(a).localeCompare(String(b)));
+  dProc.innerHTML='<option value="">전체 (모든 조)</option>'+cs.map(c=>`<option value="${esc(c)}">${esc(JOL(c))} · ${rs.filter(r=>r.process_code===c).length}건</option>`).join('');
+  if(!rs.length){dInfo.textContent=`제번 ${job} 에 등록된 PartList가 없습니다.`;return}
+  dInfo.innerHTML=`제번 <b>${esc(job)}</b> · 등록 전체 <b style="color:#a03235">${rs.length}건</b><div style="margin-top:4px;color:#667;line-height:1.6">${cs.map(c=>`${esc(JOL(c))}(${rs.filter(r=>r.process_code===c).length})`).join(' / ')}</div>`;
+  bulkChk();
+ }catch(e){dInfo.textContent='조회 실패: '+String(e.message||e).slice(0,120)}
+}
+async function bulkRun(){
+ const job=(dJob.value||'').trim(),pv=dProc.value;
+ const tg=pv?dRows.filter(r=>r.process_code===pv):dRows;
+ if(!tg.length){dInfo.textContent='삭제할 대상이 없습니다.';return}
+ if(!confirm(`제번 ${job}${pv?' / '+JOL(pv):' (전체 조)'}\nPartList ${tg.length}건을 삭제합니다.\n\n복구할 수 없습니다. 진행할까요?`))return;
+ dBtn.disabled=true;dInfo.textContent='삭제 중…';
+ try{
+  await MESDB.table(PLTBL).delete(pv?{job_no:job,process_code:pv}:{job_no:job});
+  dInfo.innerHTML=`<b style="color:#1d6b3a">${tg.length}건을 삭제했습니다.</b>`;
+  msg(`제번 ${job} PartList ${tg.length}건 일괄삭제 완료`);
+  dConfirm.value='';dRows=[];
+  if((curJob||'')===job||(q_job.value||'').trim()===job)await loadJob(job);
+  setTimeout(bulkClose,800);
+ }catch(e){dInfo.textContent='삭제 실패: '+String(e.message||e).slice(0,120);bulkChk()}
 }
 </script>
 </body></html>
