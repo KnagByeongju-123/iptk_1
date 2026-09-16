@@ -78,9 +78,9 @@ tr.rdone td{color:#8b98a3}
     <div class="box"><div class="box-title">협력업체리스트</div>
       <div class="searchbar"><input id="venQ" placeholder="Enter text to s"><button onclick="findVendor()">찾기</button><button onclick="clearVendor()">지우기</button></div>
       <div class="tablewrap"><table><thead><tr><th>협력업체</th></tr></thead><tbody id="venBody"></tbody></table></div></div>
-    <div class="box"><div class="box-title">부품별 가공공정 리스트<span class="legend"><i style="background:#8fdc6b"></i>다음 공정(클릭)<i style="background:#8e6bb0"></i>요청<i style="background:#e07a1f"></i>출고<i style="background:#2f6fb5"></i>입고<i style="background:#8b98a3"></i>완료</span></div><div class="tablewrap"><table style="min-width:948px">
-      <!-- v115: 열 13개에 맞춰 colgroup 재작성(기존 12개라 폭이 한 칸씩 밀렸다). 공정(조)·부품코드를 줄이고 부품명을 넓혀 전체 이름이 보이게 하고, 공정1~7 이 화면에 들어오도록 폭을 잡았다 --><colgroup><col style="width:30px"><col style="width:44px"><col style="width:88px"><col style="width:120px"><col style="width:74px"><col style="width:74px"><col style="width:74px"><col style="width:74px"><col style="width:74px"><col style="width:74px"><col style="width:74px"><col style="width:74px"><col style="width:74px"></colgroup>
-      <thead><tr><th></th><th title="공정(조)">조</th><th>부품코드</th><th>부품명</th><th>공정1</th><th>공정2</th><th>공정3</th><th>공정4</th><th>공정5</th><th>공정6</th><th>공정7</th><th>공정8</th><th>공정9</th></tr></thead>
+    <div class="box"><div class="box-title">부품별 가공공정 리스트<span class="legend"><i style="background:#8fdc6b"></i>다음 공정(클릭)<i style="background:#8e6bb0"></i>요청<i style="background:#e07a1f"></i>출고<i style="background:#2f6fb5"></i>입고<i style="background:#8b98a3"></i>완료</span></div><div class="tablewrap"><table style="min-width:852px">
+      <!-- v115: 열 13개에 맞춰 colgroup 재작성(기존 12개라 폭이 한 칸씩 밀렸다). 공정(조)·부품코드를 줄이고 부품명을 넓혀 전체 이름이 보이게 하고, 공정1~7 이 화면에 들어오도록 폭을 잡았다 --><colgroup><col style="width:30px"><col style="width:44px"><col style="width:92px"><col style="width:140px"><col style="width:78px"><col style="width:78px"><col style="width:78px"><col style="width:78px"><col style="width:78px"><col style="width:78px"><col style="width:78px"></colgroup>
+      <thead><tr><th></th><th title="공정(조)">조</th><th>부품코드</th><th>부품명</th><th>공정1</th><th>공정2</th><th>공정3</th><th>공정4</th><th>공정5</th><th>공정6</th><th>공정7</th></tr></thead>
       <tbody id="routeBody"></tbody></table></div></div>
   </section>
   <div class="midbar"><span class="label">입고요구일</span><input id="reqDate" class="field" type="date"><button class="btn" onclick="pushDown()">⬇ 요청추가</button><button class="btn" onclick="pullUp()">⬆ 요청삭제</button></div>
@@ -161,8 +161,10 @@ const REQ=[];
 let jobIdx=0,venIdx=6,jobView=[...JOBS],venView=[...VENDORS];
 function renderJobs(){jobBody.innerHTML=jobView.map((j,i)=>`<tr class="${i===jobIdx?'sel':''}" onclick="pickJob(${i})"><td>${j.job}</td><td>${j.item}</td><td class="c">${j.proc}</td><td class="c">${j.procName}</td></tr>`).join('');countText.textContent=`제번 ${jobView.length}건 / 요청 ${REQ.length}건`}
 function renderVendors(){venBody.innerHTML=venView.map((v,i)=>`<tr class="${i===venIdx?'sel':''}" onclick="pickVendor(${i})"><td>${v}</td></tr>`).join('')}
+var MAXSTEP=7;   /* v115: 부품별 가공공정은 공정1~7 까지만 표시·발주한다 */
 function renderRoutes(){
  routeBody.innerHTML=ROUTES.map((r,ri)=>{
+  if(r.steps&&r.steps.length>MAXSTEP)r.steps=r.steps.slice(0,MAXSTEP);   /* v115: 어떤 경로로 들어와도 공정1~7 까지만 */
   const codes=(r.steps||[]).map(stepCode).filter(Boolean), n=codes.length;
   const nx=nextStep(r), picks=PICK.has(ri)?pickSteps(r):[];
   const done=codes.filter((c,i)=>stepState(r,i)==='완료').length;
@@ -290,14 +292,14 @@ async function loadRoutes(){
     .select(`select=*&job_no=eq.${encodeURIComponent(j.job)}&order=row_no`);
   if(rs.length){
    rs.forEach(r=>ROUTES.push({part:r.part_no,name:r.part_name||'',jo:joNum(r.process_code),
-     steps:(Array.isArray(r.steps)?r.steps:[]).map(stepCode).filter(Boolean).slice(0,9)}));
+     steps:(Array.isArray(r.steps)?r.steps:[]).map(stepCode).filter(Boolean).slice(0,MAXSTEP)}));
   }else{
    /* 2순위: PartList 부품 × 기준공정(가공 기준공정관리 1번) */
    const [pm,std]=await Promise.all([
      MESDB.table('partlist_materials').select(`select=part_no,part_name,process_code&job_no=eq.${encodeURIComponent(j.job)}&order=row_no`),
      MESDB.table('machining_standard_routes').select('select=*&order=standard_process_no&limit=1')]);
    const steps=(std&&std[0]&&Array.isArray(std[0].steps))?std[0].steps:[];
-   pm.forEach(r=>ROUTES.push({part:r.part_no,name:r.part_name||'',jo:joNum(r.process_code),steps:steps.map(stepCode).filter(Boolean).slice(0,9)}));
+   pm.forEach(r=>ROUTES.push({part:r.part_no,name:r.part_name||'',jo:joNum(r.process_code),steps:steps.map(stepCode).filter(Boolean).slice(0,MAXSTEP)}));
    if(pm.length&&!steps.length)msg('기준공정(가공 기준공정관리)이 없어 공정이 비어 있습니다.');
   }
   await loadOrdered(j.job);
