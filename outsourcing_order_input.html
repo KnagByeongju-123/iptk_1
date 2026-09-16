@@ -9,7 +9,7 @@
 *{box-sizing:border-box}html,body{height:100%;margin:0}body{font-family:"Malgun Gothic","맑은 고딕",Arial,sans-serif;font-size:12px;color:var(--ink);background:#fff;overflow:hidden}button,input,select{font:inherit;color:inherit}
 .screen{height:100%;display:flex;flex-direction:column}.title{height:46px;padding:9px 14px 4px;border-bottom:2px solid #3977ad;display:flex;align-items:center;gap:14px}.title h1{margin:0;font-size:21px;font-weight:500;color:#4b5b69}.title h1:before{content:'◯';margin-right:6px;color:#8795a1}.title .plant{margin-left:auto;display:flex;align-items:center;gap:6px;color:#6b7885}
 .filters{padding:7px 14px;border-bottom:1px solid var(--line2);background:#fafbfc;display:flex;gap:6px;align-items:center;flex-wrap:wrap}.label{font-weight:700}.field{height:27px;border:1px solid #b7c2cb;background:#fff;padding:0 7px;outline:none}.field:focus{border-color:#4e88bb}
-.panes{display:grid;grid-template-columns:1.1fr .62fr 1.7fr;gap:6px;padding:7px 14px 0;height:190px}
+.panes{display:grid;grid-template-columns:1.1fr 1.7fr .62fr;   /* v115: 부품별 가공공정 리스트 ↔ 협력업체리스트 자리 교체 */gap:6px;padding:7px 14px 0;height:190px}
 .box{border:1px solid var(--line);display:flex;flex-direction:column;min-height:0;background:#fff}.box-title{height:24px;display:flex;align-items:center;justify-content:center;background:linear-gradient(#deebf5,#caddea);border-bottom:1px solid var(--line);font-weight:700;color:#536677}
 .searchbar{height:26px;display:flex;gap:4px;align-items:center;padding:0 4px;border-bottom:1px solid var(--line2);background:#f6f8fa}.searchbar input{flex:1;height:21px;border:1px solid #b7c2cb;padding:0 4px;min-width:0}.searchbar button{height:21px;border:1px solid #9ca9b5;background:linear-gradient(#fff,#e2e8ed)}
 .tablewrap{flex:1;min-height:0;overflow:auto}table{border-collapse:collapse;width:100%;table-layout:fixed}th,td{height:24px;padding:0 5px;border-right:1px solid var(--line2);border-bottom:1px solid var(--line2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}th{position:sticky;top:0;z-index:2;text-align:center;background:linear-gradient(#dbe9f4,#c7d9e8);color:#405266;font-weight:700}tbody tr:hover td{background:#edf6fd}tbody tr.sel td{background:#2e78bd;color:#fff}.c{text-align:center}.r{text-align:right}
@@ -75,13 +75,13 @@ tr.rdone td{color:#8b98a3}
     <div class="box"><div class="box-title">제번리스트</div><div class="tablewrap"><table>
       <colgroup><col style="width:34%"><col style="width:34%"><col style="width:16%"><col style="width:16%"></colgroup>
       <thead><tr><th>제번</th><th>품명</th><th>공정</th><th>공정명</th></tr></thead><tbody id="jobBody"></tbody></table></div></div>
-    <div class="box"><div class="box-title">협력업체리스트</div>
-      <div class="searchbar"><input id="venQ" placeholder="Enter text to s"><button onclick="findVendor()">찾기</button><button onclick="clearVendor()">지우기</button></div>
-      <div class="tablewrap"><table><thead><tr><th>협력업체</th></tr></thead><tbody id="venBody"></tbody></table></div></div>
     <div class="box"><div class="box-title">부품별 가공공정 리스트<span class="legend"><i style="background:#8fdc6b"></i>다음 공정(클릭)<i style="background:#8e6bb0"></i>요청<i style="background:#e07a1f"></i>출고<i style="background:#2f6fb5"></i>입고<i style="background:#8b98a3"></i>완료</span></div><div class="tablewrap"><table style="min-width:852px">
       <!-- v115: 열 13개에 맞춰 colgroup 재작성(기존 12개라 폭이 한 칸씩 밀렸다). 공정(조)·부품코드를 줄이고 부품명을 넓혀 전체 이름이 보이게 하고, 공정1~7 이 화면에 들어오도록 폭을 잡았다 --><colgroup><col style="width:30px"><col style="width:44px"><col style="width:92px"><col style="width:140px"><col style="width:78px"><col style="width:78px"><col style="width:78px"><col style="width:78px"><col style="width:78px"><col style="width:78px"><col style="width:78px"></colgroup>
       <thead><tr><th></th><th title="공정(조)">조</th><th>부품코드</th><th>부품명</th><th>공정1</th><th>공정2</th><th>공정3</th><th>공정4</th><th>공정5</th><th>공정6</th><th>공정7</th></tr></thead>
       <tbody id="routeBody"></tbody></table></div></div>
+    <div class="box"><div class="box-title">협력업체리스트</div>
+      <div class="searchbar"><input id="venQ" placeholder="Enter text to s"><button onclick="findVendor()">찾기</button><button onclick="clearVendor()">지우기</button></div>
+      <div class="tablewrap"><table><thead><tr><th>협력업체</th></tr></thead><tbody id="venBody"></tbody></table></div></div>
   </section>
   <div class="midbar"><span class="label">입고요구일</span><input id="reqDate" class="field" type="date"><button class="btn" onclick="pushDown()">⬇ 요청추가</button><button class="btn" onclick="pullUp()">⬆ 요청삭제</button></div>
   <div class="reqbox"><div class="box-title">구매요청 리스트</div><div class="tablewrap"><table>

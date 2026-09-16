@@ -9,7 +9,7 @@
 *{box-sizing:border-box}html,body{height:100%;margin:0}body{font-family:"Malgun Gothic","맑은 고딕",Arial,sans-serif;font-size:12px;color:var(--ink);background:#fff;overflow:hidden}button,input,select{font:inherit;color:inherit}
 .screen{height:100%;display:flex;flex-direction:column}.title{height:46px;padding:9px 14px 4px;border-bottom:2px solid #3977ad;display:flex;align-items:center;gap:14px}.title h1{margin:0;font-size:21px;font-weight:500;color:#4b5b69}.title h1:before{content:'◯';margin-right:6px;color:#8795a1}.title .plant{margin-left:auto;display:flex;align-items:center;gap:6px;color:#6b7885}
 .filters{padding:7px 14px;border-bottom:1px solid var(--line2);background:#fafbfc;display:flex;gap:6px;align-items:center}.label{font-weight:700;min-width:44px}.field{height:27px;border:1px solid #b7c2cb;background:#fff;padding:0 7px;outline:none}.field:focus{border-color:#4e88bb}
-.panes{display:grid;grid-template-columns:1.15fr .62fr 1.6fr;gap:6px;padding:7px 14px 0;height:210px}
+.panes{display:grid;grid-template-columns:1.15fr 1.6fr .62fr;   /* v115: 자재표 리스트 ↔ 협력업체리스트 자리 교체 */gap:6px;padding:7px 14px 0;height:210px}
 .box{border:1px solid var(--line);display:flex;flex-direction:column;min-height:0;background:#fff}.box-title{height:24px;display:flex;align-items:center;justify-content:center;background:linear-gradient(#deebf5,#caddea);border-bottom:1px solid var(--line);font-weight:700;color:#536677}
 .tablewrap{flex:1;min-height:0;overflow:auto}table{border-collapse:collapse;width:100%;table-layout:fixed}th,td{height:24px;padding:0 5px;border-right:1px solid var(--line2);border-bottom:1px solid var(--line2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}th{position:sticky;top:0;z-index:2;text-align:center;background:linear-gradient(#dbe9f4,#c7d9e8);color:#405266;font-weight:700}tbody tr:hover td{background:#edf6fd}tbody tr.sel td{background:#2e78bd;color:#fff}.c{text-align:center}.r{text-align:right}
 .midbar{display:flex;align-items:center;gap:6px;padding:6px 14px;justify-content:flex-end}
@@ -48,10 +48,10 @@ input.cell,tr.sel input.cell,tr:hover input.cell{color:#22303a;background:#fff;-
     <div class="box"><div class="box-title">제번리스트</div><div class="tablewrap"><table>
       <colgroup><col style="width:36%"><col style="width:34%"><col style="width:15%"><col style="width:15%"></colgroup>
       <thead><tr><th>제번</th><th>품명</th><th>공정코드</th><th>공정명</th></tr></thead><tbody id="jobBody"></tbody></table></div></div>
-    <div class="box"><div class="box-title">협력업체리스트</div><div class="tablewrap"><table><thead><tr><th style="width:36px"></th><th>협력업체</th></tr></thead><tbody id="venBody"></tbody></table></div></div>
     <div class="box"><div class="box-title">자재표 리스트</div><div class="tablewrap"><table>
       <colgroup><col style="width:38px"><col style="width:15%"><col style="width:18%"><col style="width:14%"><col style="width:23%"><col style="width:10%"><col style="width:12%"></colgroup>
       <thead><tr><th><input type="checkbox" id="bomAll" onclick="bomAllToggle(this)" title="전체선택 / 전체해제"></th><th>품번</th><th>부품명</th><th>재질</th><th>규격</th><th>수량</th><th>첨부</th></tr></thead><tbody id="bomBody"></tbody></table></div></div>
+    <div class="box"><div class="box-title">협력업체리스트</div><div class="tablewrap"><table><thead><tr><th style="width:36px"></th><th>협력업체</th></tr></thead><tbody id="venBody"></tbody></table></div></div>
   </section>
   <div class="midbar"><span class="label">입고요구일</span><input id="reqDate" class="field" type="date" onchange="applyRdate()" title="날짜를 바꾸면 아래 리스트에서 체크한 행에 일괄 적용됩니다"><button class="btn" onclick="pushDown()">⬇ 요청추가</button><button class="btn" onclick="pullUp()">⬆ 요청삭제</button></div>
   <div class="reqbox"><div class="box-title">구매요청 리스트</div><div class="tablewrap"><table>
