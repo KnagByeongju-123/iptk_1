@@ -73,9 +73,15 @@ td.pad0{padding:1px 2px}
 #rtable .dirty .rname{border-color:#d8a33c}
 #rhead th[data-i]{cursor:grab}
 #pbody tr.dover td{background:#eaf3fc;box-shadow:inset 0 1px 0 #6f9fd0,inset 0 -1px 0 #6f9fd0}
+/* v95: 부품 리스트 제목행 클릭 정렬 */
+th.sortable{cursor:pointer;user-select:none}
+th.sortable:hover{background:#dbe7f3}
+th.sortable .ar{color:#8a97a2;font-size:10px;margin-left:3px}
+th.sortable.on{color:#1d5da3}
+th.sortable.on .ar{color:#1d5da3}
 #pbody tr.unsaved td{color:#7a8794}
 #pbody tr.unsaved .us{font-size:10px;color:#c0392b;border:1px solid #e3b4ae;border-radius:8px;padding:0 5px;margin-left:4px;vertical-align:1px}
-</style></head><body><div class="screen"><div class="title"><h1>가공계획등록</h1><small>구매관리 · 가공</small></div><section class="filt"><div class="f2"><div class="lb">제 번</div><div><input id="q_job" class="field"></div><div class="lb">품 명</div><div><input id="q_item" class="field"></div></div><div class="guide"><span class="gt">사용순서</span><span class="st"><b>1</b>제번·조 선택</span><span class="ar">▸</span><span class="st"><b>2</b>공정 수정 시 [공정저장]</span><span class="ar">▸</span><span class="st"><b>3</b>번호를 부품으로 드래그해 적용</span><span class="ar">▸</span><span class="st"><b>4</b>[저장]</span><span class="warn">※ 체크 없으면 전체 저장</span></div></section><div class="panes" style="grid-template-rows:1fr 1.2fr"><div class="panes" style="grid-template-columns:470px 1fr;grid-template-rows:1fr;padding:0;gap:8px"><div class="pane"><div class="ph">제번 리스트</div><div class="pb"><table style="min-width:0"><thead><tr><th style="width:46px">NO</th><th style="width:130px">제번</th><th style="width:64px">공정(조)수</th><th style="width:40px">조</th><th style="width:104px">가공완료일</th><th>T/O 예정일</th></tr></thead><tbody id="hbody"></tbody></table></div></div><div class="pane"><div class="ph"><div class="phbar"><span>가공 공정 리스트</span><button class="btn" onclick="routeAdd()" title="기준공정 열을 추가합니다">+ 기준공정</button><button class="btn" onclick="routeSave()" title="변경된 기준공정을 저장합니다">▤ 공정저장</button><button class="btn" onclick="routeDel()" title="선택한 기준공정을 삭제합니다">✕ 공정삭제</button><span class="sp" id="routeMsg">공정 수정 후 [▤ 공정저장] · 번호(열 머리)를 부품 리스트로 끌어 적용 · 번호 클릭=삭제 대상 선택</span></div></div><div class="pb"><table id="rtable" style="min-width:0"><thead id="rhead"></thead><tbody id="rbody"></tbody></table></div></div></div><div class="pane"><div class="ph">부품 리스트</div><div class="pb"><table style="min-width:1500px"><thead><tr><th style="width:36px"></th><th style="width:110px">부품코드</th><th style="width:180px">부품명</th><th style="width:90px">기준공정</th><th style="width:88px">공정1</th><th style="width:88px">공정2</th><th style="width:88px">공정3</th><th style="width:88px">공정4</th><th style="width:88px">공정5</th><th style="width:88px">공정6</th><th style="width:88px">공정7</th><th style="width:88px">공정8</th><th style="width:88px">공정9</th><th style="width:88px">공정10</th><th style="width:88px">공정11</th><th style="width:88px">공정12</th></tr></thead><tbody id="pbody"></tbody></table></div></div></div> <footer class="foot"><button class="btn" onclick="search()">⌕ 검색</button><button class="btn" onclick="save()">▤ 저장</button><button class="btn" onclick="del_()">✕ 삭제</button><button class="btn" onclick="pr()">▤ PRINT</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">제번을 선택하면 부품별 가공공정이 표시됩니다.</span><span class="right" id="countText"></span></footer></div><script>const heads=[];const routes=[];const parts=[];const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+</style></head><body><div class="screen"><div class="title"><h1>가공계획등록</h1><small>구매관리 · 가공</small></div><section class="filt"><div class="f2"><div class="lb">제 번</div><div><input id="q_job" class="field"></div><div class="lb">품 명</div><div><input id="q_item" class="field"></div></div><div class="guide"><span class="gt">사용순서</span><span class="st"><b>1</b>제번·조 선택</span><span class="ar">▸</span><span class="st"><b>2</b>공정 수정 시 [공정저장]</span><span class="ar">▸</span><span class="st"><b>3</b>번호를 부품으로 드래그해 적용</span><span class="ar">▸</span><span class="st"><b>4</b>[저장]</span><span class="warn">※ 체크 없으면 전체 저장</span></div></section><div class="panes" style="grid-template-rows:1fr 1.2fr"><div class="panes" style="grid-template-columns:470px 1fr;grid-template-rows:1fr;padding:0;gap:8px"><div class="pane"><div class="ph">제번 리스트</div><div class="pb"><table style="min-width:0"><thead><tr><th style="width:46px">NO</th><th style="width:130px">제번</th><th style="width:64px">공정(조)수</th><th style="width:40px">조</th><th style="width:104px">가공완료일</th><th>T/O 예정일</th></tr></thead><tbody id="hbody"></tbody></table></div></div><div class="pane"><div class="ph"><div class="phbar"><span>가공 공정 리스트</span><button class="btn" onclick="routeAdd()" title="기준공정 열을 추가합니다">+ 기준공정</button><button class="btn" onclick="routeSave()" title="변경된 기준공정을 저장합니다">▤ 공정저장</button><button class="btn" onclick="routeDel()" title="선택한 기준공정을 삭제합니다">✕ 공정삭제</button><span class="sp" id="routeMsg">공정 수정 후 [▤ 공정저장] · 번호(열 머리)를 부품 리스트로 끌어 적용 · 번호 클릭=삭제 대상 선택</span></div></div><div class="pb"><table id="rtable" style="min-width:0"><thead id="rhead"></thead><tbody id="rbody"></tbody></table></div></div></div><div class="pane"><div class="ph">부품 리스트</div><div class="pb"><table style="min-width:1500px"><thead><tr><th style="width:36px"></th><th style="width:110px" class="sortable" id="thPno" onclick="psort('part_no')">부품코드<span class="ar"></span></th><th style="width:180px" class="sortable" id="thPnm" onclick="psort('part_name')">부품명<span class="ar"></span></th><th style="width:90px">기준공정</th><th style="width:88px">공정1</th><th style="width:88px">공정2</th><th style="width:88px">공정3</th><th style="width:88px">공정4</th><th style="width:88px">공정5</th><th style="width:88px">공정6</th><th style="width:88px">공정7</th><th style="width:88px">공정8</th><th style="width:88px">공정9</th><th style="width:88px">공정10</th><th style="width:88px">공정11</th><th style="width:88px">공정12</th></tr></thead><tbody id="pbody"></tbody></table></div></div></div> <footer class="foot"><button class="btn" onclick="search()">⌕ 검색</button><button class="btn" onclick="save()">▤ 저장</button><button class="btn" onclick="del_()">✕ 삭제</button><button class="btn" onclick="pr()">▤ PRINT</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">제번을 선택하면 부품별 가공공정이 표시됩니다.</span><span class="right" id="countText"></span></footer></div><script>const heads=[];const routes=[];const parts=[];const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const n=v=>v==null?'':Number(v).toLocaleString();const p=v=>v==null?'':Number(v).toFixed(2)+'%';
 const msg=t=>message.textContent=t;
 let view=[...heads];
@@ -97,12 +103,40 @@ function render(){
 }
 let selIdx=-1;
 const PROW=p=>`<tr class="${p.row_no==null?'unsaved':''}" title="${p.row_no==null?'미저장 — PartList 기본값. [저장]하면 가공계획으로 확정됩니다':''}"><td class="c"><input type="checkbox" data-i="${parts.indexOf(p)}" data-row="${p.row_no??''}"></td><td>${esc(p.part_no)}${p.row_no==null?' <span class="us">미저장</span>':''}</td><td>${esc(p.part_name)}</td><td class="c">${esc(p.standard_process||'')}</td>${cells(p.steps,12)}</tr>`;
+/* v95: 부품 리스트 정렬 — 제목행(부품코드·부품명) 클릭으로 오름/내림/해제 순환.
+   parts 배열 자체는 건드리지 않고 화면만 정렬한다 (PROW 의 data-i=parts.indexOf 가 그대로 유효).
+   체크 상태는 재렌더 후 되살린다. */
+var PSORT={key:'',dir:1};
+function prows(){
+ if(!PSORT.key)return parts.slice();
+ const k=PSORT.key,d=PSORT.dir;
+ return parts.slice().sort((a,b)=>d*String(a[k]||'').localeCompare(String(b[k]||''),'ko',{numeric:true}));
+}
+function prender(){
+ const on=new Set([...document.querySelectorAll('#pbody input[type=checkbox]:checked')].map(c=>c.dataset.i));
+ pbody.innerHTML=parts.length?prows().map(PROW).join(''):PEMPTY;
+ on.forEach(i=>{const cb=document.querySelector(`#pbody input[data-i="${i}"]`);if(cb)cb.checked=true});
+ markSortHead();
+}
+function markSortHead(){
+ const m={part_no:'thPno',part_name:'thPnm'};
+ Object.keys(m).forEach(k=>{const th=document.getElementById(m[k]);if(!th)return;
+  const on=PSORT.key===k;th.classList.toggle('on',on);
+  const ar=th.querySelector('.ar');if(ar)ar.textContent=on?(PSORT.dir>0?'▲':'▼'):''});
+}
+function psort(k){
+ if(PSORT.key!==k){PSORT.key=k;PSORT.dir=1}
+ else if(PSORT.dir>0)PSORT.dir=-1;
+ else {PSORT.key='';PSORT.dir=1}
+ prender();
+ msg(PSORT.key?`${k==='part_no'?'부품코드':'부품명'} ${PSORT.dir>0?'오름차순':'내림차순'} 정렬`:'정렬을 해제했습니다 (등록 순서).');
+}
 const PEMPTY='<tr><td colspan="16" class="c" style="height:100px;color:#8a97a2">이 조의 PartList 부품이 없습니다. 설계관리 &gt; PartList 등록(원재료)에서 해당 조로 부품을 먼저 등록하세요.</td></tr>';
 function pick(i,tr){const r=view[i];if(!r)return;selIdx=i;
  document.querySelectorAll('#hbody tr').forEach((x,k)=>x.classList.toggle('sel',k===i));
  if(typeof loadParts==='function')return loadParts(r.job_no,r.jo);
  const rs=parts.filter(p=>p.job_no===r.job_no);
- pbody.innerHTML=rs.length?rs.map(PROW).join(''):PEMPTY;
+ prender();
  msg(`${r.job_no} / ${r.jo}조 (${r.jo}/${r.set_qty}) · 부품 ${rs.length}건`);}
 function search(){const j=q_job.value.trim().toLowerCase(),it=q_item.value.trim().toLowerCase();
  view=heads.filter(r=>(!j||String(r.job_no||'').toLowerCase().includes(j))
@@ -450,7 +484,7 @@ function applyRouteCore(ri,idx,recheck){
  idx=(idx||[]).filter(k=>parts[k]);
  if(!idx.length)return rmsg('적용할 부품 행이 없습니다.',1);
  idx.forEach(k=>{const p=parts[k];p.steps=[...seq];p.standard_process=r.standard_process_name});
- pbody.innerHTML=parts.map(PROW).join('');
+  prender();
  /* v89: 개별 드롭(recheck=false)은 행을 자동 체크하지 않는다 —
     연달아 다른 행에 개별 드롭할 때 앞 행이 대상에 끼는 것을 막는다 */
  if(recheck!==false)idx.forEach(k=>{const cb=document.querySelector(`#pbody input[data-i="${k}"]`);if(cb)cb.checked=true});
@@ -530,7 +564,7 @@ async function loadParts(job,jo){
   rs.forEach(r=>{if(seen.has(String(r.part_no||'')))return;
    parts.push({row_no:r.row_no,job_no:job,part_no:r.part_no,part_name:r.part_name||'',
      standard_process:r.standard_process||'',steps:Array.isArray(r.steps)?r.steps:[]})});
-  pbody.innerHTML=parts.length?parts.map(PROW).join(''):PEMPTY;
+  prender();
   q_job.value=job;
   const unsaved=parts.filter(p=>p.row_no==null).length;
   msg(`${job} ${jo}조 · 부품 ${parts.length}건`+
