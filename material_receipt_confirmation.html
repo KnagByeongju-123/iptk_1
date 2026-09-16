@@ -63,25 +63,6 @@ function syncChkAll(){
  const cs=chks(),on=cs.filter(c=>c.checked).length;
  all.checked=cs.length>0&&on===cs.length;all.indeterminate=on>0&&on<cs.length;
 }
-/* v115: 체크 칸을 누른 채 위아래로 끌면 지나가는 행이 모두 체크된다
-   (시작 칸의 반대 상태로 칠하므로, 체크된 줄에서 시작하면 일괄 해제) */
-(function(){
- let paint=null;
- const rowChk=el=>{const tr=el&&el.closest?el.closest('#body tr'):null;
-  return tr?tr.querySelector('td:nth-child(2) input[type=checkbox]'):null};
- const set=cb=>{if(cb&&cb.checked!==paint){cb.checked=paint;summary()}};
- document.addEventListener('mousedown',e=>{
-  if(e.button!==0)return;
-  const td=e.target&&e.target.closest?e.target.closest('#body td'):null;
-  if(!td||td.cellIndex!==1)return;
-  const cb=rowChk(e.target);if(!cb)return;
-  paint=!cb.checked;set(cb);e.preventDefault();document.body.style.userSelect='none';
- });
- document.addEventListener('mousemove',e=>{if(paint!==null)set(rowChk(e.target))});
- const stop=()=>{if(paint===null)return;paint=null;document.body.style.userSelect='';summary()};
- document.addEventListener('mouseup',stop);
- document.addEventListener('mouseleave',stop);
-})();
 function pick(e,no){if(e.target.tagName==='INPUT')return;const cb=document.querySelector(`#body input[data-no="${no}"]`);if(cb){cb.checked=!cb.checked;summary()}}
 function selected(){const ids=[...document.querySelectorAll('#body input:checked')].map(x=>Number(x.dataset.no));return rows.filter(r=>ids.includes(r.no))}
 function summary(){const s=selected();total.value=money(s.reduce((a,r)=>a+(Number(r.price)||0),0));selectedText.textContent=`선택 ${s.length}건`;

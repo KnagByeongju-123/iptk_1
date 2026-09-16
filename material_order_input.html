@@ -97,25 +97,6 @@ function syncReqAll(){
 document.addEventListener('change',e=>{
  if(e.target&&e.target.closest&&e.target.closest('#reqBody'))syncReqAll();
 });
-/* 체크 칸을 누른 채 위아래로 끌어 여러 행을 한 번에 체크/해제 */
-(function(){
- if(!window.reqBody)return;
- let paint=null;
- const rowChk=el=>{const tr=el&&el.closest?el.closest('#reqBody tr'):null;
-  return tr?tr.querySelector('td:nth-child(2) input[type=checkbox]'):null};
- const set=cb=>{if(cb&&cb.checked!==paint){cb.checked=paint;cb.dispatchEvent(new Event('change',{bubbles:true}))}};
- reqBody.addEventListener('mousedown',e=>{
-  if(e.button!==0)return;
-  const td=e.target&&e.target.closest?e.target.closest('#reqBody td'):null;
-  if(!td||td.cellIndex!==1)return;
-  const cb=rowChk(e.target);if(!cb)return;
-  paint=!cb.checked;set(cb);e.preventDefault();document.body.style.userSelect='none';
- });
- reqBody.addEventListener('mousemove',e=>{if(paint!==null)set(rowChk(e.target))});
- const stop=()=>{if(paint===null)return;paint=null;document.body.style.userSelect='';syncReqAll()};
- document.addEventListener('mouseup',stop);
- document.addEventListener('mouseleave',stop);
-})();
 /* v115: 자재표 리스트 전체선택 — 제목행 체크박스로 전체선택/해제, 개별 체크 시 상태 동기화 */
 function bomChks(){return [...bomBody.querySelectorAll('input[type=checkbox]')]}
 function bomAllToggle(el){bomChks().forEach(c=>c.checked=el.checked);syncBomAll();
@@ -128,26 +109,6 @@ function syncBomAll(){
 document.addEventListener('change',e=>{
  if(e.target&&e.target.closest&&e.target.closest('#bomBody'))syncBomAll();
 });
-/* v115: 체크 칸을 누른 채 위아래로 끌면 지나가는 행이 모두 체크된다
-   (시작 칸의 반대 상태로 칠하므로, 체크된 줄에서 시작하면 일괄 해제) */
-(function(){
- if(!window.bomBody)return;
- let paint=null;
- const rowChk=el=>{const tr=el&&el.closest?el.closest('#bomBody tr'):null;
-  return tr?tr.querySelector('td:first-child input[type=checkbox]'):null};
- const set=cb=>{if(cb&&cb.checked!==paint){cb.checked=paint;cb.dispatchEvent(new Event('change',{bubbles:true}))}};
- bomBody.addEventListener('mousedown',e=>{
-  if(e.button!==0)return;
-  const td=e.target&&e.target.closest?e.target.closest('#bomBody td'):null;
-  if(!td||td.cellIndex!==0)return;
-  const cb=rowChk(e.target);if(!cb)return;
-  paint=!cb.checked;set(cb);e.preventDefault();document.body.style.userSelect='none';
- });
- bomBody.addEventListener('mousemove',e=>{if(paint!==null)set(rowChk(e.target))});
- const stop=()=>{if(paint===null)return;paint=null;document.body.style.userSelect='';syncBomAll()};
- document.addEventListener('mouseup',stop);
- document.addEventListener('mouseleave',stop);
-})();
 function renderReq(){
  /* v115: 재렌더 시 체크 상태 유지 — 입고요구일 일괄 적용 후 체크가 풀리던 문제 */
  const _on=new Set([...reqBody.querySelectorAll('input[type=checkbox]:checked')].map(c=>c.dataset.no));
