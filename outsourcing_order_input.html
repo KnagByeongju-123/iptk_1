@@ -14,10 +14,10 @@
 .ctxhint{margin-left:10px;color:#4a6b88;background:#eaf3fb;border:1px solid #c3daed;border-radius:12px;padding:3px 10px;white-space:nowrap}.ctxhint b{color:#1d5da3}
 .searchbar{height:26px;display:flex;gap:4px;align-items:center;padding:0 4px;border-bottom:1px solid var(--line2);background:#f6f8fa}.searchbar input{flex:1;min-width:0;height:20px;border:1px solid #b7c2cb;padding:0 5px;font:inherit}.searchbar input{flex:1;height:21px;border:1px solid #b7c2cb;padding:0 4px;min-width:0}.searchbar button{height:21px;border:1px solid #9ca9b5;background:linear-gradient(#fff,#e2e8ed)}
 .tablewrap{flex:1;min-height:0;overflow:auto}table{border-collapse:collapse;width:100%;table-layout:fixed}th,td{height:24px;padding:0 5px;border-right:1px solid var(--line2);border-bottom:1px solid var(--line2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}th{position:sticky;top:0;z-index:2;text-align:center;background:linear-gradient(#dbe9f4,#c7d9e8);color:#405266;font-weight:700}tbody tr:hover td{background:#edf6fd}tbody tr.sel td{background:#2e78bd;color:#fff}.c{text-align:center}.r{text-align:right}
-td.route{text-align:center;font-weight:400;color:#8b98a3;background:#fff;white-space:nowrap}
+td.route{user-select:none;text-align:center;font-weight:400;color:#8b98a3;background:#fff;white-space:nowrap}
 td.route .st{display:block;font-size:10px;line-height:13px;border-radius:7px;margin-top:1px;padding:0 4px}
 /* v112: 공용 얼룩무늬 배경(!important)이 상태색을 덮지 않도록 이 셀들도 !important 로 고정 */
-td.route{background:#fff!important}
+td.route{user-select:none;background:#fff!important}
 td.route.s-next{background:#8fdc6b!important;color:#20461a;font-weight:700;cursor:pointer}
 td.route.s-next .st{background:#2e7d32;color:#fff}
 td.route.s-ext{background:#dff5d3!important;color:#2c5a24;cursor:pointer}
@@ -70,7 +70,7 @@ tr.rdone td{color:#8b98a3}
     <span class="label">품명</span><input id="itemQ" class="field" style="width:190px">
     <span class="label">업체</span><input id="venF" class="field" style="width:190px">
     <button class="btn" onclick="search()">⌕ 조회</button>
-    <button class="btn" id="btnRefresh" onclick="refreshAll()" title="DB에서 제번·부품별 가공공정을 다시 불러옵니다 (다른 화면의 발주·입고 반영)">⟳ 새로고침</button><span class="ctxhint" title="공정 셀에서 마우스 오른쪽 버튼을 누르면 상태에 맞는 처리 창이 열립니다">※ 공정 칸 <b>마우스 우클릭</b> → 발주 · 입고 · 입고확정 · 입고취소</span>
+    <button class="btn" id="btnRefresh" onclick="refreshAll()" title="DB에서 제번·부품별 가공공정을 다시 불러옵니다 (다른 화면의 발주·입고 반영)">⟳ 새로고침</button><span class="ctxhint" title="공정 셀을 더블클릭하면 상태에 맞는 처리 창이 열립니다 (마우스 우클릭도 같은 창)">※ 공정 칸 <b>더블클릭</b> → 발주 · 입고 · 입고확정 · 입고취소</span>
   </section>
   <section class="panes">
     <div class="box"><div class="box-title">제번리스트</div><div class="tablewrap"><table>
@@ -178,9 +178,9 @@ function renderRoutes(){
   const dis=n===0||nx<0;
   /* v112: 입고는 됐지만 입고확정(전표)이 안 끝난 공정 수 — 진행은 막지 않고 표시만 한다 */
   const unfix=codes.filter((c,i)=>stepState(r,i)==='입고').length;
-  const fixTag=unfix?`<span class="tagd" style="background:#dbeaf8;color:#1a4f7a" title="현품은 입고됐지만 입고확정(전표)이 남아 있습니다. 셀을 우클릭해 확정하세요.">확정대기 ${unfix}</span>`:'';
+  const fixTag=unfix?`<span class="tagd" style="background:#dbeaf8;color:#1a4f7a" title="현품은 입고됐지만 입고확정(전표)이 남아 있습니다. 셀을 더블클릭해 확정하세요.">확정대기 ${unfix}</span>`:'';
   const tag=(n===0?'':allDone?'<span class="tagd">전공정 완료</span>':wait?`<span class="tagd">공정${codes.findIndex((c,i)=>stepState(r,i)==='')} ${stepState(r,codes.findIndex((c,i)=>stepState(r,i)==='')-1)} 대기</span>`:nx>0?`<span class="tagd">${nx}/${n} 진행</span>`:'')+fixTag;
-  const tip=allDone?'모든 가공공정이 입고되었습니다':wait?'직전 공정이 아직 입고되지 않아 다음 공정을 발주할 수 없습니다 (직전 공정 셀 우클릭 → 입고 처리)':'';
+  const tip=allDone?'모든 가공공정이 입고되었습니다':wait?'직전 공정이 아직 입고되지 않아 다음 공정을 발주할 수 없습니다 (직전 공정 셀 더블클릭 → 입고 처리)':'';
   return `<tr class="${dis&&n?'rdone':''}"${tip?` title="${_esc(tip)}"`:''}>`+
    `<td class="c"><input type="checkbox" data-i="${ri}"${dis?' disabled':''}${picks.length?' checked':''} onchange="pickRow(${ri},this.checked)"></td>`+
    `<td class="c">${_esc(String(r.jo||'').replace(/조$/,''))}</td>`+
@@ -196,7 +196,7 @@ function renderRoutes(){
      else if(nx>=0&&i>nx){cls='s-ext'}
      const click=(cls==='s-next'||cls==='s-ext'||cls==='s-pick')?` onclick="pickCell(${ri},${i})"`:'';
      const t=`공정${i+1} ${c}`+(o.vendor?` · ${o.vendor}`:'')+(st?` · ${st}`:cls==='s-ext'?' · 클릭하면 다음 공정부터 여기까지 같은 업체에 발주':'');
-     return `<td class="route ${cls}" title="${_esc(t)} · 우클릭: 발주/입고/확정" oncontextmenu="return ctxMenu(event,${ri},${i})"${click}>${_esc(procName(c))}${lab?`<span class="st">${lab}</span>`:''}</td>`}).join('')+
+     return `<td class="route ${cls}" title="${_esc(t)} · 더블클릭: 발주/입고/확정" ondblclick="return ctxMenu(event,${ri},${i})" oncontextmenu="return ctxMenu(event,${ri},${i})"${click}>${_esc(procName(c))}${lab?`<span class="st">${lab}</span>`:''}</td>`}).join('')+
    `</tr>`}).join('');
 }
 function renderReq(){reqBody.innerHTML=REQ.map((r,i)=>`<tr><td class="c">${i+1}</td><td class="c"><input type="checkbox" data-no="${r.no}"></td><td>${r.vendor}</td><td>${r.job}</td><td>${r.item}</td><td class="c">${r.proc}</td><td class="c">${r.procName}</td><td>${r.part}</td><td>${r.partName}</td><td class="c">${r.sn||""}${r.snOf?"/"+r.snOf:""}</td><td class="c">${r.mp}</td><td>${r.mpName}</td><td class="c"><input value="${r.qty??1}" style="width:52px;text-align:right;padding:1px 4px;border:1px solid #b7c2cb" onclick="event.stopPropagation()" onchange="setQty(${r.no},this.value)"></td><td class="c">${r.odate}</td><td class="c">${r.rdate}</td><td>${r.remark}</td><td class="c">${r.writer}</td></tr>`).join('');countText.textContent=`제번 ${jobView.length}건 / 요청 ${REQ.length}건`}
@@ -373,7 +373,7 @@ function ctxMenu(ev,ri,i){
  const head=`<div class="sub"><b>${_esc(j.job||'')}</b> · ${_esc(r.part)} ${_esc(r.name||'')} · <b>공정${i+1}</b> ${_esc(procName(c))}${o.vendor?` · ${_esc(o.vendor)}`:''}</div>`;
  if(st===''){
   if(i===nx)return ctxOrder(ev,head);
-  if(nx===-2||i>nx)return ctxInfo(ev,'발주 대기',head+`<div class="note">직전 공정의 현품이 아직 <b>입고</b>되지 않아 이 공정은 발주할 수 없습니다.<br>직전 공정 셀을 우클릭해 <b>입고 처리</b>하면 여기에 <b>▶ 다음</b>이 표시됩니다. (입고확정(전표)은 나중에 해도 됩니다)</div>`);
+  if(nx===-2||i>nx)return ctxInfo(ev,'발주 대기',head+`<div class="note">직전 공정의 현품이 아직 <b>입고</b>되지 않아 이 공정은 발주할 수 없습니다.<br>직전 공정 셀을 더블클릭해 <b>입고 처리</b>하면 여기에 <b>▶ 다음</b>이 표시됩니다. (입고확정(전표)은 나중에 해도 됩니다)</div>`);
   return ctxInfo(ev,'발주 불가',head+`<div class="note">발주 가능한 순서가 아닙니다.</div>`);
  }
  if(st==='요청')return ctxReq(ev,head);
@@ -498,7 +498,7 @@ async function ctxReceiveNow(){
  const b=document.getElementById('cxGo');if(b){b.disabled=true;b.textContent='처리 중…'}
  try{
   await ospRpc('fn_osp_receive',{p_line_id:Number(l.line_id),p_qty:q,p_date:_v('cxInDate')||T0(),p_short:short,p_source:'발주화면',p_remark:_v('cxInRemark')||null});
-  await ctxAfter(job.job,`${r.part} 공정${i+1} ${procName(c)} 입고 ${q}개${rest&&!short?` (잔량 ${rest} 대기)`:''} — 다음 공정을 바로 발주할 수 있습니다. 입고확정(전표)은 이 셀을 다시 우클릭해 나중에 처리하세요.`);
+  await ctxAfter(job.job,`${r.part} 공정${i+1} ${procName(c)} 입고 ${q}개${rest&&!short?` (잔량 ${rest} 대기)`:''} — 다음 공정을 바로 발주할 수 있습니다. 입고확정(전표)은 이 셀을 다시 더블클릭해 나중에 처리하세요.`);
  }catch(e){msg('입고 실패: '+String(e.message||e).slice(0,120));if(b){b.disabled=false;b.textContent='▣ 입고 처리'}}
 }
 
