@@ -57,16 +57,7 @@ table{border-collapse:collapse;min-width:1040px;width:100%;table-layout:fixed}th
 .phbar .sp{margin-left:auto;font-weight:400;color:#5d6f7f;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 td.pad0{padding:1px 2px}
 .rsel{width:100%;height:23px;border:1px solid #c3ccd4;background:#fff;font:inherit;padding:0 1px}
-/* v91: 공정 칸 색상박스 — 공정1~6 순서색, 열처리는 위치 무관 붉은색 */
-.rsel.on{color:#fff;font-weight:700;border-radius:6px;text-align:center;text-align-last:center}
-.rsel.on option{color:#222;background:#fff;font-weight:400}
-.rsel.on.c0{background:#4472c4;border-color:#365ea6}
-.rsel.on.c1{background:#ed7d31;border-color:#c96420}
-.rsel.on.c2{background:#ffc000;border-color:#d9a400;color:#4a3b00}
-.rsel.on.c3{background:#a5a5a5;border-color:#8b8b8b}
-.rsel.on.c4{background:#548235;border-color:#44692b}
-.rsel.on.c5{background:#a9d18e;border-color:#8fbc74;color:#2f4f1e}
-.rsel.on.hq{background:#c0392b!important;border-color:#992d22!important;color:#fff!important}
+.rsel.on{background:#eef5fc;border-color:#6f9fd0}
 .rname{width:100%;height:23px;border:1px solid #c3ccd4;background:#fff;font:inherit;padding:0 4px}
 /* v87: 행열 전환 — 기준공정이 열, 공정1~10이 행 */
 #rtable th[data-i],#rtable td[data-i],#rtable th.phc,#rtable td.phc{width:140px;min-width:140px;max-width:140px}
@@ -292,16 +283,30 @@ function buildOpts(){
 function routeName(a){const nm=(a||[]).filter(Boolean).map(c=>PROCN[c]||c);
  return nm.length?`${nm.join('·')} (${nm.length}공정)`.slice(0,80):''}
 /* v87: 행열 전환 — 기준공정을 열로, 기준공정명·공정1~6을 행으로 그린다 */
-/* v91: 공정 칸 색 — 순서색 c0~c5, 공정명에 '열처리'가 들어가면 hq(빨강) */
+/* v93: 공정 칸 색 — 파스텔 톤 [배경, 글자, 테두리]. 열처리는 순서 무관 옅은 붉은색.
+   mes_ctx 콤보박스가 select 를 숨기고 input 을 보여주므로(__mescbBox.inp)
+   색은 인라인 스타일로 select 와 콤보 input 양쪽에 입힌다. */
+var STEPCOL=[['#dbe7f8','#2b4c7e','#a9c3e4'],['#fbe2cd','#9c5314','#e5b98f'],
+ ['#fcf3cf','#7d6608','#e6d18a'],['#e9ecef','#4f5a63','#c6ccd2'],
+ ['#dcebd2','#3d6327','#b0cf94'],['#edf6e4','#4d7434','#c9dfb1']];
+var HQCOL=['#f6d9d4','#a93226','#d98880'];
 function paintStep(sl,k,v){
  if(!sl)return;
- sl.classList.remove('hq');for(let x=0;x<RSEQN;x++)sl.classList.remove('c'+x);
- const on=!!v;sl.classList.toggle('on',on);
- if(!on)return;
- sl.classList.add('c'+(k%6));
- const nm=String(PROCN[v]||v||'');
- if(v==='HQ'||nm.indexOf('열처리')>=0)sl.classList.add('hq');
+ sl.classList.toggle('on',!!v);
+ const nm=String((typeof PROCN!=='undefined'&&PROCN[v])||v||'');
+ const c=!v?null:(v==='HQ'||nm.indexOf('열처리')>=0)?HQCOL:STEPCOL[k%6];
+ const set=el=>{if(!el)return;const t=el.tagName==='SELECT';
+  el.style.background=c?c[0]:'';el.style.color=c?c[1]:'';
+  el.style.borderColor=c?c[2]:'';el.style.fontWeight=c?'700':'';
+  el.style.borderRadius=c?'6px':'';el.style.textAlign=c?'center':'';
+  if(t)el.style.textAlignLast=c?'center':'';};
+ set(sl);
+ if(sl.__mescbBox)set(sl.__mescbBox.inp);
 }
+/* 콤보 변환(감시 250ms 디바운스)이 렌더보다 늦게 끝나므로 몇 차례 다시 칠한다 */
+function repaintSteps(){rbody.querySelectorAll('select.rsel[data-i]').forEach(sl=>{
+ const i=+sl.dataset.i,k=+sl.dataset.k;paintStep(sl,k,((routes[i]||{}).steps||[])[k]||'')})}
+function repaintLater(){[300,800,1600].forEach(t=>setTimeout(repaintSteps,t))}
 var RPAD=4;  /* v88: 뒤에 붙는 빈공정 열 수 */
 function phStep(k,el){
  const v=String(el&&el.value||'').trim();if(!v)return;
@@ -341,6 +346,7 @@ function renderRoutes(){
  });
  routes.forEach((r,i)=>markColDirty(i,!!r._dirty));
  markRouteHead();
+ repaintLater();
 }
 function markRouteHead(){
  document.querySelectorAll('#rhead th[data-i]').forEach(x=>x.classList.toggle('hsel',+x.dataset.i===routeIdx))}
