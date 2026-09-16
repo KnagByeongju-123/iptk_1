@@ -7,6 +7,14 @@
 (function(){
 if(window.__mesCtx)return; window.__mesCtx=1;
 
+/* v114: 화면 안의 ○제목 블록(.screen>.title)을 숨긴다 — 셸(index.html) 경로표시의
+   마지막 항목이 제목 역할을 하므로 중복이고, 화면마다 세로 약 40px 를 되찾는다.
+   유지가 필요한 화면은 window.MES_CTX_OPT={keepTitle:true} */
+try{if(!(window.MES_CTX_OPT&&window.MES_CTX_OPT.keepTitle)){
+ const st=document.createElement('style');st.id='mesTitleOff';
+ st.textContent='.screen>.title,body>.title{display:none!important}';
+ document.head.appendChild(st)}}catch(e){}
+
 const DEL_TXT=/삭제|취소|제거|remove|delete/i;
 const NOGUARD=/^\s*msg\s*\(|closeActive|close\w*\(|hide\w*\(/i;  /* 안내문구·닫기 버튼 제외 */
 const HARD=/삭제|제거|remove|delete/i;           /* 삭제 = 되돌리기 어려움 */
@@ -696,6 +704,7 @@ window.MESCTX={confirm:dlgConfirm};
  *                빈 곳에 놓으면 그 자리로 자유 이동. 원래 자리는 빈 칸(placeholder)으로 남겨 나머지 배치가 흐트러지지 않는다.
  *                [원래 자리] 버튼으로 되돌린다. 위치는 버튼과 같은 pos_x/pos_y 에 저장.
  *   [표 열 폭]   v104: 표 머리글(th) → 열 폭 조절. v114: 진입을 길게 누르기에서 3회 연속 클릭으로 변경.
+ *   [제목 숨김]  v114: 화면 안 ○제목(.screen>.title) 숨김 — 셸 경로표시 마지막 항목이 제목을 대신한다.
  *                열은 '표(블록/id)+머리글 글자' 로 식별해 저장하므로 열이 추가돼도 유지된다.
  *   리스트제목은 .ph/.hd/.cap/.caption 외에 .grid-title/.box-title/.sheet-head 도 인식한다 (v104).
  *   v106: 블록·열은 왼쪽 핸들로도 폭을 조절한다 (화면 오른쪽 끝에 붙은 블록은 오른쪽 핸들을 잡을 수 없었다).
