@@ -138,6 +138,34 @@ function prows(){
 document.addEventListener('change',e=>{
  if(e.target&&e.target.matches&&e.target.matches('#pbody input[type=checkbox]'))syncPchkAll();
 });
+/* v100: 체크 칸을 누른 채 위아래로 끌면 지나가는 행이 모두 체크된다.
+   처음 누른 칸의 반대 상태로 칠하므로, 체크된 줄을 끌면 일괄 해제가 된다.
+   (부품 리스트의 첫 칸에서 시작할 때만 동작 — 기준공정 드래그와 겹치지 않는다) */
+(function(){
+ if(!window.pbody)return;
+ let paint=null;
+ const cbOf=el=>{const td=el&&el.closest?el.closest('#pbody td'):null;
+  return td&&td.cellIndex===0?td.querySelector('input[type=checkbox]'):null};
+ const set=cb=>{if(cb&&cb.checked!==paint){cb.checked=paint;cb.dispatchEvent(new Event('change',{bubbles:true}))}};
+ pbody.addEventListener('mousedown',e=>{
+  if(e.button!==0)return;
+  const cb=cbOf(e.target);if(!cb)return;
+  paint=!cb.checked;               /* 시작 칸의 반대 상태로 칠한다 */
+  set(cb);
+  e.preventDefault();              /* 드래그 중 글자 선택 방지 */
+  document.body.style.userSelect='none';
+ });
+ pbody.addEventListener('mouseover',e=>{if(paint===null)return;set(cbOf(e.target))});
+ /* 행 어디를 지나도 그 행의 체크 칸이 잡히도록 (셀 사이 이동 대응) */
+ pbody.addEventListener('mousemove',e=>{
+  if(paint===null)return;
+  const tr=e.target&&e.target.closest?e.target.closest('#pbody tr'):null;
+  if(tr)set(tr.querySelector('td:first-child input[type=checkbox]'));
+ });
+ const stop=()=>{if(paint===null)return;paint=null;document.body.style.userSelect='';syncPchkAll()};
+ document.addEventListener('mouseup',stop);
+ document.addEventListener('mouseleave',stop);
+})();
 function prender(){
  const on=new Set([...document.querySelectorAll('#pbody input[type=checkbox]:checked')].map(c=>c.dataset.i));
  pbody.innerHTML=parts.length?prows().map(PROW).join(''):PEMPTY;
