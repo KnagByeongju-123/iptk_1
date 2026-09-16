@@ -458,6 +458,7 @@ var RDRAG=-1;
  const prow=e=>{const tr=e.target&&e.target.closest?e.target.closest('#pbody tr'):null;
   return tr&&tr.querySelector('input[data-i]')?tr:null};
  rh.addEventListener('dragstart',e=>{
+  if(document.body.classList.contains('mes-le-on'))return;  /* 배치 편집 중에는 드래그 잠금 */
   const th=e.target&&e.target.closest?e.target.closest('th[data-i]'):null;
   if(!th)return;
   RDRAG=+th.dataset.i;

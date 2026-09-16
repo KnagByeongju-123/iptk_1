@@ -691,7 +691,7 @@ window.MESCTX={confirm:dlgConfirm};
  *   [입력칸 자유 이동] v103: 입력칸(라벨과 한 묶음)을 끌어서 다른 칸 위에 놓으면 자리 바꿈,
  *                빈 곳에 놓으면 그 자리로 자유 이동. 원래 자리는 빈 칸(placeholder)으로 남겨 나머지 배치가 흐트러지지 않는다.
  *                [원래 자리] 버튼으로 되돌린다. 위치는 버튼과 같은 pos_x/pos_y 에 저장.
- *   [표 열 폭]   v104: 표 머리글(th)을 길게 누르면 그 열 선택 → 오른쪽 핸들 또는 폭 입력으로 열 폭 조절.
+ *   [표 열 폭]   v104: 표 머리글(th) → 열 폭 조절. v114: 진입을 길게 누르기에서 3회 연속 클릭으로 변경.
  *                열은 '표(블록/id)+머리글 글자' 로 식별해 저장하므로 열이 추가돼도 유지된다.
  *   리스트제목은 .ph/.hd/.cap/.caption 외에 .grid-title/.box-title/.sheet-head 도 인식한다 (v104).
  *   v106: 블록·열은 왼쪽 핸들로도 폭을 조절한다 (화면 오른쪽 끝에 붙은 블록은 오른쪽 핸들을 잡을 수 없었다).
@@ -1077,8 +1077,11 @@ window.MESCTX={confirm:dlgConfirm};
     drag={mode:'bmove',el:bk,x0:e.clientX,y0:e.clientY,moved:false,over:null}},600)};return}
   /* v107: 라벨 길게 누르기 → 단독 자유 이동 */
   if(lb){press={el:lb,x:e.clientX,y:e.clientY,t:setTimeout(()=>{press=null;enter(lb,false);drag=labDrag(lb)},600)};return}
-  /* v104: 표 머리글 길게 누르기 → 열 폭 편집 */
-  if(cl){press={el:cl,x:e.clientX,y:e.clientY,t:setTimeout(()=>{press=null;enter(cl,false);hint('오른쪽 핸들을 끌거나 폭을 입력하세요 — 열 폭')},600)};return}
+  /* v104: 표 머리글 → 열 폭 편집.
+     v114: 진입을 길게 누르기에서 '3회 연속 클릭'으로 변경 — 머리글을 끌어 쓰는
+     화면(가공계획등록 기준공정 열 등)에서 드래그와 길게 누르기가 겹치기 때문.
+     e.detail 은 브라우저가 세는 연속 클릭 수(더블클릭 간격·이동 허용치 기준). */
+  if(cl){if(e.detail>=3){e.preventDefault();enter(cl,false);hint('오른쪽 핸들을 끌거나 폭을 입력하세요 — 열 폭')}return}
   /* v83: 버튼 길게 누르기 → 자유 이동 (놓기 전까지 버튼 동작은 막는다) */
   if(bt){press={el:bt,x:e.clientX,y:e.clientY,t:setTimeout(()=>{press=null;swallow=true;enter(bt,false);
     if(on)drag=freeDrag(bt)},600)}}
