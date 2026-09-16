@@ -60,7 +60,11 @@ td.pad0{padding:1px 2px}
 .rsel.on{background:#eef5fc;border-color:#6f9fd0}
 .rname{width:100%;height:23px;border:1px solid #c3ccd4;background:#fff;font:inherit;padding:0 4px}
 /* v87: 행열 전환 — 기준공정이 열, 공정1~10이 행 */
-#rtable th[data-i],#rtable td[data-i]{min-width:150px}
+#rtable th[data-i],#rtable td[data-i],#rtable th.phc,#rtable td.phc{width:140px;min-width:140px;max-width:140px}
+#rtable th.phc{color:#aeb9c4;font-weight:400}
+#rtable td.phc{background:#fbfcfe}
+#rtable td.phc .rsel{color:#9aa7b2}
+#rtable td.phc .rname[disabled]{background:#f4f7fa;border-color:#dde4ea}
 #rtable th[data-i].sel,#rtable td[data-i].sel{background:#dbeaf7;color:var(--ink)}
 #rtable th[data-i].dirty,#rtable td[data-i].dirty{background:#fff6e0}
 #rtable th[data-i].dirty.sel,#rtable td[data-i].dirty.sel{background:#f6ecd4}
@@ -276,23 +280,35 @@ function buildOpts(){
 }
 function routeName(a){const nm=(a||[]).filter(Boolean).map(c=>PROCN[c]||c);
  return nm.length?`${nm.join('·')} (${nm.length}공정)`.slice(0,80):''}
-/* v87: 행열 전환 — 기준공정을 열로, 기준공정명·공정1~10을 행으로 그린다 */
+/* v87: 행열 전환 — 기준공정을 열로, 기준공정명·공정1~6을 행으로 그린다 */
+var RPAD=4;  /* v88: 뒤에 붙는 빈공정 열 수 */
+function phStep(k,el){
+ const v=String(el&&el.value||'').trim();if(!v)return;
+ const no=routes.reduce((m,r)=>Math.max(m,Number(r.standard_process_no)||0),0)+1;
+ const r={row_no:null,standard_process_no:no,standard_process_name:'',
+   steps:Array.from({length:k+1},(_,x)=>x===k?v:''),_dirty:true,_new:true};
+ r.standard_process_name=routeName(r.steps);
+ routes.push(r);routeIdx=routes.length-1;
+ renderRoutes();
+ const th=document.querySelector(`#rhead th[data-i="${routeIdx}"]`);
+ if(th&&th.scrollIntoView)th.scrollIntoView({block:'nearest',inline:'nearest'});
+ msg(`기준공정 ${no} 열이 추가되었습니다. 공정을 더 고른 뒤 [▤ 공정저장]하세요.`);
+}
 function markColDirty(i,on){document.querySelectorAll(`#rtable th[data-i="${i}"],#rtable td[data-i="${i}"]`)
  .forEach(x=>x.classList.toggle('dirty',on!==false))}
 function renderRoutes(){
  if(!window.rbody)return;
  const rh=document.getElementById('rhead');
  routeIdx=-1;
- if(!routes.length){
-  if(rh)rh.innerHTML='';
-  rbody.innerHTML='<tr><td class="c" style="height:80px;color:#8a97a2;padding:0 20px">등록된 기준공정이 없습니다. [+ 기준공정]으로 공정순서를 만드세요.</td></tr>';
-  return;
- }
+ /* v88: 데이터 열 뒤에 빈공정 4열을 항상 붙여 균형을 맞춘다.
+    빈공정 열에서 공정을 고르면 새 기준공정이 자동 추가된다. */
+ const PH=Array.from({length:RPAD});
  if(rh)rh.innerHTML='<tr><th class="rlb"><input type="checkbox" onclick="rchkAll(this)" title="전체선택"> 기준공정</th>'
-  +routes.map((r,i)=>`<th data-i="${i}"><label style="cursor:pointer" title="체크하면 [부품에 적용] 대상이 됩니다"><input type="checkbox" class="rchk" data-i="${i}" onchange="pickRouteChk(${i},this)"> ${esc(r.standard_process_no??'')}</label></th>`).join('')+'</tr>';
+  +routes.map((r,i)=>`<th data-i="${i}"><label style="cursor:pointer" title="체크하면 [부품에 적용] 대상이 됩니다"><input type="checkbox" class="rchk" data-i="${i}" onchange="pickRouteChk(${i},this)"> ${esc(r.standard_process_no??'')}</label></th>`).join('')
+  +PH.map(()=>'<th class="phc" title="아래에서 공정을 고르면 새 기준공정이 추가됩니다">＋</th>').join('')+'</tr>';
  rbody.innerHTML=
-  `<tr><td class="rlb">기준공정명</td>${routes.map((r,i)=>`<td class="pad0" data-i="${i}"><input class="rname" data-i="${i}" value="${esc(r.standard_process_name||'')}" placeholder="자동생성" oninput="routeNameEdit(${i},this.value)"></td>`).join('')}</tr>`
-  +Array.from({length:RSEQN},(_,k)=>`<tr><td class="rlb">공정${k+1}</td>${routes.map((r,i)=>`<td class="pad0" data-i="${i}"><select class="rsel" data-i="${i}" data-k="${k}" onchange="routeStep(${i},${k},this.value)">${OPTS}</select></td>`).join('')}</tr>`).join('');
+  `<tr><td class="rlb">기준공정명</td>${routes.map((r,i)=>`<td class="pad0" data-i="${i}"><input class="rname" data-i="${i}" value="${esc(r.standard_process_name||'')}" placeholder="자동생성" oninput="routeNameEdit(${i},this.value)"></td>`).join('')}${PH.map(()=>'<td class="pad0 phc"><input class="rname" disabled placeholder="자동생성"></td>').join('')}</tr>`
+  +Array.from({length:RSEQN},(_,k)=>`<tr><td class="rlb">공정${k+1}</td>${routes.map((r,i)=>`<td class="pad0" data-i="${i}"><select class="rsel" data-i="${i}" data-k="${k}" onchange="routeStep(${i},${k},this.value)">${OPTS}</select></td>`).join('')}${PH.map(()=>`<td class="pad0 phc"><select class="rsel" onchange="phStep(${k},this)">${OPTS}</select></td>`).join('')}</tr>`).join('');
  rbody.querySelectorAll('select.rsel').forEach(sl=>{
   const i=+sl.dataset.i,k=+sl.dataset.k;
   const v=((routes[i]||{}).steps||[])[k]||'';
