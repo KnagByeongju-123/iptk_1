@@ -1,75 +1,213 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PartList 현황</title><style>
-:root{--line:#98a6b2;--line2:#c5d0d8;--blue:#2f75b5;--ink:#344757;--head1:#e8f1f8;--head2:#c8dbe9}
-*{box-sizing:border-box}html,body{height:100%;margin:0}body{font-family:"Malgun Gothic","맑은 고딕",Arial,sans-serif;font-size:12px;color:var(--ink);background:#fff;overflow:hidden}
-button,input,select{font:inherit;color:inherit}.screen{height:100%;display:flex;flex-direction:column;background:#fff}
-.title{height:48px;padding:8px 14px 5px;border-bottom:2px solid #3978ae;display:flex;align-items:center}.title h1{margin:0;font-size:22px;font-weight:500;color:#4b5c6a}.title h1:before{content:'◯';margin-right:6px;color:#8796a1}.title small{font-size:11px;color:#9ca7af;margin-left:12px}
-.form{padding:7px 14px;background:#fafbfc;border-bottom:1px solid var(--line2)}.formrow{display:grid;grid-template-columns:78px 140px 78px 150px 90px 150px 90px minmax(160px,1fr);gap:5px;align-items:center}.formrow+.formrow{margin-top:5px}.label{font-weight:700}.field{height:27px;border:1px solid #b5c0c9;background:#fff;padding:0 6px;min-width:0}
-.entrybox,.gridbox{margin:0 14px;border:1px solid var(--line);overflow:auto;background:#fff}.entrybox{height:190px}.gridbox{flex:1;min-height:0}
-.searchline{height:39px;margin:0 14px;display:flex;align-items:center;gap:5px;border-left:1px solid var(--line);border-right:1px solid var(--line);padding:4px 8px;background:#f6f8fa}.searchline input{width:min(430px,48vw);height:27px;border:1px solid #aeb9c3;padding:0 7px}
-.btn{height:29px;min-width:62px;border:1px solid #9ba8b4;background:linear-gradient(#fff,#dfe6eb);cursor:pointer}.btn:hover{background:#fff}
-table{border-collapse:collapse;min-width:1040px;width:100%;table-layout:fixed}th,td{height:27px;border-right:1px solid var(--line2);border-bottom:1px solid var(--line2);padding:0 7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}th{position:sticky;top:0;z-index:2;text-align:center;background:linear-gradient(var(--head1),var(--head2));color:#405266}tbody tr:nth-child(even) td{background:#fafcfd}tbody tr:hover td{background:#edf6fd}tbody tr.sel td{background:#2d75b7;color:#fff}.c{text-align:center}.num{text-align:right}.toolbar{height:40px;display:flex;align-items:center;gap:5px;padding:4px 14px;background:#f5f7f8;border-bottom:1px solid var(--line2)}
-.foot{height:42px;display:flex;align-items:center;padding:5px 14px;border-top:1px solid var(--line);background:#eef2f5;gap:5px}.msg{margin-left:8px;color:#687784}.right{margin-left:auto;color:#7c8993}
-.split{flex:1;min-height:0;display:grid;grid-template-rows:1fr 1fr;gap:10px;padding:0 14px 8px}.split .gridbox{margin:0}
-@media(max-width:900px){.formrow{grid-template-columns:78px 1fr 78px 1fr}.entrybox,.gridbox,.searchline{margin-left:6px;margin-right:6px}}
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PartList 현황</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;font:12px "Malgun Gothic","맑은 고딕",sans-serif;color:#1f2d3a;background:#fff}
+.screen{display:flex;flex-direction:column;height:100vh}
+.title{display:flex;align-items:baseline;gap:10px;padding:10px 14px 8px;border-bottom:2px solid #2f5f8a}
+.title h1{margin:0;font-size:21px;font-weight:400}
+.title small{color:#7a8894;font-size:11px}
+.filt{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 14px;background:#f4f8fb;border-bottom:1px solid #d5dee6}
+.lb{font-weight:700;color:#34495c;white-space:nowrap}
+.field{height:26px;border:1px solid #aeb9c3;padding:2px 6px;font:inherit;background:#fff}
+.hint{color:#5a6a78;margin-left:8px}
+.gridbox{flex:1;overflow:auto;margin:0 0 0 0;border-top:1px solid #c3ccd4}
+table{border-collapse:collapse;width:100%}
+th,td{border:1px solid #d3dbe2;height:27px;padding:0 7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+th{position:sticky;top:0;z-index:1;background:#dfe8f0;font-weight:400;color:#2a3b4a}
+tbody tr:nth-child(even){background:#f3f7fb}
+tbody tr:hover{background:#e3eefa;cursor:pointer}
+tbody tr.sel{background:#d6e7f8}
+.c{text-align:center}.num{text-align:right}
+.foot{display:flex;align-items:center;gap:4px;padding:6px 8px;border-top:1px solid #c3ccd4;background:#f4f8fb}
+.btn{height:28px;padding:0 10px;border:1px solid #9fb0bf;background:#fff;font:inherit;color:#2a3b4a;cursor:pointer}
+.btn:hover{background:#eaf2fa}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.red{border-color:#c98a8a;color:#a03235}
+.btn.pri{background:#2f75b5;border-color:#2f75b5;color:#fff}
+.msg{margin-left:10px;color:#2f5f8a;font-weight:700}
+.right{margin-left:auto;color:#7a8894}
+.xmask{display:none;position:fixed;inset:0;background:rgba(20,30,40,.35);z-index:50;align-items:center;justify-content:center}
+.xmask.on{display:flex}
+.xdlg{background:#f4f8fb;border:1px solid #7f93a6;box-shadow:0 6px 24px rgba(0,0,0,.25);width:min(520px,94vw)}
+.xhead{display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:#e3ebf2;border-bottom:1px solid #c3ccd4;font-weight:700}
+.xhead button{border:0;background:#c9474b;color:#fff;width:24px;height:20px;cursor:pointer}
+.xbody{padding:10px}
+.xrow{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+</style></head><body><div class="screen">
+<div class="title"><h1>PartList 현황</h1><small>설계관리 · PARTLIST</small></div>
 
-.filt{padding:7px 14px;background:#fafbfc;border-bottom:1px solid var(--line2)}
-.fr{display:grid;gap:5px;align-items:center}
-.lb{font-weight:700;text-align:right;padding-right:3px}
-.opts{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
-.opts label{display:flex;align-items:center;gap:3px;cursor:pointer}
-.gtot td{background:#dfe9f2;font-weight:700}
-.grp th{background:linear-gradient(#dbe9f5,#b9d2e6)}
-.panes{flex:1;min-height:0;display:grid;gap:8px;padding:0 14px 8px}
-.pane{border:1px solid var(--line);background:#fff;display:flex;flex-direction:column;min-height:0}
-.ph{padding:5px 9px;font-weight:700;background:linear-gradient(var(--head1),var(--head2));color:#405266;border-bottom:1px solid var(--line2)}
-.pb{flex:1;min-height:0;overflow:auto}
-.f2{display:grid;grid-template-columns:repeat(4,72px minmax(110px,1fr));gap:5px;align-items:center}
-.mask{position:fixed;inset:0;background:rgba(40,50,60,.3);display:none;align-items:flex-start;justify-content:center;z-index:50}
-.mask.on{display:flex}
-.dlg{margin-top:40px;width:min(1000px,96vw);background:#f3f6f8;border:1px solid #7d8d99;box-shadow:0 8px 26px rgba(0,0,0,.25)}
-.dh{display:flex;align-items:center;height:30px;padding:0 6px 0 10px;background:linear-gradient(#eef4f9,#dbe6ef);border-bottom:1px solid #b9c6d0;font-weight:700}
-.dh button{margin-left:auto;width:26px;height:20px;border:1px solid #b04a4a;background:#c9484a;color:#fff;cursor:pointer}
-.db{padding:10px}
-.kv{display:grid;grid-template-columns:repeat(4,84px minmax(90px,1fr));gap:4px;align-items:center;margin-bottom:8px}
-.kv .lb{text-align:right}
-.kv .v{border:1px solid #c3ccd4;background:#fff;height:26px;line-height:24px;padding:0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bar{height:14px;background:#3f7fbf;border-radius:2px}
+<section class="filt">
+ <span class="lb">구 분</span>
+ <select id="q_kind" class="field" style="width:110px" onchange="render()"><option>전체</option><option>원재료</option><option>구매품</option></select>
+ <span class="lb" style="margin-left:8px">제 번</span><input id="q_job" class="field" style="width:170px">
+ <span class="hint">제번을 선택하면 PartList가 표시됩니다. 행 체크 → [✕ 삭제]</span>
+</section>
 
-/* v21 입력란 배치 보정: 좁은 폭에서 필드를 숨기지 않고 단계적으로 줄바꿈 */
-.field,.formrow input,.formrow select,.formgrid input,.formgrid select,.detail-grid input,.detail-grid select{min-width:0;max-width:100%}
-.lab,.label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-@media(max-width:1400px){.formrow{grid-template-columns:78px minmax(0,1fr) 78px minmax(0,1fr)}}
-@media(max-width:880px){.formrow{grid-template-columns:78px minmax(0,1fr)}}
-.formrow>*{min-width:0}
-</style></head><body><div class="screen"><div class="title"><h1>PartList 현황</h1><small>설계관리 · PARTLIST</small></div><section class="filt"><div class="opts"><span class="lb" style="width:44px">구 분</span><select id="q_kind" class="field" style="width:110px"><option>전체</option><option>원재료</option><option>구매품</option></select><span class="lb" style="width:44px">제 번</span><input id="q_job" class="field" style="width:150px"><span class="lb" style="width:56px">부품명</span><input id="q_part" class="field" style="width:200px"><span class="lb" style="width:44px">공 정</span><input id="q_pc" class="field" style="width:80px"><span class="lb" style="width:44px">재 질</span><input id="q_mat" class="field" style="width:100px"></div></section><div class="gridbox"><table style="min-width:1420px"><thead><tr><th style="width:46px">NO</th><th style="width:110px">제번</th><th style="width:60px">공정</th><th style="width:100px">품번</th><th style="width:180px">부품명</th><th style="width:80px">발주구분</th><th style="width:80px">재질</th><th style="width:170px">설계치수</th><th style="width:60px">수량</th><th style="width:110px">첨부</th><th style="width:80px">발주유무</th><th style="width:84px">등록자</th><th style="width:100px">등록일자</th></tr></thead><tbody id="body"></tbody><tfoot><tr class="gtot"><td colspan="13" class="c" id="totline"></td></tr></tfoot></table></div><footer class="foot"><button class="btn" onclick="search()">⌕ 검색</button><button class="btn" onclick="csv()">▤ EXCEL</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">PartList 현황을 조회합니다.</span><span class="right" id="countText"></span></footer></div><script>const data=[];const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const n=v=>v==null?'':Number(v).toLocaleString();const p=v=>v==null?'':Number(v).toFixed(2)+'%';
+<div class="gridbox"><table style="min-width:1100px"><thead><tr>
+ <th style="width:36px"><input type="checkbox" id="chkAll" onclick="chkAllRows(this.checked)" title="전체 선택"></th>
+ <th style="width:50px">No</th><th style="width:120px">품번</th><th style="width:230px">품명</th>
+ <th style="width:90px">발주구분</th><th style="width:100px">재질</th><th style="width:200px">규격</th>
+ <th style="width:70px">수량</th><th style="width:100px">등록자</th><th>등록일자</th>
+</tr></thead><tbody id="body"></tbody></table></div>
+
+<footer class="foot">
+ <button class="btn" onclick="search()">⌕ 검색</button>
+ <button class="btn" onclick="del_()">✕ 삭제</button>
+ <button class="btn red" onclick="bulkOpen()" title="제번 단위로 PartList 전체를 삭제합니다">⌧ 일괄삭제</button>
+ <button class="btn" onclick="csv()">▤ EXCEL</button>
+ <button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button>
+ <span class="msg" id="message">제번을 선택하면 PartList 현황이 표시됩니다.</span><span class="right" id="countText"></span>
+</footer>
+</div>
+
+<!-- 일괄삭제 -->
+<div class="xmask" id="dMask" onclick="if(event.target===dMask)bulkClose()"><div class="xdlg">
+ <div class="xhead"><span>PartList 일괄삭제</span><button onclick="bulkClose()">&times;</button></div>
+ <div class="xbody">
+  <div class="xrow"><span class="lb" style="width:64px">제 번</span><input id="dJob" class="field" style="width:170px" oninput="bulkReset()" onkeydown="if(event.key==='Enter')bulkCount()"><button class="btn" onclick="bulkCount()">⌕ 건수확인</button></div>
+  <div class="xrow"><span class="lb" style="width:64px">구 분</span><select id="dKind" class="field" style="width:170px" onchange="bulkInfo();bulkChk()"><option>전체</option><option>원재료</option><option>구매품</option></select></div>
+  <div id="dInfo" style="padding:8px;background:#fff;border:1px solid #cfd8e0;min-height:44px;color:#455;margin:4px 0 8px">제번을 입력하고 [건수확인]을 누르세요.</div>
+  <div style="padding:7px 8px;background:#fdecec;border:1px solid #e0b4b4;color:#8a3a3a;margin-bottom:8px">⚠ 선택한 구분의 PartList 전체가 삭제되며 복구할 수 없습니다. 확인을 위해 아래에 제번을 다시 입력하세요.</div>
+  <div class="xrow"><span class="lb" style="width:64px">확인 입력</span><input id="dConfirm" class="field" style="width:170px" oninput="bulkChk()" placeholder="위 제번과 동일하게"></div>
+  <div style="display:flex;justify-content:center;gap:8px;margin-top:10px"><button class="btn red" id="dBtn" onclick="bulkRun()" disabled>✕ 일괄삭제 실행</button><button class="btn" onclick="bulkClose()">⊠ 취소</button></div>
+ </div>
+</div></div>
+
+<script>
+/* v115: PartList 현황 — 제번 단위 조회, 열 정리(제번·공정·첨부·발주유무 제외, 설계치수→규격),
+   하단 [삭제]·[일괄삭제] 추가. 원재료 → partlist_materials / 구매품 → partlist_purchases 에서 직접 삭제 */
+const TBL={'원재료':'partlist_materials','구매품':'partlist_purchases'};
+const data=[];
+const chk=new Set();
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const msg=t=>message.textContent=t;
-let view=[...data];
-function render(){body.innerHTML=view.map(r=>`<tr><td class="c">${r.row_no}</td><td>${esc(r.job_no)}</td><td class="c">${esc(r.process_code||'')}</td><td>${esc(r.part_no)}</td><td>${esc(r.part_name||'')}</td><td class="c">${esc(r.order_type||'')}</td><td class="c">${esc(r.material||'')}</td><td>${esc(r.design_dimension||'')}</td><td class="num">${r.qty??''}</td><td>${esc(r.attachment||'')}</td><td class="c">${esc(r.order_status||'')}</td><td class="c">${esc(r.registered_by||'')}</td><td class="c">${esc(r.registered_date||'')}</td></tr>`).join('');countText.textContent=view.length+'건';}
-/* v30: 별도 테이블(partlist_status_rows) → partlist_all 뷰(원재료+구매품 통합) 실조회 */
+const fmt=v=>v==null||v===''?'':Number(v).toLocaleString();
 const online=()=>!!(window.MESDB&&MESDB.online);
-async function loadAll(){
- for(let i=0;i<60&&!window.MESDB;i++)await new Promise(r=>setTimeout(r,50));
- if(window.MESDB&&MESDB.ready){try{await MESDB.ready}catch(e){}}
- if(!online()){render();return}
+async function waitDB(){for(let i=0;i<60&&!window.MESDB;i++)await new Promise(r=>setTimeout(r,50));
+ if(window.MESDB&&MESDB.ready){try{await MESDB.ready}catch(e){}}}
+let curJob=null;
+const curJobNo=()=>(q_job.value||curJob||'').trim();
+const view=()=>{const k=q_kind.value;return data.filter(r=>k==='전체'||r.order_type===k)};
+const rowById=id=>data.find(r=>r._id===id);
+
+function render(){
+ const v=view();
+ body.innerHTML=v.length?v.map((r,i)=>`<tr class="${chk.has(r._id)?'sel':''}" onclick="rowClick(${r._id},event)"><td class="c"><input type="checkbox" ${chk.has(r._id)?'checked':''} onclick="toggleChk(${r._id},this.checked)"></td><td class="c">${i+1}</td><td>${esc(r.part_no)}</td><td>${esc(r.part_name||'')}</td><td class="c">${esc(r.order_type||'')}</td><td class="c">${esc(r.material||'')}</td><td>${esc(r.design_dimension||r.spec||'')}</td><td class="num">${fmt(r.qty)}</td><td class="c">${esc(r.registered_by||'')}</td><td class="c">${esc(r.registered_date||'')}</td></tr>`).join('')
+  :`<tr><td colspan="10" class="c" style="height:120px;color:#8a97a2">${curJob?'등록된 PartList가 없습니다.':'제번을 선택하세요.'}</td></tr>`;
+ chkAll.checked=v.length>0&&v.every(r=>chk.has(r._id));
+ const sc=v.filter(r=>chk.has(r._id)).length;
+ countText.textContent=`${v.length}건`+(sc?` · 선택 ${sc}`:'');
+}
+function toggleChk(id,on){on?chk.add(id):chk.delete(id);render()}
+function chkAllRows(on){view().forEach(r=>on?chk.add(r._id):chk.delete(r._id));render()}
+function rowClick(id,e){if(e&&e.target&&e.target.type==='checkbox')return;toggleChk(id,!chk.has(id))}
+
+async function loadJob(job){
+ await waitDB();
+ const nj=(job||curJob||'').trim();if(!nj){render();return}
+ if(!online()){msg('DB 미연결 상태입니다.');render();return}
+ if(nj!==curJob)chk.clear();
+ curJob=nj;
  try{
-  const rs=await MESDB.table('partlist_all').select('select=*&order=job_no,process_code,part_no');
-  data.length=0;data.push(...rs.map((r,i)=>({...r,row_no:i+1,order_status:r.order_status||''})));
-  search();
-  msg(`PartList ${data.length}건 (원재료 ${rs.filter(r=>r.order_type==='원재료').length} / 구매품 ${rs.filter(r=>r.order_type==='구매품').length})`);
+  const rs=await MESDB.table('partlist_all').select(`select=*&job_no=eq.${encodeURIComponent(nj)}&order=order_type,part_no`);
+  data.length=0;
+  rs.forEach((r,i)=>data.push({...r,_id:i+1}));
+  chk.clear();render();
+  const nm=rs.filter(r=>r.order_type==='원재료').length,np=rs.filter(r=>r.order_type==='구매품').length;
+  msg(`${nj} PartList ${rs.length}건 (원재료 ${nm} / 구매품 ${np})`);
  }catch(e){msg('조회 실패: '+String(e.message||e).slice(0,120));render()}
 }
-function search(){const k=q_kind.value,j=q_job.value.trim().toLowerCase(),p=q_part.value.trim().toLowerCase(),pc=q_pc.value.trim().toLowerCase(),m=q_mat.value.trim().toLowerCase();
- view=data.filter(r=>(k==='전체'||r.order_type===k)&&(!j||r.job_no.toLowerCase().includes(j))&&(!p||String(r.part_name??'').toLowerCase().includes(p))
-  &&(!pc||String(r.process_code??'').toLowerCase().includes(pc))&&(!m||String(r.material??'').toLowerCase().includes(m)));
- render();msg(`조회결과 ${view.length}건입니다.`);}
+function search(){const j=curJobNo();if(!j){msg('제번을 먼저 선택하세요.');q_job.focus();return}loadJob(j)}
+const notify=()=>{try{MESDB.notify&&MESDB.notify(['partlist_materials','partlist_purchases'])}catch(e){}};
+
+/* 선택 삭제 — 원본 테이블에서 제번+공정+품번 키로 삭제 */
+async function del_(){
+ const sel=view().filter(r=>chk.has(r._id));
+ if(!sel.length){msg('삭제할 행을 체크하세요.');return}
+ if(!online()){msg('DB 미연결 상태에서는 삭제할 수 없습니다.');return}
+ const nm=sel.filter(r=>r.order_type==='원재료').length,np=sel.length-nm;
+ if(!confirm(`제번 ${curJob}\n선택한 ${sel.length}건을 삭제합니다. (원재료 ${nm} / 구매품 ${np})\n\n복구할 수 없습니다. 진행할까요?`))return;
+ let ok=0;const bad=[];
+ for(const r of sel){
+  const t=TBL[r.order_type];
+  if(!t){bad.push(r.part_no);continue}
+  try{
+   const f={job_no:r.job_no,part_no:r.part_no};
+   if(r.process_code!=null&&r.process_code!=='')f.process_code=r.process_code;
+   await MESDB.table(t).delete(f);ok++;
+  }catch(e){bad.push(r.part_no)}
+ }
+ notify();await loadJob(curJob);
+ msg(`${ok}건을 삭제했습니다.`+(bad.length?` · 실패 ${bad.length}건 (${bad.slice(0,5).join(', ')})`:''));
+}
+
+/* 일괄삭제 (제번 단위) — 건수확인 → 구분 선택 → 제번 재입력 → 실행 */
+let dCnt={'원재료':0,'구매품':0};
+const dTarget=()=>dKind.value==='전체'?dCnt['원재료']+dCnt['구매품']:dCnt[dKind.value];
+function bulkOpen(){
+ if(!online()){msg('DB 미연결 상태에서는 삭제할 수 없습니다.');return}
+ dJob.value=curJobNo();dKind.value=q_kind.value;dConfirm.value='';bulkReset();
+ dMask.classList.add('on');
+ if(dJob.value)bulkCount();else setTimeout(()=>dJob.focus(),50);
+}
+function bulkClose(){dMask.classList.remove('on')}
+function bulkReset(){dCnt={'원재료':0,'구매품':0};dBtn.disabled=true;dInfo.textContent='제번을 입력하고 [건수확인]을 누르세요.'}
+function bulkChk(){const j=(dJob.value||'').trim();dBtn.disabled=!(j&&dTarget()>0&&(dConfirm.value||'').trim()===j)}
+function bulkInfo(){
+ const j=(dJob.value||'').trim(),tot=dCnt['원재료']+dCnt['구매품'];
+ if(!tot){dInfo.textContent=`제번 ${j} 에 등록된 PartList가 없습니다.`;return}
+ dInfo.innerHTML=`제번 <b>${esc(j)}</b> · 원재료 ${dCnt['원재료']}건 / 구매품 ${dCnt['구매품']}건<br>`
+  +`삭제 대상(${esc(dKind.value)}) <b style="color:#a03235">${dTarget()}건</b>`;
+}
+async function bulkCount(){
+ const job=(dJob.value||'').trim();
+ if(!job){dInfo.textContent='제번을 입력하세요.';return}
+ dBtn.disabled=true;dInfo.textContent='조회 중…';
+ try{
+  for(const k of Object.keys(TBL)){
+   const rs=await MESDB.table(TBL[k]).select(`select=row_no&job_no=eq.${encodeURIComponent(job)}`);
+   dCnt[k]=rs.length;
+  }
+  bulkInfo();bulkChk();
+ }catch(e){dInfo.textContent='조회 실패: '+String(e.message||e).slice(0,120)}
+}
+async function bulkRun(){
+ const job=(dJob.value||'').trim(),k=dKind.value,n=dTarget();
+ if(!n){dInfo.textContent='삭제할 대상이 없습니다.';return}
+ if(!confirm(`제번 ${job} / ${k}\nPartList ${n}건을 모두 삭제합니다.\n\n복구할 수 없습니다. 진행할까요?`))return;
+ dBtn.disabled=true;dInfo.textContent='삭제 중…';
+ try{
+  const ks=k==='전체'?Object.keys(TBL):[k];
+  for(const x of ks)if(dCnt[x])await MESDB.table(TBL[x]).delete({job_no:job});
+  notify();
+  dInfo.innerHTML=`<b style="color:#1d6b3a">${n}건을 삭제했습니다.</b>`;
+  msg(`제번 ${job} ${k} PartList ${n}건 일괄삭제 완료`);
+  dConfirm.value='';
+  if(curJobNo()===job)await loadJob(job);
+  setTimeout(bulkClose,800);
+ }catch(e){dInfo.textContent='삭제 실패: '+String(e.message||e).slice(0,120);bulkChk()}
+}
+
 function csv(){
- const h=['NO','제번','공정','품번','부품명','발주구분','재질','설계치수','수량','첨부','발주유무','등록자','등록일자'];
- const rows=view.map(r=>[r.row_no,r.job_no,r.process_code,r.part_no,r.part_name,r.order_type,r.material,r.design_dimension,r.qty,r.attachment,r.order_status,r.registered_by,r.registered_date]);
- const t='\ufeff'+[h,...rows].map(a=>a.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\n');
+ const v=view();
+ if(!v.length){msg('내보낼 행이 없습니다.');return}
+ const h=['No','품번','품명','발주구분','재질','규격','수량','등록자','등록일자'];
+ const rows=v.map((r,i)=>[i+1,r.part_no,r.part_name,r.order_type,r.material,r.design_dimension||r.spec,r.qty,r.registered_by,r.registered_date]);
+ const t='\ufeff'+[h,...rows].map(a=>a.map(x=>'"'+String(x??'').replaceAll('"','""')+'"').join(',')).join('\n');
  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv;charset=utf-8'}));
- a.download='partlist_status.csv';a.click();URL.revokeObjectURL(a.href);msg(`${view.length}건을 엑셀로 내보냈습니다.`)}
-window.MES={search,setMessage:msg};render();</script><script src="mes_db.js?v=67"></script>
-<script>loadAll();</script>
-<script src="mes_ctx.js?v=67"></script>
+ a.download=`partlist_status_${curJob||'all'}.csv`;a.click();URL.revokeObjectURL(a.href);
+ msg(`${v.length}건을 엑셀로 내보냈습니다.`);
+}
+
+window.MES={search,setMessage:msg,reload:loadJob};render();
+(async()=>{await waitDB();const j=curJobNo();if(j)loadJob(j)})();
+</script>
+<script src="mes_db.js?v=114"></script>
+<script src="mes_ctx.js?v=114"></script>
+<script src="mes_jobpick.js?v=114"></script>
+<script>/* 제번 직접 타이핑 → 등록된 수주 목록에서 선택 */
+MESJOB.attach("q_job",{onPick:j=>loadJob(j)});
+q_job.addEventListener('keydown',e=>{if(e.key==='Enter')search()});</script>
 </body></html>
