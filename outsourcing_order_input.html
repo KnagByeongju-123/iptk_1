@@ -76,9 +76,9 @@ tr.rdone td{color:#8b98a3}
     <div class="box"><div class="box-title">제번리스트</div><div class="tablewrap"><table>
       <colgroup><col style="width:34%"><col style="width:34%"><col style="width:16%"><col style="width:16%"></colgroup>
       <thead><tr><th>제번</th><th>품명</th><th>공정</th><th>공정명</th></tr></thead><tbody id="jobBody"></tbody></table></div></div>
-    <div class="box"><div class="box-title">부품별 가공공정 리스트<span class="legend"><i style="background:#8fdc6b"></i>다음 공정(클릭)<i style="background:#8e6bb0"></i>요청<i style="background:#e07a1f"></i>출고<i style="background:#2f6fb5"></i>입고<i style="background:#8b98a3"></i>완료</span></div><div class="tablewrap"><table style="min-width:852px">
-      <!-- v115: 열 13개에 맞춰 colgroup 재작성(기존 12개라 폭이 한 칸씩 밀렸다). 공정(조)·부품코드를 줄이고 부품명을 넓혀 전체 이름이 보이게 하고, 공정1~7 이 화면에 들어오도록 폭을 잡았다 --><colgroup><col style="width:30px"><col style="width:44px"><col style="width:92px"><col style="width:140px"><col style="width:78px"><col style="width:78px"><col style="width:78px"><col style="width:78px"><col style="width:78px"><col style="width:78px"><col style="width:78px"></colgroup>
-      <thead><tr><th></th><th title="공정(조)">조</th><th>부품코드</th><th>부품명</th><th>공정1</th><th>공정2</th><th>공정3</th><th>공정4</th><th>공정5</th><th>공정6</th><th>공정7</th></tr></thead>
+    <div class="box"><div class="box-title">부품별 가공공정 리스트<span class="legend"><i style="background:#8fdc6b"></i>다음 공정(클릭)<i style="background:#8e6bb0"></i>요청<i style="background:#e07a1f"></i>출고<i style="background:#2f6fb5"></i>입고<i style="background:#8b98a3"></i>완료</span></div><div class="tablewrap"><table style="min-width:888px">
+      <!-- v115: 열 13개에 맞춰 colgroup 재작성(기존 12개라 폭이 한 칸씩 밀렸다). 공정(조)·부품코드를 줄이고 부품명을 넓혀 전체 이름이 보이게 하고, 공정1~7 이 화면에 들어오도록 폭을 잡았다 --><colgroup><col style="width:30px"><col style="width:44px"><col style="width:92px"><col style="width:132px"><col style="width:44px"><col style="width:78px"><col style="width:78px"><col style="width:78px"><col style="width:78px"><col style="width:78px"><col style="width:78px"><col style="width:78px"></colgroup>
+      <thead><tr><th></th><th title="공정(조)">조</th><th>부품코드</th><th>부품명</th><th title="가공계획 부품 수량 — 발주 기본 수량">수량</th><th>공정1</th><th>공정2</th><th>공정3</th><th>공정4</th><th>공정5</th><th>공정6</th><th>공정7</th></tr></thead>
       <tbody id="routeBody"></tbody></table></div></div>
     <div class="box"><div class="box-title">협력업체리스트</div>
       <div class="searchbar"><input id="venQ" placeholder="업체 검색" oninput="venFind()" title="입력하면 협력업체가 걸러집니다 (Esc: 지우기)" onkeydown="if(event.key==='Escape'){this.value='';venFind()}"></div>
@@ -186,6 +186,7 @@ function renderRoutes(){
    `<td class="c">${_esc(String(r.jo||'').replace(/조$/,''))}</td>`+
    `<td>${_esc(r.part)}${tag}</td>`+
    `<td>${_esc(r.name)}</td>`+
+   `<td class="c">${r.qty==null?'':Number(r.qty)}</td>`+
    (r.steps||[]).map((s,i)=>{const c=stepCode(s);if(!c)return '<td></td>';
      const o=stepInfo(r,i),st=o.st;
      let cls='',lab='';
@@ -219,7 +220,7 @@ async function pushDown(){const j=jobView[jobIdx];if(!j)return;
   if(!idx.length){_skip.push(p.part);return}
   const n=(p.steps||[]).map(stepCode).filter(Boolean).length;
   idx.forEach(i=>{const mp=stepCode(p.steps[i]);
-   REQ.push({no:REQ.length?Math.max(...REQ.map(r=>r.no))+1:1,vendor:curVendor(),job:j.job,item:j.item,proc:(p.jo||j.proc||'1'),procName:joName(p.jo||j.proc||'1',j.setQty||1),part:p.part,partName:p.name,sn:i+1,snOf:n,mp,mpName:procName(mp),qty:1,odate:new Date().toISOString().slice(0,10),rdate:d,remark:'',writer:OWNER,price:0,amount:0});_added++});
+   REQ.push({no:REQ.length?Math.max(...REQ.map(r=>r.no))+1:1,vendor:curVendor(),job:j.job,item:j.item,proc:(p.jo||j.proc||'1'),procName:joName(p.jo||j.proc||'1',j.setQty||1),part:p.part,partName:p.name,sn:i+1,snOf:n,mp,mpName:procName(mp),qty:(Number(p.qty)||1),odate:new Date().toISOString().slice(0,10),rdate:d,remark:'',writer:OWNER,price:0,amount:0});_added++});
   PICK.delete(ri);
  });
  if(!_added){renderRoutes();return msg('선택한 부품은 지금 발주할 수 있는 공정이 없습니다. (직전 공정 입고 대기 또는 전공정 완료)')}
@@ -295,14 +296,16 @@ async function loadRoutes(){
     .select(`select=*&job_no=eq.${encodeURIComponent(j.job)}&order=row_no`);
   if(rs.length){
    rs.forEach(r=>ROUTES.push({part:r.part_no,name:r.part_name||'',jo:joNum(r.process_code),
+     qty:(r.qty!=null?Number(r.qty):1),   /* v115: 가공계획의 부품 수량 = 외주가공 발주 기본 수량 */
      steps:(Array.isArray(r.steps)?r.steps:[]).map(stepCode).filter(Boolean).slice(0,MAXSTEP)}));
   }else{
    /* 2순위: PartList 부품 × 기준공정(가공 기준공정관리 1번) */
    const [pm,std]=await Promise.all([
-     MESDB.table('partlist_materials').select(`select=part_no,part_name,process_code&job_no=eq.${encodeURIComponent(j.job)}&order=row_no`),
+     MESDB.table('partlist_materials').select(`select=part_no,part_name,process_code,qty&job_no=eq.${encodeURIComponent(j.job)}&order=row_no`),
      MESDB.table('machining_standard_routes').select('select=*&order=standard_process_no&limit=1')]);
    const steps=(std&&std[0]&&Array.isArray(std[0].steps))?std[0].steps:[];
-   pm.forEach(r=>ROUTES.push({part:r.part_no,name:r.part_name||'',jo:joNum(r.process_code),steps:steps.map(stepCode).filter(Boolean).slice(0,MAXSTEP)}));
+   pm.forEach(r=>ROUTES.push({part:r.part_no,name:r.part_name||'',jo:joNum(r.process_code),
+     qty:(r.qty!=null?Number(r.qty):1),steps:steps.map(stepCode).filter(Boolean).slice(0,MAXSTEP)}));
    if(pm.length&&!steps.length)msg('기준공정(가공 기준공정관리)이 없어 공정이 비어 있습니다.');
   }
   await loadOrdered(j.job);
@@ -389,7 +392,7 @@ async function ctxOrder(ev,head){
  ctxOpen(ev,`공정${i+1} ${procName(c)} — 발주`,'k-order',head+`
   <div class="g">
    <label>협력업체</label><select id="cxVendor" class="full" onchange="ctxPrice()"><option value="">(업체 선택)</option>${vopts}</select>
-   <label>수량</label><input id="cxQty" class="r" value="1" inputmode="numeric" onchange="ctxAmt()">
+   <label>수량</label><input id="cxQty" class="r" value="${Number(r.qty)||1}" inputmode="numeric" onchange="ctxAmt()">
    <label>발주일</label><input id="cxOdate" type="date" value="${today}" onchange="ctxPrice()">
    <label>입고요구일</label><input id="cxRdate" type="date" value="${rd}">
    <label>단가</label><input id="cxPrice" class="r" value="" placeholder="예: 45,000" inputmode="numeric" onchange="ctxPriceEdit()">

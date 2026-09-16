@@ -201,7 +201,7 @@ async function load(manual){
  try{
   const [rs,pl]=await Promise.all([
    MESDB.table('order_lines').select('select=*&category=eq.외주가공&order=job_no,part_no,step_no,line_id',o),
-   MESDB.table('machining_plan_parts').select('select=job_no,part_no,part_name,process_code,steps,row_no&order=job_no,row_no',o).catch(()=>[])
+   MESDB.table('machining_plan_parts').select('select=job_no,part_no,part_name,process_code,steps,row_no,qty&order=job_no,row_no',o).catch(()=>[])
   ]);
   lines=rs||[];PLAN=pl||[];booting=false;
   if(!Object.keys(PROCN).length){
@@ -228,7 +228,7 @@ function build(){
   const codes=(Array.isArray(pl.steps)?pl.steps:[]).map(stepCode).filter(Boolean);
   if(!codes.length)continue;
   const k=key(pl.job_no,pl.part_no);
-  if(!g.has(k))g.set(k,{job:pl.job_no||'',part:pl.part_no||'',partName:pl.part_name||'',proc:pl.process_code||'',steps:[],planned:true});
+  if(!g.has(k))g.set(k,{job:pl.job_no||'',part:pl.part_no||'',partName:pl.part_name||'',proc:pl.process_code||'',qty:(pl.qty!=null?Number(pl.qty):1),steps:[],planned:true});
   const t=g.get(k);
   codes.forEach((c,i)=>{t.steps[i]={plan:true,job_no:pl.job_no,part_no:pl.part_no,part_name:pl.part_name||'',
     machining_process_code:c,step_no:i+1,status:'',vendor_name:'',required_date:null}});
@@ -236,9 +236,10 @@ function build(){
  /* 2) 실제 발주 라인으로 덮어쓴다 (순번 없으면 뒤에 붙인다) */
  for(const l of lines){
   const k=key(l.job_no,l.part_no);
-  if(!g.has(k))g.set(k,{job:l.job_no||'',part:l.part_no||'',partName:l.part_name||'',proc:l.process_code||'',steps:[],planned:false});
+  if(!g.has(k))g.set(k,{job:l.job_no||'',part:l.part_no||'',partName:l.part_name||'',proc:l.process_code||'',qty:(n0(l.order_qty)||1),steps:[],planned:false});
   const t=g.get(k);
   if(!t.partName&&l.part_name)t.partName=l.part_name;
+  if(!t.qty)t.qty=n0(l.order_qty)||1;
   const i=n0(l.step_no)-1;
   if(i>=0)t.steps[i]=l; else t.steps.push(l);
  }
@@ -335,7 +336,7 @@ function stepBox(l,i,p){
  return `<div class="stp ${ST[st].cls}${plan?' plan':''}${ready?' ready':''}${lt?' lt':''}"><div class="bx">
   <small>공정${n0(l.step_no)||i+1} · ${lt?'지연':ready?'발주가능':plan?'계획':ST[st].n}</small>
   <b>${esc(pName(code)||code)}</b>
-  <span class="vd">${esc(plan?'—':(l.vendor_name||'업체 미지정'))}</span>
+  <span class="vd">${esc(plan?'—':(l.vendor_name||'업체 미지정'))}${plan?'':` · ${n0(l.order_qty)||p.qty||1}개${n0(l.receipt_qty)?` (입고 ${n0(l.receipt_qty)})`:''}`}</span>
   <span class="dtx">${esc(dtx)}</span>
  </div></div>`;
 }
@@ -354,7 +355,7 @@ function renderPipe(){
     return `<i style="flex:1;background:${col}"></i>`}).join('');
    return `<div class="pcard${p.late?' late':''}">
     <div class="phead" onclick="toggle('${esc(key)}')">
-     <span class="pn">${esc(p.part)}</span><span class="pc">${esc(p.partName||'')}${p.proc?' · '+esc(p.proc):''}</span>
+     <span class="pn">${esc(p.part)}</span><span class="pc">${esc(p.partName||'')}${p.proc?' · '+esc(p.proc):''}${p.qty?' · 수량 '+n0(p.qty):''}</span>
      ${p.late?'<span class="dchip bad">지연</span>':p.readyIdx>=0?'<span class="dchip mut" style="background:var(--blue2);color:var(--blued)">발주가능</span>':''}
      ${p.planN?`<span class="dchip mut" title="가공계획에는 있으나 아직 발주하지 않은 공정">미발주 ${p.planN}</span>`:''}
      <span class="stpro"><span class="sb">${segs}</span><span class="tx num">${p.doneN}/${p.steps.length}</span>
