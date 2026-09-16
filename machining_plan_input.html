@@ -59,15 +59,17 @@ td.pad0{padding:1px 2px}
 .rsel{width:100%;height:23px;border:1px solid #c3ccd4;background:#fff;font:inherit;padding:0 1px}
 .rsel.on{background:#eef5fc;border-color:#6f9fd0}
 .rname{width:100%;height:23px;border:1px solid #c3ccd4;background:#fff;font:inherit;padding:0 4px}
-#rbody tr.sel td{background:#dbeaf7;color:var(--ink)}
-#rbody tr.dirty td{background:#fff6e0}
-#rbody tr.dirty.sel td{background:#f6ecd4}
+/* v87: 행열 전환 — 기준공정이 열, 공정1~10이 행 */
+#rtable th[data-i],#rtable td[data-i]{min-width:150px}
+#rtable th[data-i].sel,#rtable td[data-i].sel{background:#dbeaf7;color:var(--ink)}
+#rtable th[data-i].dirty,#rtable td[data-i].dirty{background:#fff6e0}
+#rtable th[data-i].dirty.sel,#rtable td[data-i].dirty.sel{background:#f6ecd4}
+#rtable th[data-i].sel{box-shadow:inset 0 -2px 0 #2e78bd}
+#rtable .rlb{position:sticky;left:0;z-index:1;background:#eef2f6;font-weight:700;color:#3d4c59;text-align:center;white-space:nowrap;width:84px;min-width:84px}
+#rtable .dirty .rname{border-color:#d8a33c}
 #pbody tr.unsaved td{color:#7a8794}
 #pbody tr.unsaved .us{font-size:10px;color:#c0392b;border:1px solid #e3b4ae;border-radius:8px;padding:0 5px;margin-left:4px;vertical-align:1px}
-#rbody tr.sel td{box-shadow:inset 0 -2px 0 #2e78bd}
-#rbody tr.sel td:first-child{box-shadow:inset 2px 0 0 #2e78bd,inset 0 -2px 0 #2e78bd}
-#rbody tr.dirty .rname{border-color:#d8a33c}
-</style></head><body><div class="screen"><div class="title"><h1>가공계획등록</h1><small>구매관리 · 가공</small></div><section class="filt"><div class="f2"><div class="lb">제 번</div><div><input id="q_job" class="field"></div><div class="lb">품 명</div><div><input id="q_item" class="field"></div></div><div class="guide"><span class="gt">사용순서</span><span class="st"><b>1</b>제번·조 선택</span><span class="ar">▸</span><span class="st"><b>2</b>기준공정 체크</span><span class="ar">▸</span><span class="st"><b>3</b>공정 수정 시 [공정저장]</span><span class="ar">▸</span><span class="st"><b>4</b>[부품에 적용]</span><span class="ar">▸</span><span class="st"><b>5</b>[저장]</span><span class="warn">※ 체크 없으면 전체 저장</span></div></section><div class="panes" style="grid-template-rows:1fr 1.2fr"><div class="panes" style="grid-template-columns:470px 1fr;grid-template-rows:1fr;padding:0;gap:8px"><div class="pane"><div class="ph">제번 리스트</div><div class="pb"><table style="min-width:0"><thead><tr><th style="width:46px">NO</th><th style="width:130px">제번</th><th style="width:64px">공정(조)수</th><th style="width:40px">조</th><th style="width:104px">가공완료일</th><th>T/O 예정일</th></tr></thead><tbody id="hbody"></tbody></table></div></div><div class="pane"><div class="ph"><div class="phbar"><span>가공 공정 리스트</span><button class="btn" onclick="routeAdd()" title="기준공정 행을 추가합니다">+ 행추가</button><button class="btn" onclick="routeSave()" title="변경된 기준공정을 저장합니다">▤ 공정저장</button><button class="btn" onclick="routeDel()" title="체크한 기준공정을 삭제합니다">✕ 공정삭제</button><button class="btn" onclick="applySeq()" title="선택한 기준공정의 공정순서를 아래 부품에 적용합니다">▣ 부품에 적용</button><span class="sp" id="routeMsg">공정 칸을 드롭다운으로 직접 고른 뒤 [▤ 공정저장]</span></div></div><div class="pb"><table style="min-width:860px"><thead><tr><th style="width:32px"><input type="checkbox" onclick="rchkAll(this)" title="전체선택"></th><th style="width:62px">기준공정</th><th style="width:170px">기준공정명</th><th style="width:96px">공정1</th><th style="width:96px">공정2</th><th style="width:96px">공정3</th><th style="width:96px">공정4</th><th style="width:96px">공정5</th><th style="width:96px">공정6</th></tr></thead><tbody id="rbody"></tbody></table></div></div></div><div class="pane"><div class="ph">부품 리스트</div><div class="pb"><table style="min-width:1500px"><thead><tr><th style="width:36px"></th><th style="width:110px">부품코드</th><th style="width:180px">부품명</th><th style="width:90px">기준공정</th><th style="width:88px">공정1</th><th style="width:88px">공정2</th><th style="width:88px">공정3</th><th style="width:88px">공정4</th><th style="width:88px">공정5</th><th style="width:88px">공정6</th><th style="width:88px">공정7</th><th style="width:88px">공정8</th><th style="width:88px">공정9</th><th style="width:88px">공정10</th><th style="width:88px">공정11</th><th style="width:88px">공정12</th></tr></thead><tbody id="pbody"></tbody></table></div></div></div> <footer class="foot"><button class="btn" onclick="search()">⌕ 검색</button><button class="btn" onclick="save()">▤ 저장</button><button class="btn" onclick="del_()">✕ 삭제</button><button class="btn" onclick="pr()">▤ PRINT</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">제번을 선택하면 부품별 가공공정이 표시됩니다.</span><span class="right" id="countText"></span></footer></div><script>const heads=[];const routes=[];const parts=[];const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+</style></head><body><div class="screen"><div class="title"><h1>가공계획등록</h1><small>구매관리 · 가공</small></div><section class="filt"><div class="f2"><div class="lb">제 번</div><div><input id="q_job" class="field"></div><div class="lb">품 명</div><div><input id="q_item" class="field"></div></div><div class="guide"><span class="gt">사용순서</span><span class="st"><b>1</b>제번·조 선택</span><span class="ar">▸</span><span class="st"><b>2</b>기준공정 체크</span><span class="ar">▸</span><span class="st"><b>3</b>공정 수정 시 [공정저장]</span><span class="ar">▸</span><span class="st"><b>4</b>[부품에 적용]</span><span class="ar">▸</span><span class="st"><b>5</b>[저장]</span><span class="warn">※ 체크 없으면 전체 저장</span></div></section><div class="panes" style="grid-template-rows:1fr 1.2fr"><div class="panes" style="grid-template-columns:470px 1fr;grid-template-rows:1fr;padding:0;gap:8px"><div class="pane"><div class="ph">제번 리스트</div><div class="pb"><table style="min-width:0"><thead><tr><th style="width:46px">NO</th><th style="width:130px">제번</th><th style="width:64px">공정(조)수</th><th style="width:40px">조</th><th style="width:104px">가공완료일</th><th>T/O 예정일</th></tr></thead><tbody id="hbody"></tbody></table></div></div><div class="pane"><div class="ph"><div class="phbar"><span>가공 공정 리스트</span><button class="btn" onclick="routeAdd()" title="기준공정 열을 추가합니다">+ 기준공정</button><button class="btn" onclick="routeSave()" title="변경된 기준공정을 저장합니다">▤ 공정저장</button><button class="btn" onclick="routeDel()" title="체크한 기준공정을 삭제합니다">✕ 공정삭제</button><button class="btn" onclick="applySeq()" title="선택한 기준공정의 공정순서를 아래 부품에 적용합니다">▣ 부품에 적용</button><span class="sp" id="routeMsg">공정 칸을 드롭다운으로 직접 고른 뒤 [▤ 공정저장]</span></div></div><div class="pb"><table id="rtable" style="min-width:0"><thead id="rhead"></thead><tbody id="rbody"></tbody></table></div></div></div><div class="pane"><div class="ph">부품 리스트</div><div class="pb"><table style="min-width:1500px"><thead><tr><th style="width:36px"></th><th style="width:110px">부품코드</th><th style="width:180px">부품명</th><th style="width:90px">기준공정</th><th style="width:88px">공정1</th><th style="width:88px">공정2</th><th style="width:88px">공정3</th><th style="width:88px">공정4</th><th style="width:88px">공정5</th><th style="width:88px">공정6</th><th style="width:88px">공정7</th><th style="width:88px">공정8</th><th style="width:88px">공정9</th><th style="width:88px">공정10</th><th style="width:88px">공정11</th><th style="width:88px">공정12</th></tr></thead><tbody id="pbody"></tbody></table></div></div></div> <footer class="foot"><button class="btn" onclick="search()">⌕ 검색</button><button class="btn" onclick="save()">▤ 저장</button><button class="btn" onclick="del_()">✕ 삭제</button><button class="btn" onclick="pr()">▤ PRINT</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">제번을 선택하면 부품별 가공공정이 표시됩니다.</span><span class="right" id="countText"></span></footer></div><script>const heads=[];const routes=[];const parts=[];const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const n=v=>v==null?'':Number(v).toLocaleString();const p=v=>v==null?'':Number(v).toFixed(2)+'%';
 const msg=t=>message.textContent=t;
 let view=[...heads];
@@ -266,7 +268,7 @@ async function loadHeads(){
  * 기준공정(machining_standard_routes)의 공정1~10을 그리드 안에서 드롭다운으로
  * 직접 고르고, 행 추가 / 저장 / 삭제까지 한 화면에서 처리한다. */
 /* 아래 선언들은 상단 render() 최초 호출보다 늦게 평가되므로 var/함수선언(호이스팅)로 둔다 */
-var RSEQN=6, routeIdx=-1  /* v86: 공정 칸 6개 (7~10 사용 안 함) */, OPTS='<option value=""></option>';
+var RSEQN=6, routeIdx=-1  /* v87: 행열 전환(기준공정=열) · 공정1~6까지 사용 */, OPTS='<option value=""></option>';
 function buildOpts(){
  OPTS='<option value=""></option>'+Object.keys(PROCN)
   .sort((a,b)=>String(PROCN[a]||a).localeCompare(String(PROCN[b]||b),'ko'))
@@ -274,17 +276,23 @@ function buildOpts(){
 }
 function routeName(a){const nm=(a||[]).filter(Boolean).map(c=>PROCN[c]||c);
  return nm.length?`${nm.join('·')} (${nm.length}공정)`.slice(0,80):''}
-function RROW(r,i){return `<tr data-i="${i}" class="${r._dirty?'dirty':''}">`
- +`<td class="c pad0"><input type="checkbox" class="rchk" data-i="${i}" onclick="event.stopPropagation()" onchange="pickRouteChk(${i},this)"></td>`
- +`<td class="c">${esc(r.standard_process_no??'')}</td>`
- +`<td class="pad0"><input class="rname" data-i="${i}" value="${esc(r.standard_process_name||'')}" placeholder="자동생성" oninput="routeNameEdit(${i},this.value)" onclick="event.stopPropagation()"></td>`
- +Array.from({length:RSEQN},(_,k)=>`<td class="pad0"><select class="rsel" data-i="${i}" data-k="${k}" onchange="routeStep(${i},${k},this.value)" onclick="event.stopPropagation()">${OPTS}</select></td>`).join('')
- +`</tr>`}
-function REMPTY(){return `<tr><td colspan="${RSEQN+3}" class="c" style="height:80px;color:#8a97a2">등록된 기준공정이 없습니다. [+ 행추가]로 공정순서를 만드세요.</td></tr>`}
+/* v87: 행열 전환 — 기준공정을 열로, 기준공정명·공정1~10을 행으로 그린다 */
+function markColDirty(i,on){document.querySelectorAll(`#rtable th[data-i="${i}"],#rtable td[data-i="${i}"]`)
+ .forEach(x=>x.classList.toggle('dirty',on!==false))}
 function renderRoutes(){
  if(!window.rbody)return;
- rbody.innerHTML=routes.length?routes.map((r,i)=>RROW(r,i)).join(''):REMPTY();
+ const rh=document.getElementById('rhead');
  routeIdx=-1;
+ if(!routes.length){
+  if(rh)rh.innerHTML='';
+  rbody.innerHTML='<tr><td class="c" style="height:80px;color:#8a97a2;padding:0 20px">등록된 기준공정이 없습니다. [+ 기준공정]으로 공정순서를 만드세요.</td></tr>';
+  return;
+ }
+ if(rh)rh.innerHTML='<tr><th class="rlb"><input type="checkbox" onclick="rchkAll(this)" title="전체선택"> 기준공정</th>'
+  +routes.map((r,i)=>`<th data-i="${i}"><label style="cursor:pointer" title="체크하면 [부품에 적용] 대상이 됩니다"><input type="checkbox" class="rchk" data-i="${i}" onchange="pickRouteChk(${i},this)"> ${esc(r.standard_process_no??'')}</label></th>`).join('')+'</tr>';
+ rbody.innerHTML=
+  `<tr><td class="rlb">기준공정명</td>${routes.map((r,i)=>`<td class="pad0" data-i="${i}"><input class="rname" data-i="${i}" value="${esc(r.standard_process_name||'')}" placeholder="자동생성" oninput="routeNameEdit(${i},this.value)"></td>`).join('')}</tr>`
+  +Array.from({length:RSEQN},(_,k)=>`<tr><td class="rlb">공정${k+1}</td>${routes.map((r,i)=>`<td class="pad0" data-i="${i}"><select class="rsel" data-i="${i}" data-k="${k}" onchange="routeStep(${i},${k},this.value)">${OPTS}</select></td>`).join('')}</tr>`).join('');
  rbody.querySelectorAll('select.rsel').forEach(sl=>{
   const i=+sl.dataset.i,k=+sl.dataset.k;
   const v=((routes[i]||{}).steps||[])[k]||'';
@@ -292,14 +300,15 @@ function renderRoutes(){
   if(v&&sl.value!==v){sl.insertAdjacentHTML('beforeend',`<option value="${esc(v)}">${esc(pname(v))}</option>`);sl.value=v}
   sl.classList.toggle('on',!!v);
  });
+ routes.forEach((r,i)=>markColDirty(i,!!r._dirty));
  markRouteSel();
 }
-function markRouteSel(){if(!window.rbody)return;
- /* v85: 파란 밑줄은 체크된 행에만. routeIdx 만 남아 있는 '유령 선택'을 없앤다 */
- rbody.querySelectorAll('tr[data-i]').forEach(x=>{
-  const cb=x.querySelector('input.rchk');x.classList.toggle('sel',!!(cb&&cb.checked))})}
-function rchkAll(el){rbody.querySelectorAll('input.rchk').forEach(c=>c.checked=el.checked);
- if(!el.checked){routeIdx=-1;markRouteSel()}}
+function markRouteSel(){
+ /* v87: 파란 표시는 체크된 '열'(기준공정)에만 */
+ const on=new Set([...document.querySelectorAll('#rtable input.rchk:checked')].map(c=>+c.dataset.i));
+ document.querySelectorAll('#rtable th[data-i],#rtable td[data-i]').forEach(x=>x.classList.toggle('sel',on.has(+x.dataset.i)))}
+function rchkAll(el){document.querySelectorAll('#rtable input.rchk').forEach(c=>c.checked=el.checked);
+ if(!el.checked)routeIdx=-1;markRouteSel()}
 /* v85: 기준공정 선택은 체크박스로 통일한다.
    여러 개를 체크해도 [공정삭제]는 그대로 동작하고,
    [부품에 적용]은 마지막에 체크한 행(또는 체크가 하나뿐이면 그 행)을 쓴다. */
@@ -315,7 +324,7 @@ function pickRouteChk(i,el){
 }
 /* 체크 상태에서 적용 대상 기준공정을 정한다 */
 function routeForApply(){
- const on=[...rbody.querySelectorAll('input.rchk:checked')].map(c=>+c.dataset.i).filter(n=>!Number.isNaN(n));
+ const on=[...document.querySelectorAll('#rtable input.rchk:checked')].map(c=>+c.dataset.i).filter(n=>!Number.isNaN(n));
  if(on.length===1)return on[0];
  if(on.includes(routeIdx))return routeIdx;
  if(on.length>1)return -2;
@@ -330,21 +339,20 @@ function routeStep(i,k,v){const r=routes[i];if(!r)return;
  while(st.length&&!st[st.length-1])st.pop();
  r.steps=st;r._dirty=true;routeIdx=i;
  if(!r._nameEdited)r.standard_process_name=routeName(st);
- const tr=rbody.querySelector(`tr[data-i="${i}"]`);
- if(tr){tr.classList.add('dirty');
-  const ni=tr.querySelector('.rname');if(ni&&!r._nameEdited)ni.value=r.standard_process_name;}
+ markColDirty(i);
+ const ni=rbody.querySelector(`.rname[data-i="${i}"]`);if(ni&&!r._nameEdited)ni.value=r.standard_process_name;
  const sl=rbody.querySelector(`select[data-i="${i}"][data-k="${k}"]`);if(sl)sl.classList.toggle('on',!!st[k]);
  markRouteSel();
  msg(`기준공정 ${r.standard_process_no} 공정${k+1} 변경 · [▤ 공정저장]을 눌러야 확정됩니다.`);}
 function routeNameEdit(i,v){const r=routes[i];if(!r)return;
  r.standard_process_name=v;r._nameEdited=true;r._dirty=true;
- const tr=rbody.querySelector(`tr[data-i="${i}"]`);if(tr)tr.classList.add('dirty');}
+ markColDirty(i);}
 function routeAdd(){
  const no=routes.reduce((m,r)=>Math.max(m,Number(r.standard_process_no)||0),0)+1;
  routes.push({row_no:null,standard_process_no:no,standard_process_name:'',steps:[],_dirty:true,_new:true});
  routeIdx=routes.length-1;renderRoutes();
- const tr=rbody.querySelector(`tr[data-i="${routeIdx}"]`);if(tr&&tr.scrollIntoView)tr.scrollIntoView({block:'nearest'});
- msg(`기준공정 ${no} 행을 추가했습니다. 공정을 고른 뒤 [▤ 공정저장]하세요.`);}
+ const th=document.querySelector(`#rhead th[data-i="${routeIdx}"]`);if(th&&th.scrollIntoView)th.scrollIntoView({block:'nearest',inline:'nearest'});
+ msg(`기준공정 ${no} 열을 추가했습니다. 공정을 고른 뒤 [▤ 공정저장]하세요.`);}
 async function routeSave(){
  const tg=routes.filter(r=>r._dirty);
  if(!tg.length)return msg('변경된 기준공정이 없습니다.');
@@ -372,7 +380,7 @@ async function routeSave(){
  }catch(e){msg('기준공정 저장 실패: '+String(e.message||e).slice(0,140))}
 }
 async function routeDel(){
- const idx=[...rbody.querySelectorAll('input.rchk:checked')].map(c=>+c.dataset.i).filter(n=>!Number.isNaN(n));
+ const idx=[...document.querySelectorAll('#rtable input.rchk:checked')].map(c=>+c.dataset.i).filter(n=>!Number.isNaN(n));
  if(!idx.length)return msg('삭제할 기준공정 행을 체크하세요.');
  const ids=idx.map(i=>routes[i]).filter(r=>r&&!r._new).map(r=>Number(r.standard_process_no));
  if(ids.length&&!_online())return msg('DB 미연결 상태에서는 삭제할 수 없습니다.');
@@ -469,5 +477,4 @@ function sampleFill(){
   var e=document.getElementById('message'); if(e)e.textContent='예제 모듈을 불러오지 못했습니다.';
 }
 </script>
-<script src="mes_dnd_route.js?v=85"></script>
 </body></html>
