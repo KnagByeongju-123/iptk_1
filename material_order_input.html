@@ -18,6 +18,7 @@
 .foot{height:42px;display:flex;align-items:center;padding:5px 14px;border-top:1px solid var(--line);background:#eef2f5;gap:5px}.msg{margin-left:10px;color:#687784}.foot .right{margin-left:auto;color:#7c8993}
 .modal{position:fixed;inset:0;background:rgba(40,50,60,.45);display:none;align-items:center;justify-content:center;z-index:50}.modal.on{display:flex}.sheet{width:min(720px,94%);max-height:88%;overflow:auto;background:#fff;border:1px solid #7c8894;box-shadow:0 8px 26px rgba(0,0,0,.3)}.sheet-head{height:30px;display:flex;align-items:center;padding:0 8px;background:linear-gradient(#f3f6f8,#dfe6ec);border-bottom:1px solid #b6c1ca;font-weight:700}.sheet-head .x{margin-left:auto;border:1px solid #c0392b;background:#e74c3c;color:#fff;width:24px;height:20px}
 .doc{padding:26px 30px}.doc h2{text-align:center;font-size:19px;font-weight:600;margin:0 0 18px}.doc table{border-collapse:collapse;table-layout:auto}.doc td,.doc th{border:1px solid #666;height:24px;padding:2px 8px}.doc .info{margin-bottom:8px}.doc .items{width:100%;margin-top:10px}
+.searchbar{height:26px;display:flex;gap:4px;align-items:center;padding:0 4px;border-bottom:1px solid var(--line2);background:#f6f8fa}.searchbar input{flex:1;min-width:0;height:20px;border:1px solid #b7c2cb;padding:0 5px;font:inherit}
 @media(max-width:900px){.panes{grid-template-columns:1fr;height:auto}.title h1{font-size:18px}}
 
 /* v46 발주서 실제 인쇄: 미리보기의 발주서 영역만 출력 */
@@ -51,7 +52,8 @@ input.cell,tr.sel input.cell,tr:hover input.cell{color:#22303a;background:#fff;-
     <div class="box"><div class="box-title">자재표 리스트</div><div class="tablewrap"><table>
       <colgroup><col style="width:38px"><col style="width:15%"><col style="width:18%"><col style="width:14%"><col style="width:23%"><col style="width:10%"><col style="width:12%"></colgroup>
       <thead><tr><th><input type="checkbox" id="bomAll" onclick="bomAllToggle(this)" title="전체선택 / 전체해제"></th><th>품번</th><th>부품명</th><th>재질</th><th>규격</th><th>수량</th><th>첨부</th></tr></thead><tbody id="bomBody"></tbody></table></div></div>
-    <div class="box"><div class="box-title">협력업체리스트</div><div class="tablewrap"><table><thead><tr><th style="width:36px"></th><th>협력업체</th></tr></thead><tbody id="venBody"></tbody></table></div></div>
+    <div class="box"><div class="box-title">협력업체리스트</div>
+      <div class="searchbar"><input id="venQ" placeholder="업체 검색" oninput="venFind()" title="입력하면 협력업체가 걸러집니다 (Esc: 지우기)" onkeydown="if(event.key==='Escape'){this.value='';venFind()}"></div><div class="tablewrap"><table><thead><tr><th>협력업체</th></tr></thead><tbody id="venBody"></tbody></table></div></div>
   </section>
   <div class="midbar"><span class="label">입고요구일</span><input id="reqDate" class="field" type="date" onchange="applyRdate()" title="날짜를 바꾸면 아래 리스트에서 체크한 행에 일괄 적용됩니다"><button class="btn" onclick="pushDown()">⬇ 요청추가</button><button class="btn" onclick="pullUp()">⬆ 요청삭제</button></div>
   <div class="reqbox"><div class="box-title">구매요청 리스트</div><div class="tablewrap"><table>
@@ -73,16 +75,19 @@ input.cell,tr.sel input.cell,tr:hover input.cell{color:#22303a;background:#fff;-
 const OWNER=(function(){try{return (window.MES_AUTH||window.parent.MES_AUTH)?.name||'담당자'}catch(e){return '담당자'}})();
 
 const JOBS=[];
-let VENDORS=[];  /* 협력업체는 마스터에서 로드 (mes_lookup.js) */
+let venView=[];let VENDORS=[];  /* 협력업체는 마스터에서 로드 (mes_lookup.js) */
 const REQ=[];
-let jobIdx=0,venIdx=5,jobView=[...JOBS];
+let jobIdx=0,venIdx=-1,jobView=[...JOBS];
 const n=v=>v==null?'':Number(v).toLocaleString('ko-KR',{maximumFractionDigits:2});
 function renderJobs(){jobBody.innerHTML=jobView.map((j,i)=>`<tr class="${i===jobIdx?'sel':''}" onclick="pickJob(${i})"><td>${j.job}</td><td>${j.item}</td><td class="c">${j.proc}</td><td class="c">${j.procName}</td></tr>`).join('');countText.textContent=`제번 ${jobView.length}건 / 요청 ${REQ.length}건`}
 /* v80: 협력업체는 체크박스로 고른다. 여러 업체에 나눠 발주할 수 있고, 어디로 나가는지 눈으로 확인된다 */
-const VENSEL=new Set();window.MESVENSEL=VENSEL;
-function pickedVendors(){return VENDORS.filter(v=>VENSEL.has(v))}
-function renderVendors(){venBody.innerHTML=VENDORS.map((v,i)=>`<tr class="${VENSEL.has(v)?'sel':''}" onclick="pickVendor(${i})"><td class="c"><input type="checkbox" ${VENSEL.has(v)?'checked':''} onclick="event.stopPropagation();pickVendor(${i})"></td><td>${v}</td></tr>`).join('');
-}
+/* v115: 협력업체는 외주가공 발주와 동일하게 — 체크박스 없이 행을 클릭해 하나를 고른다 */
+function pickedVendors(){const v=venView[venIdx];return v?[v]:[]}
+function venFind(){const q=(venQ.value||'').trim().toLowerCase();
+ venView=VENDORS.filter(v=>!q||String(v).toLowerCase().includes(q));
+ venIdx=-1;renderVendors();
+ msg(q?`협력업체 ${venView.length}건 검색`:`협력업체 ${venView.length}건`)}
+function renderVendors(){venBody.innerHTML=venView.map((v,i)=>`<tr class="${i===venIdx?'sel':''}" onclick="pickVendor(${i})"><td>${v}</td></tr>`).join('')}
 function renderBom(){const b=jobView[jobIdx]?.bom||[];bomBody.innerHTML=b.length?b.map((r,i)=>`<tr><td class="c"><input type="checkbox" checked data-i="${i}"></td><td>${r.part}</td><td>${r.name}</td><td class="c">${r.mat}</td><td>${r.spec}</td><td class="r">${r.qty}</td><td class="c">${r.att}</td></tr>`).join(''):'<tr><td colspan="7" class="c" style="color:#8b98a4">자재표가 없습니다.</td></tr>';
  if(typeof syncBomAll==='function')syncBomAll()}
 /* v115: 구매요청 리스트 전체선택 — 제목행 체크박스로 전체선택/해제 */
@@ -127,13 +132,12 @@ function setBuy(no,v){const r=REQ.find(x=>x.no===no);if(!r)return;
  r.buyPrice=Number(String(v).replace(/[^0-9.-]/g,''))||0;r.price=r.buyPrice;calcAmt(r);renderReq();
  msg(`${r.part} 매입단가 ${money(r.buyPrice)}원 · 매입금액 ${money(r.amount)}원`)}
 function pickJob(i){jobIdx=i;renderJobs();renderBom();if(typeof loadBom==='function')loadBom();msg(`${jobView[i].job} / 공정 ${jobView[i].proc} 자재표를 조회했습니다.`)}
-function pickVendor(i){const v=VENDORS[i];if(v==null)return;
- if(VENSEL.has(v))VENSEL.delete(v);else VENSEL.add(v);
- venIdx=i;renderVendors();
- const ps=pickedVendors();msg(ps.length?`협력업체 ${ps.length}개 선택: ${ps.join(', ')}`:'협력업체 선택 없음')}
+function pickVendor(i){const v=venView[i];if(v==null)return;
+ venIdx=(venIdx===i)?-1:i;renderVendors();
+ msg(venIdx<0?'협력업체 선택 없음':`협력업체 ${v} 선택`)}
 function search(){const j=jobQ.value.trim().toLowerCase(),it=itemQ.value.trim().toLowerCase();jobView=JOBS.filter(x=>(!j||x.job.toLowerCase().includes(j))&&(!it||(x.item||'').toLowerCase().includes(it)));jobIdx=0;renderJobs();renderBom();renderReq();msg(`제번 ${jobView.length}건을 조회했습니다.`+(REQ.length?` · 구매요청 리스트에 ${REQ.length}건이 남아 있습니다.`:''))}
 async function pushDown(){const j=jobView[jobIdx];if(!j)return;const picks=[...bomBody.querySelectorAll('input:checked')].map(x=>j.bom[Number(x.dataset.i)]);if(!picks.length)return msg('자재표에서 발주할 품번을 선택하세요.');const vens=pickedVendors();
- if(!vens.length)return msg('협력업체리스트에서 발주할 업체를 체크하세요.');
+ if(!vens.length)return msg('협력업체리스트에서 발주할 업체를 선택하세요.');
  const d=reqDate.value||new Date().toISOString().slice(0,10);
  const combos=[];for(const v of vens)for(const b of picks)combos.push({v,b});
  /* 중복 방지: 같은 업체·제번·공정·품번이 이미 요청 리스트에 있으면 추가하지 않는다.
@@ -258,7 +262,7 @@ REQ.length=0;/*v22*/if(typeof renderReq==='function')renderReq();
   VENDORS.length=0;
   VENDORS.push(...await MESLOOK.names('vendor_material'));
   if(typeof venView!=='undefined'){venView=[...VENDORS]}
-  if(typeof venIdx!=='undefined')venIdx=VENDORS.length?0:-1;
+  if(typeof venIdx!=='undefined')venIdx=-1   /* v115: 시작은 선택 없음 */;
   if(typeof renderVendors==='function')renderVendors();
  }catch(e){
   const m=document.getElementById('message');

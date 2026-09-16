@@ -11,7 +11,7 @@
 .filters{padding:7px 14px;border-bottom:1px solid var(--line2);background:#fafbfc;display:flex;gap:6px;align-items:center}.label{font-weight:700}.field{height:27px;border:1px solid #b7c2cb;background:#fff;padding:0 7px;outline:none}.field:focus{border-color:#4e88bb}
 .panes{display:grid;grid-template-columns:1.1fr 1.7fr .6fr;   /* v115: 자재표 리스트 ↔ 협력업체리스트 자리 교체 */gap:6px;padding:7px 14px 0;height:190px}
 .box{border:1px solid var(--line);display:flex;flex-direction:column;min-height:0;background:#fff}.box-title{height:24px;display:flex;align-items:center;justify-content:center;background:linear-gradient(#deebf5,#caddea);border-bottom:1px solid var(--line);font-weight:700;color:#536677}
-.searchbar{height:26px;display:flex;gap:4px;align-items:center;padding:0 4px;border-bottom:1px solid var(--line2);background:#f6f8fa}.searchbar input{flex:1;height:21px;border:1px solid #b7c2cb;padding:0 4px}.searchbar button{height:21px;border:1px solid #9ca9b5;background:linear-gradient(#fff,#e2e8ed)}
+.searchbar{height:26px;display:flex;gap:4px;align-items:center;padding:0 4px;border-bottom:1px solid var(--line2);background:#f6f8fa}.searchbar input{flex:1;min-width:0;height:20px;border:1px solid #b7c2cb;padding:0 5px;font:inherit}.searchbar input{flex:1;height:21px;border:1px solid #b7c2cb;padding:0 4px}.searchbar button{height:21px;border:1px solid #9ca9b5;background:linear-gradient(#fff,#e2e8ed)}
 .tablewrap{flex:1;min-height:0;overflow:auto}table{border-collapse:collapse;width:100%;table-layout:fixed}th,td{height:24px;padding:0 5px;border-right:1px solid var(--line2);border-bottom:1px solid var(--line2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}th{position:sticky;top:0;z-index:2;text-align:center;background:linear-gradient(#dbe9f4,#c7d9e8);color:#405266;font-weight:700}tbody tr:hover td{background:#edf6fd}tbody tr.sel td{background:#2e78bd;color:#fff}.c{text-align:center}.r{text-align:right}
 .midbar{display:flex;align-items:center;gap:6px;padding:6px 14px;justify-content:flex-end}
 .reqbox{flex:1;min-height:0;margin:0 14px 6px;border:1px solid var(--line);display:flex;flex-direction:column}.reqbox table{min-width:1620px}
@@ -53,8 +53,8 @@ input.cell,tr.sel input.cell,tr:hover input.cell{color:#22303a;background:#fff;-
       <colgroup><col style="width:38px"><col style="width:14%"><col style="width:20%"><col style="width:12%"><col style="width:22%"><col style="width:10%"><col style="width:12%"></colgroup>
       <thead><tr><th><input type="checkbox" id="bomAll" onclick="bomAllToggle(this)" title="전체선택 / 전체해제"></th><th>품번</th><th>부품명</th><th>재질</th><th>규격</th><th>수량</th><th>첨부</th></tr></thead><tbody id="bomBody"></tbody></table></div></div>
     <div class="box"><div class="box-title">협력업체리스트</div>
-      <div class="searchbar"><input id="venQ" placeholder="Enter text to search"><button onclick="findVendor()">찾기</button><button onclick="clearVendor()">지우기</button></div>
-      <div class="tablewrap"><table><thead><tr><th style="width:36px"></th><th>협력업체</th></tr></thead><tbody id="venBody"></tbody></table></div></div>
+      <div class="searchbar"><input id="venQ" placeholder="업체 검색" oninput="venFind()" title="입력하면 협력업체가 걸러집니다 (Esc: 지우기)" onkeydown="if(event.key==='Escape'){this.value='';venFind()}"></div>
+      <div class="tablewrap"><table><thead><tr><th>협력업체</th></tr></thead><tbody id="venBody"></tbody></table></div></div>
   </section>
   <div class="midbar"><span class="label">입고요구일</span><input id="reqDate" class="field" type="date" onchange="applyRdate()" title="날짜를 바꾸면 아래 리스트에서 체크한 행에 일괄 적용됩니다"><button class="btn" onclick="pushDown()">⬇ 요청추가</button><button class="btn" onclick="pullUp()">⬆ 요청삭제</button></div>
   <div class="reqbox"><div class="box-title">구매요청 리스트</div><div class="tablewrap"><table>
@@ -73,13 +73,17 @@ const OWNER=(function(){try{return (window.MES_AUTH||window.parent.MES_AUTH)?.na
 const JOBS=[];
 let VENDORS=[];  /* 협력업체는 마스터에서 로드 (mes_lookup.js) */
 const REQ=[];
-let jobIdx=0,venIdx=0,jobView=[...JOBS],venView=[...VENDORS];
+let jobIdx=0,venIdx=-1,jobView=[...JOBS],venView=[...VENDORS];
 const money=v=>Number(v||0).toLocaleString('ko-KR');
 function renderJobs(){jobBody.innerHTML=jobView.map((j,i)=>`<tr class="${i===jobIdx?'sel':''}" onclick="pickJob(${i})"><td>${j.job}</td><td>${j.item}</td><td class="c">${j.proc}</td><td class="c">${j.procName}</td></tr>`).join('');countText.textContent=`제번 ${jobView.length}건 / 요청 ${REQ.length}건`}
 /* v80: 협력업체는 체크박스로 고른다. 여러 업체에 나눠 발주할 수 있고, 어디로 나가는지 눈으로 확인된다 */
-const VENSEL=new Set();window.MESVENSEL=VENSEL;
-function pickedVendors(){return venView.filter(v=>VENSEL.has(v))}
-function renderVendors(){venBody.innerHTML=venView.map((v,i)=>`<tr class="${VENSEL.has(v)?'sel':''}" onclick="pickVendor(${i})"><td class="c"><input type="checkbox" ${VENSEL.has(v)?'checked':''} onclick="event.stopPropagation();pickVendor(${i})"></td><td>${v}</td></tr>`).join('');}
+/* v115: 협력업체는 외주가공 발주와 동일하게 — 체크박스 없이 행을 클릭해 하나를 고른다 */
+function pickedVendors(){const v=venView[venIdx];return v?[v]:[]}
+function venFind(){const q=(venQ.value||'').trim().toLowerCase();
+ venView=VENDORS.filter(v=>!q||String(v).toLowerCase().includes(q));
+ venIdx=-1;renderVendors();
+ msg(q?`협력업체 ${venView.length}건 검색`:`협력업체 ${venView.length}건`)}
+function renderVendors(){venBody.innerHTML=venView.map((v,i)=>`<tr class="${i===venIdx?'sel':''}" onclick="pickVendor(${i})"><td>${v}</td></tr>`).join('')}
 /* v115: 자재표·구매요청 리스트 전체선택 — 제목행 체크박스로 전체선택/해제, 개별 체크 시 상태 동기화 */
 function bomChks(){return [...bomBody.querySelectorAll('input[type=checkbox]')]}
 function bomAllToggle(el){bomChks().forEach(c=>c.checked=el.checked);syncBomAll();
@@ -117,14 +121,11 @@ function setBuy(no,v){const r=REQ.find(x=>x.no===no);if(!r)return;
  msg(`${r.part} 매입단가 ${money(r.buyPrice)}원 · 매입금액 ${money(r.amount)}원`)}
 function pickJob(i){jobIdx=i;renderJobs();renderBom();if(typeof loadBom==='function')loadBom();msg(`${jobView[i].job} 자재표를 조회했습니다.`)}
 function pickVendor(i){const v=venView[i];if(v==null)return;
- if(VENSEL.has(v))VENSEL.delete(v);else VENSEL.add(v);
- venIdx=i;renderVendors();
- const ps=pickedVendors();msg(ps.length?`협력업체 ${ps.length}개 선택: ${ps.join(', ')}`:'협력업체 선택 없음')}
-function findVendor(){const q=venQ.value.trim().toLowerCase();venView=VENDORS.filter(v=>!q||v.toLowerCase().includes(q));venIdx=0;renderVendors()}
-function clearVendor(){venQ.value='';venView=[...VENDORS];venIdx=0;renderVendors()}
+ venIdx=(venIdx===i)?-1:i;renderVendors();
+ msg(venIdx<0?'협력업체 선택 없음':`협력업체 ${v} 선택`)}
 function search(){const j=jobQ.value.trim().toLowerCase(),it=itemQ.value.trim().toLowerCase();jobView=JOBS.filter(x=>(!j||x.job.toLowerCase().includes(j))&&(!it||(x.item||'').toLowerCase().includes(it)));jobIdx=0;renderJobs();renderBom();renderReq();msg(`제번 ${jobView.length}건을 조회했습니다.`+(REQ.length?` · 구매요청 리스트에 ${REQ.length}건이 남아 있습니다.`:''))}
 async function pushDown(){const j=jobView[jobIdx];if(!j)return;const picks=[...bomBody.querySelectorAll('input:checked')].map(x=>j.bom[Number(x.dataset.i)]);if(!picks.length)return msg('자재표에서 발주할 품번을 선택하세요.');const vens=pickedVendors();
- if(!vens.length)return msg('협력업체리스트에서 발주할 업체를 체크하세요.');
+ if(!vens.length)return msg('협력업체리스트에서 발주할 업체를 선택하세요.');
  const d=reqDate.value||new Date().toISOString().slice(0,10);
  const combos=[];for(const v of vens)for(const b of picks)combos.push({v,b});
  /* 중복 방지: 같은 업체·제번·공정·품번이 이미 요청 리스트에 있으면 추가하지 않는다.
@@ -235,7 +236,7 @@ REQ.length=0;/*v22*/if(typeof renderReq==='function')renderReq();
   VENDORS.length=0;
   VENDORS.push(...await MESLOOK.names('vendor_purchase'));
   if(typeof venView!=='undefined'){venView=[...VENDORS]}
-  if(typeof venIdx!=='undefined')venIdx=VENDORS.length?0:-1;
+  if(typeof venIdx!=='undefined')venIdx=-1   /* v115: 시작은 선택 없음 */;
   if(typeof renderVendors==='function')renderVendors();
  }catch(e){
   const m=document.getElementById('message');
