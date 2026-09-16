@@ -334,8 +334,10 @@ var NAMECOL=['#2b4c7e','#a04000','#7d6608','#4f5a63','#3d6327','#5b2c6f',
 function paintName(el,i){
  if(!el)return;
  const c=NAMECOL[i%NAMECOL.length];
- el.classList.add('hdr');
- el.style.background=c;el.style.color='#fff';
+ el.classList.add('hdr');el.classList.add('keepcolor');
+ el.style.setProperty('background-color',c,'important');
+ el.style.setProperty('color','#fff','important');
+ el.style.setProperty('-webkit-text-fill-color','#fff','important');
 }
 var STEPCOL=[['#dbe7f8','#2b4c7e','#a9c3e4'],['#fbe2cd','#9c5314','#e5b98f'],
  ['#fcf3cf','#7d6608','#e6d18a'],['#e9ecef','#4f5a63','#c6ccd2'],
@@ -347,7 +349,13 @@ function paintStep(sl,k,v){
  const nm=String((typeof PROCN!=='undefined'&&PROCN[v])||v||'');
  const c=!v?null:(v==='HQ'||nm.indexOf('열처리')>=0)?HQCOL:STEPCOL[k%6];
  const set=el=>{if(!el)return;const t=el.tagName==='SELECT';
-  el.style.background=c?c[0]:'';el.style.color=c?c[1]:'';
+  el.classList.toggle('keepcolor',!!c);
+  /* 단축 속성 background 는 해제 시 잔여 longhand 가 남아 background-color 를 쓴다 */
+  if(c){el.style.setProperty('background-color',c[0],'important');
+   el.style.setProperty('color',c[1],'important');
+   el.style.setProperty('-webkit-text-fill-color',c[1],'important');}
+  else{['background','background-color','color','-webkit-text-fill-color']
+   .forEach(p=>el.style.removeProperty(p));}
   el.style.borderColor=c?c[2]:'';el.style.fontWeight=c?'700':'';
   el.style.borderRadius=c?'6px':'';el.style.textAlign=c?'center':'';
   if(t)el.style.textAlignLast=c?'center':'';};
@@ -386,7 +394,7 @@ function renderRoutes(){
   +routes.map((r,i)=>`<th data-i="${i}" draggable="true" onclick="pickRouteHead(${i})" title="끌어서 부품 리스트에 놓으면 적용됩니다 (부품 체크 시 체크된 전체) · 클릭=삭제 대상 선택">${esc(r.standard_process_no??'')}</th>`).join('')
   +PH.map(()=>'<th class="phc" title="아래에서 공정을 고르면 새 기준공정이 추가됩니다">＋</th>').join('')+'</tr>';
  rbody.innerHTML=
-  `<tr><td class="rlb">기준공정명</td>${routes.map((r,i)=>`<td class="pad0" data-i="${i}"><input class="rname hdr" data-i="${i}" value="${esc(r.standard_process_name||'')}" placeholder="자동생성" oninput="routeNameEdit(${i},this.value)"></td>`).join('')}${PH.map(()=>'<td class="pad0 phc"><input class="rname" disabled placeholder="자동생성"></td>').join('')}</tr>`
+  `<tr><td class="rlb">기준공정명</td>${routes.map((r,i)=>`<td class="pad0" data-i="${i}"><input class="rname hdr keepcolor" data-i="${i}" value="${esc(r.standard_process_name||'')}" placeholder="자동생성" oninput="routeNameEdit(${i},this.value)"></td>`).join('')}${PH.map(()=>'<td class="pad0 phc"><input class="rname" disabled placeholder="자동생성"></td>').join('')}</tr>`
   +Array.from({length:RSEQN},(_,k)=>`<tr><td class="rlb">공정${k+1}</td>${routes.map((r,i)=>`<td class="pad0" data-i="${i}"><select class="rsel" data-i="${i}" data-k="${k}" onchange="routeStep(${i},${k},this.value)">${OPTS}</select></td>`).join('')}${PH.map(()=>`<td class="pad0 phc"><select class="rsel" onchange="phStep(${k},this)">${OPTS}</select></td>`).join('')}</tr>`).join('');
  rbody.querySelectorAll('select.rsel').forEach(sl=>{
   const i=+sl.dataset.i,k=+sl.dataset.k;

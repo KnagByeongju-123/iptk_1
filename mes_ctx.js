@@ -258,9 +258,10 @@ window.MESCTX={confirm:dlgConfirm};
  table.mes-freeze tbody tr:nth-child(even):not(.sel):not(.selected):not(:hover) td:nth-child(-n+2):not(.route):not(.step):not(.keepbg){background:#dfe8f1!important}
  /* v112: 선택행(tr.sel td{color:#fff})의 흰 글자를 입력칸이 물려받아 흰 배경 위 흰 글자가 되던 문제 —
     표 안의 입력칸은 행 선택·마우스오버와 무관하게 항상 진한 글자로 고정한다 */
- table td input:not([type=checkbox]):not([type=radio]),table td select,table td textarea{
+ /* v115: .keepcolor 가 붙은 입력칸은 화면이 지정한 색(인라인)을 그대로 쓴다 */
+ table td input:not([type=checkbox]):not([type=radio]):not(.keepcolor),table td select:not(.keepcolor),table td textarea:not(.keepcolor){
   color:#22303a!important;background:#fff!important;-webkit-text-fill-color:#22303a}
- table td input::placeholder{color:#a8b4bd!important;-webkit-text-fill-color:#a8b4bd}`;
+ table td input:not(.keepcolor)::placeholder{color:#a8b4bd!important;-webkit-text-fill-color:#a8b4bd}`;
  (document.head||document.documentElement).appendChild(st);
 
  const WRAP='.gridbox,.tablewrap,.pb,.entrybox,.grid,.list';
@@ -705,6 +706,7 @@ window.MESCTX={confirm:dlgConfirm};
  *                [원래 자리] 버튼으로 되돌린다. 위치는 버튼과 같은 pos_x/pos_y 에 저장.
  *   [표 열 폭]   v104: 표 머리글(th) → 열 폭 조절. v114: 진입을 길게 누르기에서 3회 연속 클릭으로 변경.
  *   [제목 숨김]  v114: 화면 안 ○제목(.screen>.title) 숨김 — 셸 경로표시 마지막 항목이 제목을 대신한다.
+ *   [색 유지]    v115: 표 안 입력칸 색 고정 규칙에서 .keepcolor 를 제외 — 화면이 칠한 색을 살린다.
  *                열은 '표(블록/id)+머리글 글자' 로 식별해 저장하므로 열이 추가돼도 유지된다.
  *   리스트제목은 .ph/.hd/.cap/.caption 외에 .grid-title/.box-title/.sheet-head 도 인식한다 (v104).
  *   v106: 블록·열은 왼쪽 핸들로도 폭을 조절한다 (화면 오른쪽 끝에 붙은 블록은 오른쪽 핸들을 잡을 수 없었다).
