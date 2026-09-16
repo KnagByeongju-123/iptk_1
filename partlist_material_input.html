@@ -307,7 +307,12 @@ function tsvRows(t){
  return out.map(r=>r.map(c=>String(c).replace(/\s*\n\s*/g,' ').trim())).filter(r=>r.some(c=>c!==''));
 }
 function xlsMap(){
- const g=tsvRows(xText.value);
+ let g=tsvRows(xText.value);
+ /* v89: 모든 행이 비어 있는 열(병합셀·빈 열)은 먼저 제거해 열 밀림을 막는다 */
+ const w0=g.length?Math.max(...g.map(r=>r.length)):0;
+ g=g.map(r=>{const a=r.slice();while(a.length<w0)a.push('');return a});
+ const keep=[];for(let c=0;c<w0;c++)if(g.some(r=>r[c]!==''))keep.push(c);
+ g=g.map(r=>keep.map(c=>r[c]));
  const idx={};
  /* 앞 5줄 안에서 제목이 2개 이상 맞는 행을 제목행으로 본다 */
  let head=-1;
@@ -315,7 +320,18 @@ function xlsMap(){
   const m={};g[i].forEach((c,j)=>{if(!c)return;const f=COLS.find(x=>x.re.test(c)&&m[x.k]===undefined);if(f)m[f.k]=j});
   if(Object.keys(m).length>=2){head=i;Object.assign(idx,m)}
  }
- if(head<0)COLS.forEach((x,i)=>idx[x.k]=i);        /* 제목행 없음 → 고정 순서 */
+ if(head<0){
+  /* v89: 제목행 없음 → 내용으로 규격 열을 찾아 기준을 잡는다.
+     엑셀 병합셀·빈 열 때문에 열이 밀려도 [규격] 열 기준으로
+     재질=바로 앞, 두께=바로 뒤, 수량=그 다음 으로 맞춘다. */
+  const w=g.length?Math.max(...g.map(r=>r.length)):0;
+  const isSpec=c=>/\d\s*[*xX\u00d7]\s*[#Øø\u00d8φ]?\s*\d/.test(c);
+  let sc=-1,best=0;
+  for(let c=2;c<w;c++){const n=g.filter(r=>isSpec(r[c]||'')).length;if(n>best){best=n;sc=c}}
+  if(sc>=3&&best>=Math.ceil(g.length/2)){
+   idx.part_no=0;idx.part_name=1;idx.material=sc-1;idx.spec=sc;idx.thickness_dia=sc+1;idx.qty=sc+2;
+  }else COLS.forEach((x,i)=>idx[x.k]=i);             /* 고정 순서 */
+ }
  return {g,idx,head,start:head+1};
 }
 function xlsRows(){
@@ -339,13 +355,15 @@ function xlsPreview(){
  xMap.innerHTML=(head>=0
   ?`<span style="color:#1d6b3a">✔ ${head+1}행을 제목행으로 인식 · 등록 대상 <b>${rows.length}</b>행</span>`
   :`<span style="color:#1d6b3a">✔ 제목행 없음 → 품번·품명·재질·규격·두께·수량 순서로 읽음 · 등록 대상 <b>${rows.length}</b>행</span>`)
+  +(()=>{const ex=new Set(data.map(x=>x.part_no)),u=[...new Set(rows.map(r=>r.part_no))];
+    const up=u.filter(k=>ex.has(k)).length;return ` <span style="color:#456">(신규 ${u.length-up} · 수정 ${up})</span>`})()
   +(skipEx||skipNo?` <span style="color:#8a6d1d">(제외: 예시행 ${skipEx} · 품번 빈 행 ${skipNo})</span>`:'')
   +(miss.length?`<br><span style="color:#b04a4a">⚠ 제목행에서 찾지 못한 열: ${miss.join(', ')} — 빈 값으로 등록됩니다</span>`:'');
  const cnt={};rows.forEach(r=>cnt[r.part_no]=(cnt[r.part_no]||0)+1);
  const exist=new Set(data.map(x=>x.part_no));
  const show=rows.slice(0,300);
- xPrev.innerHTML=rows.length?`<table style="min-width:680px"><thead><tr><th style="width:44px">No</th><th style="width:120px">품번</th><th style="width:180px">품명</th><th style="width:90px">재질</th><th style="width:150px">규격</th><th style="width:60px">두께</th><th style="width:56px">수량</th><th>구분</th></tr></thead><tbody>${
-  show.map((r,i)=>{const dup=cnt[r.part_no]>1;return `<tr class="${dup?'bad':''}"><td class="c">${i+1}</td><td>${esc(r.part_no)}</td><td>${esc(r.part_name)}</td><td class="c">${esc(r.material||'')}</td><td>${esc(r.spec||'')}</td><td class="num">${fmt(r.thickness_dia)}</td><td class="num">${fmt(r.qty)}</td><td class="c">${dup?'중복':exist.has(r.part_no)?'수정':'신규'}</td></tr>`}).join('')
+ xPrev.innerHTML=rows.length?`<table style="min-width:620px"><thead><tr><th style="width:44px">No</th><th style="width:120px">품번</th><th style="width:180px">품명</th><th style="width:90px">재질</th><th style="width:150px">규격</th><th style="width:60px">두께</th><th style="width:56px">수량</th></tr></thead><tbody>${
+  show.map((r,i)=>{const dup=cnt[r.part_no]>1;return `<tr class="${dup?'bad':''}" title="${dup?'중복 품번 — 마지막 행으로 합쳐집니다':exist.has(r.part_no)?'기존 품번 — 수정됩니다':''}"><td class="c">${i+1}</td><td>${esc(r.part_no)}</td><td>${esc(r.part_name)}</td><td class="c">${esc(r.material||'')}</td><td>${esc(r.spec||'')}</td><td class="num">${fmt(r.thickness_dia)}</td><td class="num">${fmt(r.qty)}</td></tr>`}).join('')
  }</tbody></table>${rows.length>show.length?`<div class="c" style="padding:4px;color:#687784">… 외 ${rows.length-show.length}행</div>`:''}`:'';
 }
 async function xlsApply(){
@@ -379,13 +397,13 @@ function search(){const j=curJobNo();if(j&&online())return loadJob(j);render()}
 window.MES={search,save,setMessage:msg,reload:loadJob};render();
 (async()=>{await waitDB();const j=curJobNo();if(j)loadJob(j)})();
 </script>
-<script src="mes_sample.js?v=88"></script><script src="mes_scene.js?v=88"></script><script src="mes_demo.js?v=88"></script><script src="mes_db.js?v=88"></script>
+<script src="mes_sample.js?v=89"></script><script src="mes_scene.js?v=89"></script><script src="mes_demo.js?v=89"></script><script src="mes_db.js?v=89"></script>
 <script>
 /* v86: MESDB.master 자동동기화 제거 — partlist_materials 전체 스냅샷과 화면(선택 제번) 차이를
    '삭제'로 판단해 다른 제번의 PartList 를 지우던 문제. 저장·삭제는 위 함수가 직접 처리한다. */
 </script>
-<script src="mes_ctx.js?v=88"></script>
-<script src="mes_jobpick.js?v=88"></script>
+<script src="mes_ctx.js?v=89"></script>
+<script src="mes_jobpick.js?v=89"></script>
 <script>/* 제번 직접 타이핑 → 등록된 수주 목록에서 선택 */
 MESJOB.attach("q_job",{onPick:j=>{if(typeof loadJob==="function")loadJob(j)}});</script>
 <script>
