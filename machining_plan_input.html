@@ -58,7 +58,10 @@ table{border-collapse:collapse;min-width:1040px;width:100%;table-layout:fixed}th
 td.pad0{padding:1px 2px}
 .rsel{width:100%;height:23px;border:1px solid #c3ccd4;background:#fff;font:inherit;padding:0 1px}
 .rsel.on{background:#eef5fc;border-color:#6f9fd0}
-.rname{width:100%;height:23px;border:1px solid #c3ccd4;background:#fff;font:inherit;padding:0 4px}
+.rname{width:100%;height:23px;border:1px solid #c3ccd4;background:#fff;font:inherit;padding:0 4px;text-align:center}
+/* v96: 기준공정명은 열마다 다른 짙은 바탕 + 흰 글자 (색은 paintName 이 인라인으로) */
+.rname.hdr{font-weight:700;border-color:transparent}
+.rname.hdr::placeholder{color:#e8eef5;opacity:.8}
 /* v87: 행열 전환 — 기준공정이 열, 공정1~10이 행 */
 #rtable th[data-i],#rtable td[data-i],#rtable th.phc,#rtable td.phc{width:140px;min-width:140px;max-width:140px}
 #rtable th.phc{color:#aeb9c4;font-weight:400}
@@ -325,6 +328,15 @@ function routeName(a){const nm=(a||[]).filter(Boolean).map(c=>PROCN[c]||c);
 /* v93: 공정 칸 색 — 파스텔 톤 [배경, 글자, 테두리]. 열처리는 순서 무관 옅은 붉은색.
    mes_ctx 콤보박스가 select 를 숨기고 input 을 보여주므로(__mescbBox.inp)
    색은 인라인 스타일로 select 와 콤보 input 양쪽에 입힌다. */
+/* v96: 기준공정명 바탕색 — 열 번호 순서로 돌려 쓴다 (짙은 색 + 흰 글자) */
+var NAMECOL=['#2b4c7e','#a04000','#7d6608','#4f5a63','#3d6327','#5b2c6f',
+             '#1a5276','#935116','#117864','#6e2c00','#424949','#4a235a'];
+function paintName(el,i){
+ if(!el)return;
+ const c=NAMECOL[i%NAMECOL.length];
+ el.classList.add('hdr');
+ el.style.background=c;el.style.color='#fff';
+}
 var STEPCOL=[['#dbe7f8','#2b4c7e','#a9c3e4'],['#fbe2cd','#9c5314','#e5b98f'],
  ['#fcf3cf','#7d6608','#e6d18a'],['#e9ecef','#4f5a63','#c6ccd2'],
  ['#dcebd2','#3d6327','#b0cf94'],['#edf6e4','#4d7434','#c9dfb1']];
@@ -374,7 +386,7 @@ function renderRoutes(){
   +routes.map((r,i)=>`<th data-i="${i}" draggable="true" onclick="pickRouteHead(${i})" title="끌어서 부품 리스트에 놓으면 적용됩니다 (부품 체크 시 체크된 전체) · 클릭=삭제 대상 선택">${esc(r.standard_process_no??'')}</th>`).join('')
   +PH.map(()=>'<th class="phc" title="아래에서 공정을 고르면 새 기준공정이 추가됩니다">＋</th>').join('')+'</tr>';
  rbody.innerHTML=
-  `<tr><td class="rlb">기준공정명</td>${routes.map((r,i)=>`<td class="pad0" data-i="${i}"><input class="rname" data-i="${i}" value="${esc(r.standard_process_name||'')}" placeholder="자동생성" oninput="routeNameEdit(${i},this.value)"></td>`).join('')}${PH.map(()=>'<td class="pad0 phc"><input class="rname" disabled placeholder="자동생성"></td>').join('')}</tr>`
+  `<tr><td class="rlb">기준공정명</td>${routes.map((r,i)=>`<td class="pad0" data-i="${i}"><input class="rname hdr" data-i="${i}" value="${esc(r.standard_process_name||'')}" placeholder="자동생성" oninput="routeNameEdit(${i},this.value)"></td>`).join('')}${PH.map(()=>'<td class="pad0 phc"><input class="rname" disabled placeholder="자동생성"></td>').join('')}</tr>`
   +Array.from({length:RSEQN},(_,k)=>`<tr><td class="rlb">공정${k+1}</td>${routes.map((r,i)=>`<td class="pad0" data-i="${i}"><select class="rsel" data-i="${i}" data-k="${k}" onchange="routeStep(${i},${k},this.value)">${OPTS}</select></td>`).join('')}${PH.map(()=>`<td class="pad0 phc"><select class="rsel" onchange="phStep(${k},this)">${OPTS}</select></td>`).join('')}</tr>`).join('');
  rbody.querySelectorAll('select.rsel').forEach(sl=>{
   const i=+sl.dataset.i,k=+sl.dataset.k;
@@ -383,6 +395,7 @@ function renderRoutes(){
   if(v&&sl.value!==v){sl.insertAdjacentHTML('beforeend',`<option value="${esc(v)}">${esc(pname(v))}</option>`);sl.value=v}
   paintStep(sl,k,v);
  });
+ routes.forEach((r,i)=>paintName(rbody.querySelector(`.rname[data-i="${i}"]`),i));
  routes.forEach((r,i)=>markColDirty(i,!!r._dirty));
  markRouteHead();
  repaintLater();
