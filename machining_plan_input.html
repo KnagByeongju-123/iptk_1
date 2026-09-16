@@ -241,9 +241,14 @@ async function _waitDB(){for(let i=0;i<60&&!window.MESDB;i++)await new Promise(r
  if(window.MESDB&&MESDB.ready){try{await MESDB.ready}catch(e){}}}
 async function loadRoutes(){
  try{const rs=await MESDB.table('machining_standard_routes').select('select=*&order=standard_process_no');
-  routes.length=0;rs.forEach(r=>routes.push({row_no:r.row_no,standard_process_no:r.standard_process_no,
-    standard_process_name:r.standard_process_name,steps:(Array.isArray(r.steps)?r.steps:[]).map(x=>
-      x&&typeof x==='object'?(x.process_code||x.code||''):String(x||'')).filter(Boolean)}));
+  routes.length=0;rs.forEach(r=>{
+   const st=(Array.isArray(r.steps)?r.steps:[]).map(x=>
+     x&&typeof x==='object'?(x.process_code||x.code||''):String(x||'')).filter(Boolean);
+   const nm=r.standard_process_name||'';
+   routes.push({row_no:r.row_no,standard_process_no:r.standard_process_no,
+    standard_process_name:nm,steps:st,
+    /* v94: 저장된 이름이 자동생성 규칙과 다르면 사용자가 지은 이름 — 자동 갱신하지 않는다 */
+    _nameEdited:!!nm&&nm!==routeName(st)});});
   renderRoutes();
  }catch(e){}
 }
@@ -366,7 +371,9 @@ function pickRouteHead(i){
 }
 function routeStep(i,k,v){const r=routes[i];if(!r)return;
  const st=Array.from({length:RSEQN},(_,x)=>(r.steps||[])[x]||'');
- st[k]=String(v||'').trim();
+ const nv=String(v||'').trim();
+ if(st[k]===nv)return;   /* v94: 같은 값이면 무시 — 콤보 blur 재발신 등으로 dirty/이름이 바뀌지 않게 */
+ st[k]=nv;
  while(st.length&&!st[st.length-1])st.pop();
  r.steps=st;r._dirty=true;routeIdx=i;
  if(!r._nameEdited)r.standard_process_name=routeName(st);

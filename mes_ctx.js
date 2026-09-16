@@ -445,7 +445,11 @@ window.MESCTX={confirm:dlgConfirm};
   const t=String(box.inp.value||'').trim();
   if(box.src.tagName==='SELECT'){
    const o=optionsOf(box).find(x=>x.l===t)||optionsOf(box).find(x=>String(x.v)===t);
-   if(o)setVal(box,o.v,o.l); else box.inp.value=labelOf(box,box.src.value);
+   /* v114: 값이 그대로면 setVal(=input/change 재발신)을 생략한다 — change 에
+      dirty·자동이름 같은 부수효과가 있는 화면에서 포커스 이동만으로 상태가
+      바뀌는 것을 막는다 (가공계획등록 기준공정명 덮어쓰기 버그) */
+   if(o){if(String(box.src.value)!==String(o.v))setVal(box,o.v,o.l);else box.inp.value=o.l;}
+   else box.inp.value=labelOf(box,box.src.value);
   }else if(t!==box.src.value)setVal(box,t,t);
  }
  function build(el){
