@@ -11,6 +11,7 @@
 .filters{padding:7px 14px;border-bottom:1px solid var(--line2);background:#fafbfc;display:flex;gap:6px;align-items:center;flex-wrap:wrap}.label{font-weight:700}.field{height:27px;border:1px solid #b7c2cb;background:#fff;padding:0 7px;outline:none}.field:focus{border-color:#4e88bb}
 .panes{display:grid;grid-template-columns:1.1fr 1.7fr .62fr;   /* v115: 부품별 가공공정 리스트 ↔ 협력업체리스트 자리 교체 */gap:6px;padding:7px 14px 0;height:190px}
 .box{border:1px solid var(--line);display:flex;flex-direction:column;min-height:0;background:#fff}.box-title{height:24px;display:flex;align-items:center;justify-content:center;background:linear-gradient(#deebf5,#caddea);border-bottom:1px solid var(--line);font-weight:700;color:#536677}
+.ctxhint{margin-left:10px;color:#4a6b88;background:#eaf3fb;border:1px solid #c3daed;border-radius:12px;padding:3px 10px;white-space:nowrap}.ctxhint b{color:#1d5da3}
 .searchbar{height:26px;display:flex;gap:4px;align-items:center;padding:0 4px;border-bottom:1px solid var(--line2);background:#f6f8fa}.searchbar input{flex:1;min-width:0;height:20px;border:1px solid #b7c2cb;padding:0 5px;font:inherit}.searchbar input{flex:1;height:21px;border:1px solid #b7c2cb;padding:0 4px;min-width:0}.searchbar button{height:21px;border:1px solid #9ca9b5;background:linear-gradient(#fff,#e2e8ed)}
 .tablewrap{flex:1;min-height:0;overflow:auto}table{border-collapse:collapse;width:100%;table-layout:fixed}th,td{height:24px;padding:0 5px;border-right:1px solid var(--line2);border-bottom:1px solid var(--line2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}th{position:sticky;top:0;z-index:2;text-align:center;background:linear-gradient(#dbe9f4,#c7d9e8);color:#405266;font-weight:700}tbody tr:hover td{background:#edf6fd}tbody tr.sel td{background:#2e78bd;color:#fff}.c{text-align:center}.r{text-align:right}
 td.route{text-align:center;font-weight:400;color:#8b98a3;background:#fff;white-space:nowrap}
@@ -69,7 +70,7 @@ tr.rdone td{color:#8b98a3}
     <span class="label">품명</span><input id="itemQ" class="field" style="width:190px">
     <span class="label">업체</span><input id="venF" class="field" style="width:190px">
     <button class="btn" onclick="search()">⌕ 조회</button>
-    <button class="btn" id="btnRefresh" onclick="refreshAll()" title="DB에서 제번·부품별 가공공정을 다시 불러옵니다 (다른 화면의 발주·입고 반영)">⟳ 새로고침</button>
+    <button class="btn" id="btnRefresh" onclick="refreshAll()" title="DB에서 제번·부품별 가공공정을 다시 불러옵니다 (다른 화면의 발주·입고 반영)">⟳ 새로고침</button><span class="ctxhint" title="공정 셀에서 마우스 오른쪽 버튼을 누르면 상태에 맞는 처리 창이 열립니다">※ 공정 칸 <b>마우스 우클릭</b> → 발주 · 입고 · 입고확정 · 입고취소</span>
   </section>
   <section class="panes">
     <div class="box"><div class="box-title">제번리스트</div><div class="tablewrap"><table>
@@ -511,7 +512,8 @@ function ctxConfirm(ev,head){
    <label>확정가</label><input id="cxFix" class="r" value="${_won(fix)}" inputmode="numeric" onchange="ctxRateFromFix()">
   </div>
   <div class="note">확정가는 제조원가(외주가공비)에 반영됩니다. 네고율을 입력하면 확정가가, 확정가를 고치면 네고율이 맞춰집니다.</div>`,
-  `<button class="btn go" id="cxGo" onclick="ctxConfirmNow()">▣ 입고확정</button><button class="btn" onclick="ctxClose()">취소</button>`);
+  `<button class="btn" onclick="ctxRecvCancel()" title="현품 입고를 취소하고 발주(출고) 상태로 되돌립니다">✖ 입고취소</button>
+   <button class="btn go" id="cxGo" onclick="ctxConfirmNow()">▣ 입고확정</button><button class="btn" onclick="ctxClose()">취소</button>`);
  return false;
 }
 function ctxFixFromRate(){const q=_n(_v('cxQuote')),rt=_n(_v('cxRate'));document.getElementById('cxFix').value=_won(Math.round(q*(1-rt/100)))}
@@ -526,6 +528,23 @@ async function ctxConfirmNow(){
   await MESDB.table('order_lines').upsert([{line_id:Number(l.line_id),status:'입고확정',confirm_date:_v('cxCdate')||T0(),confirm_price:fix||null,nego_rate:quote?Number(((1-fix/quote)*100).toFixed(2)):null,updated_at:new Date().toISOString()}],'line_id');
   await ctxAfter(job.job,`${r.part} 공정${i+1} ${procName(c)} 입고확정 (확정가 ${_won(fix)}원) — 제조원가에 반영됩니다.`);
  }catch(e){msg('입고확정 실패: '+String(e.message||e).slice(0,120));if(b){b.disabled=false;b.textContent='▣ 입고확정'}}
+}
+
+/* v115: 입고취소 — 잘못 입고 처리한 공정을 발주(출고) 상태로 되돌린다.
+   뒤 공정이 이미 발주·입고됐다면 순서가 깨지므로 막는다. */
+async function ctxRecvCancel(){
+ const {r,i,c,o,job}=CTX;const l=o.line||{};
+ if(!l.line_id)return msg('발주 라인을 찾을 수 없습니다. [새로고침] 후 다시 시도하세요.');
+ if(!_online())return msg('DB 미연결 - 입고취소를 할 수 없습니다.');
+ const n=(r.steps||[]).map(stepCode).filter(Boolean).length;
+ for(let k=i+1;k<n;k++){const st=stepState(r,k);
+  if(st)return msg(`공정${k+1} ${procName(stepCode(r.steps[k]))} 이(가) 이미 ${st} 상태입니다. 뒤 공정부터 취소하세요.`);}
+ if(!confirm(`${r.part} 공정${i+1} ${procName(c)} 의 입고를 취소합니다.\n발주(출고) 상태로 되돌아가며, 입고수량·입고일이 지워집니다. 계속할까요?`))return;
+ try{
+  await MESDB.table('order_lines').upsert([{line_id:Number(l.line_id),status:'발주',
+    receipt_qty:0,receipt_date:null,updated_at:new Date().toISOString()}],'line_id');
+  await ctxAfter(job.job,`${r.part} 공정${i+1} ${procName(c)} 입고를 취소했습니다. (발주 상태로 복귀 — 다시 입고 처리할 수 있습니다)`);
+ }catch(e){msg('입고취소 실패: '+String(e.message||e).slice(0,120))}
 }
 
 /* ── 완료 내역 ── */
