@@ -87,7 +87,7 @@ th.sortable:hover{background:#dbe7f3}
 th.sortable .ar{color:#8a97a2;font-size:10px;margin-left:3px}
 th.sortable.on{color:#1d5da3}
 th.sortable.on .ar{color:#1d5da3}
-#pbody tr.unsaved td{color:#7a8794}
+#pbody tr.unsaved td:not(.stp):not(.spn){color:#7a8794}
 #pbody tr.unsaved .us{font-size:10px;color:#c0392b;border:1px solid #e3b4ae;border-radius:8px;padding:0 5px;margin-left:4px;vertical-align:1px}
 </style></head><body><div class="screen"><div class="title"><h1>가공계획등록</h1><small>구매관리 · 가공</small></div><section class="filt"><div class="f2"><div class="lb">제 번</div><div><input id="q_job" class="field"></div><div class="lb">품 명</div><div><input id="q_item" class="field"></div></div><div class="guide"><span class="gt">사용순서</span><span class="st"><b>1</b>제번·조 선택</span><span class="ar">▸</span><span class="st"><b>2</b>공정 수정 시 [공정저장]</span><span class="ar">▸</span><span class="st"><b>3</b>번호를 부품으로 드래그해 적용</span><span class="ar">▸</span><span class="st"><b>4</b>[저장]</span><span class="warn">※ 체크 없으면 전체 저장</span></div></section><div class="panes" style="grid-template-rows:1fr 1.2fr"><div class="panes" style="grid-template-columns:470px 1fr;grid-template-rows:1fr;padding:0;gap:8px"><div class="pane"><div class="ph">제번 리스트</div><div class="pb"><table style="min-width:0"><thead><tr><th style="width:46px">NO</th><th style="width:130px">제번</th><th style="width:64px">공정(조)수</th><th style="width:40px">조</th><th style="width:104px">가공완료일</th><th>T/O 예정일</th></tr></thead><tbody id="hbody"></tbody></table></div></div><div class="pane"><div class="ph"><div class="phbar"><span>가공 공정 리스트</span><button class="btn" onclick="routeAdd()" title="기준공정 열을 추가합니다">+ 기준공정</button><button class="btn" onclick="routeSave()" title="변경된 기준공정을 저장합니다">▤ 공정저장</button><button class="btn" onclick="routeDel()" title="선택한 기준공정을 삭제합니다">✕ 공정삭제</button><span class="sp" id="routeMsg">공정 수정 후 [▤ 공정저장] · 번호(열 머리)를 부품 리스트로 끌어 적용 · 번호 클릭=삭제 대상 선택</span></div></div><div class="pb"><table id="rtable" style="min-width:0"><thead id="rhead"></thead><tbody id="rbody"></tbody></table></div></div></div><div class="pane"><div class="ph">부품 리스트</div><div class="pb"><table id="ptable"><thead><tr><th></th><th class="sortable" id="thPno" onclick="psort('part_no')">부품코드<span class="ar">⇅</span></th><th class="sortable" id="thPnm" onclick="psort('part_name')">부품명<span class="ar">⇅</span></th><th>기준공정</th><th>공정1</th><th>공정2</th><th>공정3</th><th>공정4</th><th>공정5</th><th>공정6</th><th>공정7</th><th>공정8</th><th>공정9</th><th>공정10</th><th>공정11</th><th>공정12</th></tr></thead><tbody id="pbody"></tbody></table></div></div></div> <footer class="foot"><button class="btn" onclick="search()">⌕ 검색</button><button class="btn" onclick="save()">▤ 저장</button><button class="btn" onclick="del_()">✕ 삭제</button><button class="btn" onclick="pr()">▤ PRINT</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">제번을 선택하면 부품별 가공공정이 표시됩니다.</span><span class="right" id="countText"></span></footer></div><script>const heads=[];const routes=[];const parts=[];const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const n=v=>v==null?'':Number(v).toLocaleString();const p=v=>v==null?'':Number(v).toFixed(2)+'%';
@@ -107,16 +107,17 @@ function stepStyle(c,i){
  if(!c||typeof STEPCOL==='undefined')return '';
  const nm=String(PROCN[c]||c||'');
  const col=(c==='HQ'||nm.indexOf('열처리')>=0)?HQCOL:STEPCOL[i%6];
- return ` class="c stp" style="background:${col[0]};color:${col[1]}"`;
+ return ` class="c stp keepbg" style="background:${col[0]}!important;color:${col[1]}!important"`;
 }
 const cells=(a,n)=>Array.from({length:n},(_,i)=>{const c=a&&a[i]||'';
  return `<td${c?stepStyle(c,i):' class="c"'} title="${esc(c)}">${esc(pname(c))}</td>`}).join('');
 /* 기준공정 칸 — 가공 공정 리스트에서 같은 이름을 가진 열의 짙은 바탕색 + 흰 글자 */
 function spCell(nm){
  nm=String(nm||'');if(!nm)return '<td class="c"></td>';
- const i=routes.findIndex(r=>String(r.standard_process_name||'')===nm);
- if(i<0||typeof NAMECOL==='undefined')return `<td class="c">${esc(nm)}</td>`;
- return `<td class="c spn" style="background:${NAMECOL[i%NAMECOL.length]};color:#fff">${esc(nm)}</td>`;
+ const c=typeof nameColor==='function'?nameColor(nm):'';
+ if(!c)return `<td class="c">${esc(nm)}</td>`;
+ /* keepbg: mes_ctx 의 줄무늬·마우스오버 배경(!important)에서 제외되는 표시 */
+ return `<td class="c spn keepbg" title="${esc(nm)}" style="background:${c}!important;color:#fff!important">${esc(nm)}</td>`;
 }
 function render(){
  hbody.innerHTML=view.map((r,i)=>`<tr onclick="pick(${i},this)"><td class="c">${r.row_no}</td><td>${esc(r.job_no)}</td><td class="c">${r.set_qty||''}</td><td class="c">${r.jo||''}</td><td class="c">${esc(r.machining_completion_date||'')}</td><td class="c">${esc(r.s1_date||'')}</td></tr>`).join('');
@@ -356,10 +357,18 @@ function routeName(a){const nm=(a||[]).filter(Boolean).map(c=>PROCN[c]||c);
    색은 인라인 스타일로 select 와 콤보 input 양쪽에 입힌다. */
 /* v96: 기준공정명 바탕색 — 열 번호 순서로 돌려 쓴다 (짙은 색 + 흰 글자) */
 var NAMECOL=['#2b4c7e','#a04000','#7d6608','#4f5a63','#3d6327','#5b2c6f',
-             '#1a5276','#935116','#117864','#6e2c00','#424949','#4a235a'];
+             '#1a5276','#935116','#117864','#6e2c00','#424949','#4a235a',
+             '#154360','#7e5109','#0e6251','#512e5f'];
+/* v98: 기준공정 색은 '이름'으로 정한다 — 열 순서가 바뀌거나 기준공정을 지워도
+   부품 리스트에 남은 같은 이름은 같은 색을 유지한다 (예전엔 열 index 라서 색이 사라졌다) */
+function nameColor(nm){
+ nm=String(nm||'').trim();if(!nm)return '';
+ let h=0;for(let i=0;i<nm.length;i++)h=(h*31+nm.charCodeAt(i))>>>0;
+ return NAMECOL[h%NAMECOL.length];
+}
 function paintName(el,i){
  if(!el)return;
- const c=NAMECOL[i%NAMECOL.length];
+ const c=nameColor((routes[i]||{}).standard_process_name)||NAMECOL[i%NAMECOL.length];
  el.classList.add('hdr');el.classList.add('keepcolor');
  el.style.setProperty('background-color',c,'important');
  el.style.setProperty('color','#fff','important');
