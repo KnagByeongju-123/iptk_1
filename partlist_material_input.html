@@ -74,7 +74,7 @@ tbody tr:nth-child(even) td{background:#fafcfd}tbody tr:hover td{background:#edf
  <div class="xhead"><span>엑셀 불러오기 - 제번 <b id="xJob"></b></span><button onclick="xlsClose()">×</button></div>
  <div class="xbody">
   <div style="padding:7px 9px;background:#e9f1f8;border:1px solid #bfd2e2;margin-bottom:6px;line-height:1.7">
-   <b>① 엑셀 열 순서</b> : <b style="color:#2f75b5">품번 → 품명 → 재질 → 규격 → 두께 → 수량</b>
+   <b>① 엑셀 열 순서</b> : <b style="color:#2f75b5">품번 → 품명 → 재질 → 규격 → 두께 → 수량</b> <span style="color:#5a6a78">(품명이 두 칸이어도 한 칸으로 합쳐 읽습니다)</span>
    <span style="color:#5a6a78">(제목행은 있어도 되고 없어도 됩니다)</span><br>
    <b>② </b>엑셀에서 범위를 복사(Ctrl+C) → 아래 칸에 붙여넣기(Ctrl+V)<br>
    <b>③ </b>등록자·등록일자 입력 → <b>[▤ 등록]</b>
@@ -330,13 +330,23 @@ function xlsMap(){
   for(let c=2;c<w;c++){const n=g.filter(r=>isSpec(r[c]||'')).length;if(n>best){best=n;sc=c}}
   if(sc>=3&&best>=Math.ceil(g.length/2)){
    idx.part_no=0;idx.part_name=1;idx.material=sc-1;idx.spec=sc;idx.thickness_dia=sc+1;idx.qty=sc+2;
+  }else if(w>6){                                    /* 열이 더 많으면 오른쪽 4열을 재질·규격·두께·수량으로 */
+   idx.part_no=0;idx.part_name=1;idx.material=w-4;idx.spec=w-3;idx.thickness_dia=w-2;idx.qty=w-1;
   }else COLS.forEach((x,i)=>idx[x.k]=i);             /* 고정 순서 */
  }
- return {g,idx,head,start:head+1};
+ /* v90: 품명은 엑셀에서 두 칸(병합/분할)일 수 있다 → 품명 열부터 재질 앞 열까지를 한 칸으로 합친다 */
+ const nameCols=[];
+ if(idx.part_name!=null){
+  const end=(idx.material!=null&&idx.material>idx.part_name)?idx.material:idx.part_name+1;
+  for(let c=idx.part_name;c<end;c++)nameCols.push(c);
+ }
+ return {g,idx,head,start:head+1,nameCols};
 }
 function xlsRows(){
- const {g,idx,head,start}=xlsMap();
- const get=(r,k)=>idx[k]==null?'':String(r[idx[k]]??'').trim();
+ const {g,idx,head,start,nameCols}=xlsMap();
+ const get=(r,k)=>{
+  if(k==='part_name')return nameCols.map(c=>String(r[c]??'').trim()).filter(Boolean).join(' ');
+  return idx[k]==null?'':String(r[idx[k]]??'').trim()};
  const rows=[];let skipEx=0,skipNo=0;
  for(let i=start;i<g.length;i++){
   const r=g[i],pn=get(r,'part_no');
@@ -397,13 +407,13 @@ function search(){const j=curJobNo();if(j&&online())return loadJob(j);render()}
 window.MES={search,save,setMessage:msg,reload:loadJob};render();
 (async()=>{await waitDB();const j=curJobNo();if(j)loadJob(j)})();
 </script>
-<script src="mes_sample.js?v=89"></script><script src="mes_scene.js?v=89"></script><script src="mes_demo.js?v=89"></script><script src="mes_db.js?v=89"></script>
+<script src="mes_sample.js?v=90"></script><script src="mes_scene.js?v=90"></script><script src="mes_demo.js?v=90"></script><script src="mes_db.js?v=90"></script>
 <script>
 /* v86: MESDB.master 자동동기화 제거 — partlist_materials 전체 스냅샷과 화면(선택 제번) 차이를
    '삭제'로 판단해 다른 제번의 PartList 를 지우던 문제. 저장·삭제는 위 함수가 직접 처리한다. */
 </script>
-<script src="mes_ctx.js?v=89"></script>
-<script src="mes_jobpick.js?v=89"></script>
+<script src="mes_ctx.js?v=90"></script>
+<script src="mes_jobpick.js?v=90"></script>
 <script>/* 제번 직접 타이핑 → 등록된 수주 목록에서 선택 */
 MESJOB.attach("q_job",{onPick:j=>{if(typeof loadJob==="function")loadJob(j)}});</script>
 <script>
