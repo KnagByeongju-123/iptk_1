@@ -9,7 +9,7 @@
 *{box-sizing:border-box}html,body{height:100%;margin:0}body{font-family:"Malgun Gothic","맑은 고딕",Arial,sans-serif;font-size:12px;color:var(--ink);background:#fff;overflow:hidden}button,input,select{font:inherit;color:inherit}
 .screen{height:100%;display:flex;flex-direction:column}.title{height:46px;padding:9px 14px 4px;border-bottom:2px solid #3977ad;display:flex;align-items:center;gap:14px}.title h1{margin:0;font-size:21px;font-weight:500;color:#4b5b69}.title h1:before{content:'◯';margin-right:6px;color:#8795a1}.title .plant{margin-left:auto;display:flex;align-items:center;gap:6px;color:#6b7885}
 .filters{padding:7px 14px;border-bottom:1px solid var(--line2);background:#fafbfc;display:flex;gap:6px;align-items:center}.label{font-weight:700}.field{height:27px;border:1px solid #b7c2cb;background:#fff;padding:0 7px;outline:none}.field:focus{border-color:#4e88bb}
-.panes{display:grid;grid-template-columns:1.1fr .6fr 1.7fr;gap:6px;padding:7px 14px 0;height:190px}
+.panes{display:grid;grid-template-columns:1.1fr 1.7fr .6fr;   /* v115: 자재표 리스트 ↔ 협력업체리스트 자리 교체 */gap:6px;padding:7px 14px 0;height:190px}
 .box{border:1px solid var(--line);display:flex;flex-direction:column;min-height:0;background:#fff}.box-title{height:24px;display:flex;align-items:center;justify-content:center;background:linear-gradient(#deebf5,#caddea);border-bottom:1px solid var(--line);font-weight:700;color:#536677}
 .searchbar{height:26px;display:flex;gap:4px;align-items:center;padding:0 4px;border-bottom:1px solid var(--line2);background:#f6f8fa}.searchbar input{flex:1;height:21px;border:1px solid #b7c2cb;padding:0 4px}.searchbar button{height:21px;border:1px solid #9ca9b5;background:linear-gradient(#fff,#e2e8ed)}
 .tablewrap{flex:1;min-height:0;overflow:auto}table{border-collapse:collapse;width:100%;table-layout:fixed}th,td{height:24px;padding:0 5px;border-right:1px solid var(--line2);border-bottom:1px solid var(--line2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}th{position:sticky;top:0;z-index:2;text-align:center;background:linear-gradient(#dbe9f4,#c7d9e8);color:#405266;font-weight:700}tbody tr:hover td{background:#edf6fd}tbody tr.sel td{background:#2e78bd;color:#fff}.c{text-align:center}.r{text-align:right}
@@ -49,17 +49,17 @@ input.cell,tr.sel input.cell,tr:hover input.cell{color:#22303a;background:#fff;-
     <div class="box"><div class="box-title">제번리스트</div><div class="tablewrap"><table>
       <colgroup><col style="width:36%"><col style="width:36%"><col style="width:14%"><col style="width:14%"></colgroup>
       <thead><tr><th>제번</th><th>품명</th><th>공정</th><th>공정명</th></tr></thead><tbody id="jobBody"></tbody></table></div></div>
-    <div class="box"><div class="box-title">협력업체리스트</div>
-      <div class="searchbar"><input id="venQ" placeholder="Enter text to search"><button onclick="findVendor()">찾기</button><button onclick="clearVendor()">지우기</button></div>
-      <div class="tablewrap"><table><thead><tr><th style="width:36px"><input type="checkbox" id="venAll" onclick="toggleAllVendors(this.checked)" title="전체 선택/해제"></th><th>협력업체</th></tr></thead><tbody id="venBody"></tbody></table></div></div>
     <div class="box"><div class="box-title">자재표 리스트</div><div class="tablewrap"><table>
       <colgroup><col style="width:38px"><col style="width:14%"><col style="width:20%"><col style="width:12%"><col style="width:22%"><col style="width:10%"><col style="width:12%"></colgroup>
-      <thead><tr><th></th><th>품번</th><th>부품명</th><th>재질</th><th>규격</th><th>수량</th><th>첨부</th></tr></thead><tbody id="bomBody"></tbody></table></div></div>
+      <thead><tr><th><input type="checkbox" id="bomAll" onclick="bomAllToggle(this)" title="전체선택 / 전체해제"></th><th>품번</th><th>부품명</th><th>재질</th><th>규격</th><th>수량</th><th>첨부</th></tr></thead><tbody id="bomBody"></tbody></table></div></div>
+    <div class="box"><div class="box-title">협력업체리스트</div>
+      <div class="searchbar"><input id="venQ" placeholder="Enter text to search"><button onclick="findVendor()">찾기</button><button onclick="clearVendor()">지우기</button></div>
+      <div class="tablewrap"><table><thead><tr><th style="width:36px"></th><th>협력업체</th></tr></thead><tbody id="venBody"></tbody></table></div></div>
   </section>
   <div class="midbar"><span class="label">입고요구일</span><input id="reqDate" class="field" type="date" onchange="applyRdate()" title="날짜를 바꾸면 아래 리스트에서 체크한 행에 일괄 적용됩니다"><button class="btn" onclick="pushDown()">⬇ 요청추가</button><button class="btn" onclick="pullUp()">⬆ 요청삭제</button></div>
   <div class="reqbox"><div class="box-title">구매요청 리스트</div><div class="tablewrap"><table>
     <colgroup><col style="width:40px"><col style="width:38px"><col style="width:104px"><col style="width:104px"><col style="width:48px"><col style="width:70px"><col style="width:130px"><col style="width:64px"><col style="width:130px"><col style="width:56px"><col style="width:72px"><col style="width:86px"><col style="width:150px"><col style="width:56px"><col style="width:74px"><col style="width:84px"><col style="width:84px"><col style="width:92px"></colgroup>
-    <thead><tr><th>No</th><th>선택</th><th>협력업체</th><th>제번</th><th>공정</th><th>품번</th><th>부품명</th><th>재질</th><th>규격</th><th>수량</th><th>발주수량</th><th>발주월</th><th>입고요구일</th><th>첨부</th><th>담당자</th><th>기준단가</th><th>매입단가</th><th>매입금액</th></tr></thead>
+    <thead><tr><th>No</th><th><input type="checkbox" id="reqAll" onclick="reqAllToggle(this)" title="전체선택 / 전체해제"></th><th>협력업체</th><th>제번</th><th>공정</th><th>품번</th><th>부품명</th><th>재질</th><th>규격</th><th>수량</th><th>발주수량</th><th>발주월</th><th>입고요구일</th><th>첨부</th><th>담당자</th><th>기준단가</th><th>매입단가</th><th>매입금액</th></tr></thead>
     <tbody id="reqBody"></tbody>
     <tfoot><tr><th colspan="9" class="r">합 계</th><th class="r" id="sumQty">0</th><th class="r" id="sumOrd">0</th><th colspan="5"></th><th class="r" id="sumBuy">0</th><th class="r" id="sumAmt">0</th></tr></tfoot>
   </table></div></div>
@@ -79,12 +79,33 @@ function renderJobs(){jobBody.innerHTML=jobView.map((j,i)=>`<tr class="${i===job
 /* v80: 협력업체는 체크박스로 고른다. 여러 업체에 나눠 발주할 수 있고, 어디로 나가는지 눈으로 확인된다 */
 const VENSEL=new Set();window.MESVENSEL=VENSEL;
 function pickedVendors(){return venView.filter(v=>VENSEL.has(v))}
-function toggleAllVendors(on){venView.forEach(v=>on?VENSEL.add(v):VENSEL.delete(v));renderVendors();
- msg(on?`협력업체 ${venView.length}개를 모두 선택했습니다.`:'협력업체 선택을 해제했습니다.')}
-function renderVendors(){venBody.innerHTML=venView.map((v,i)=>`<tr class="${VENSEL.has(v)?'sel':''}" onclick="pickVendor(${i})"><td class="c"><input type="checkbox" ${VENSEL.has(v)?'checked':''} onclick="event.stopPropagation();pickVendor(${i})"></td><td>${v}</td></tr>`).join('');
- const all=document.getElementById('venAll');if(all)all.checked=venView.length>0&&venView.every(v=>VENSEL.has(v))}
-function renderBom(){const b=jobView[jobIdx]?.bom||[];bomBody.innerHTML=b.length?b.map((r,i)=>`<tr><td class="c"><input type="checkbox" data-i="${i}"></td><td>${r.part}</td><td>${r.name}</td><td class="c">${r.mat}</td><td>${r.spec}</td><td class="r">${r.qty}</td><td class="c">${r.att}</td></tr>`).join(''):'<tr><td colspan="7" class="c" style="color:#8b98a4">자재표가 없습니다.</td></tr>'}
-function renderReq(){reqBody.innerHTML=REQ.map((r,i)=>`<tr onclick="this.classList.toggle('sel')"><td class="c">${i+1}</td><td class="c"><input type="checkbox" data-no="${r.no}"></td><td>${r.vendor}</td><td>${r.job}</td><td class="c">${r.proc}</td><td>${r.part}</td><td>${r.name}</td><td class="c">${r.mat}</td><td>${r.spec}</td><td class="r">${r.qty}</td><td class="r">${r.ord}</td><td class="c">${r.odate}</td><td class="c"><input class="cell" type="date" value="${r.rdate||''}" onclick="event.stopPropagation()" onchange="setRdate(${r.no},this.value)" title="이 행의 입고요구일을 수정합니다"></td><td class="c">${r.att}</td><td class="c">${r.owner}</td><td class="r">${money(r.stdPrice)}</td><td class="r"><input class="cell" value="${r.buyPrice??0}" onclick="event.stopPropagation()" onchange="setBuy(${r.no},this.value)" title="매입단가를 고치면 매입금액이 다시 계산됩니다"></td><td class="r">${money(r.amount)}</td></tr>`).join('');
+function renderVendors(){venBody.innerHTML=venView.map((v,i)=>`<tr class="${VENSEL.has(v)?'sel':''}" onclick="pickVendor(${i})"><td class="c"><input type="checkbox" ${VENSEL.has(v)?'checked':''} onclick="event.stopPropagation();pickVendor(${i})"></td><td>${v}</td></tr>`).join('');}
+/* v115: 자재표·구매요청 리스트 전체선택 — 제목행 체크박스로 전체선택/해제, 개별 체크 시 상태 동기화 */
+function bomChks(){return [...bomBody.querySelectorAll('input[type=checkbox]')]}
+function bomAllToggle(el){bomChks().forEach(c=>c.checked=el.checked);syncBomAll();
+ msg(el.checked?`자재표 ${bomChks().length}건을 모두 선택했습니다.`:'자재표 선택을 모두 해제했습니다.')}
+function syncBomAll(){const all=document.getElementById('bomAll');if(!all)return;
+ const cs=bomChks(),on=cs.filter(c=>c.checked).length;
+ all.checked=cs.length>0&&on===cs.length;all.indeterminate=on>0&&on<cs.length}
+function reqChks(){return [...reqBody.querySelectorAll('input[type=checkbox]')]}
+function reqAllToggle(el){reqChks().forEach(c=>c.checked=el.checked);syncReqAll();
+ msg(el.checked?`구매요청 ${reqChks().length}건을 모두 선택했습니다.`:'구매요청 선택을 모두 해제했습니다.')}
+function syncReqAll(){const all=document.getElementById('reqAll');if(!all)return;
+ const cs=reqChks(),on=cs.filter(c=>c.checked).length;
+ all.checked=cs.length>0&&on===cs.length;all.indeterminate=on>0&&on<cs.length}
+document.addEventListener('change',e=>{
+ if(!e.target||!e.target.closest)return;
+ if(e.target.closest('#bomBody'))syncBomAll();
+ if(e.target.closest('#reqBody'))syncReqAll();
+});
+function renderBom(){const b=jobView[jobIdx]?.bom||[];bomBody.innerHTML=b.length?b.map((r,i)=>`<tr><td class="c"><input type="checkbox" data-i="${i}"></td><td>${r.part}</td><td>${r.name}</td><td class="c">${r.mat}</td><td>${r.spec}</td><td class="r">${r.qty}</td><td class="c">${r.att}</td></tr>`).join(''):'<tr><td colspan="7" class="c" style="color:#8b98a4">자재표가 없습니다.</td></tr>';
+ if(typeof syncBomAll==='function')syncBomAll()}
+function renderReq(){
+ /* v115: 재렌더 시 체크 상태 유지 */
+ const _on=new Set([...reqBody.querySelectorAll('input[type=checkbox]:checked')].map(c=>c.dataset.no));
+ reqBody.innerHTML=REQ.map((r,i)=>`<tr onclick="this.classList.toggle('sel')"><td class="c">${i+1}</td><td class="c"><input type="checkbox" data-no="${r.no}"></td><td>${r.vendor}</td><td>${r.job}</td><td class="c">${r.proc}</td><td>${r.part}</td><td>${r.name}</td><td class="c">${r.mat}</td><td>${r.spec}</td><td class="r">${r.qty}</td><td class="r">${r.ord}</td><td class="c">${r.odate}</td><td class="c"><input class="cell" type="date" value="${r.rdate||''}" onclick="event.stopPropagation()" onchange="setRdate(${r.no},this.value)" title="이 행의 입고요구일을 수정합니다"></td><td class="c">${r.att}</td><td class="c">${r.owner}</td><td class="r">${money(r.stdPrice)}</td><td class="r"><input class="cell" value="${r.buyPrice??0}" onclick="event.stopPropagation()" onchange="setBuy(${r.no},this.value)" title="매입단가를 고치면 매입금액이 다시 계산됩니다"></td><td class="r">${money(r.amount)}</td></tr>`).join('');
+ _on.forEach(no=>{const c=reqBody.querySelector(`input[data-no="${no}"]`);if(c)c.checked=true});
+ if(typeof syncReqAll==='function')syncReqAll();
 sumQty.textContent=REQ.reduce((a,r)=>a+(r.qty||0),0);sumOrd.textContent=REQ.reduce((a,r)=>a+(r.ord||0),0);sumBuy.textContent='';sumAmt.textContent=money(REQ.reduce((a,r)=>a+(r.amount||0),0));countText.textContent=`제번 ${jobView.length}건 / 요청 ${REQ.length}건`}
 /* v80: 매입단가를 고치면 매입금액을 다시 계산한다 (발주수량 기준) */
 function calcAmt(r){r.amount=Math.round((Number(r.buyPrice)||0)*(Number(r.ord)||Number(r.qty)||1));return r.amount}
