@@ -28,7 +28,7 @@ table{border-collapse:collapse;min-width:1040px;width:100%;table-layout:fixed}th
 .amt input{width:100%;height:26px;border:1px solid #b5c0c9;text-align:right;padding:0 5px}
 .pct{font-size:11px;color:#5d6d7b;text-align:right}
 /* v116 자동배분 */
-.arow{grid-template-columns:74px minmax(220px,380px) minmax(0,1fr);align-items:start}
+.arow{grid-template-columns:74px minmax(0,1fr);align-items:start}
 .adist{border:1px solid #c5d3de;background:#f4f8fb;padding:6px 8px;border-radius:3px;min-width:0}
 .adtop{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:5px}.adtop>b{color:#2f5f8a;margin-right:4px}
 .adin{width:130px;height:26px;border:1px solid #b5c0c9;text-align:right;padding:0 5px}
@@ -38,7 +38,7 @@ table{border-collapse:collapse;min-width:1040px;width:100%;table-layout:fixed}th
 .adc{display:flex;flex-direction:column;gap:2px;min-width:0}.adc>span{font-size:11px;text-align:center;color:#4b5c6a;font-weight:700;white-space:nowrap;overflow:hidden}
 .adr{width:100%;min-width:0;height:24px;border:1px solid #b5c0c9;text-align:right;padding:0 16px 0 3px;background:#fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12'><text x='1' y='10' font-size='10' fill='%238796a1'>%</text></svg>") no-repeat right 2px center}
 .adnote{font-size:10.5px;color:#7a8894;margin-top:4px}
-@media(max-width:1100px){.arow{grid-template-columns:74px minmax(0,1fr)}.adist{grid-column:1/-1}.adgrid{grid-template-columns:repeat(4,minmax(52px,1fr))}}
+@media(max-width:1100px){.arow{grid-template-columns:74px minmax(0,1fr)}.adgrid{grid-template-columns:repeat(4,minmax(52px,1fr))}}
 .note{font-size:11px;color:#6b7a87;line-height:1.5}.note b{color:#3d5163}
 .chk{display:flex;align-items:center;gap:3px;white-space:nowrap}
 .chk.src{gap:8px}.chk.src label{display:flex;align-items:center;gap:2px;cursor:pointer}
@@ -76,7 +76,7 @@ table{border-collapse:collapse;min-width:1040px;width:100%;table-layout:fixed}th
   <div class="lb">수주가</div><input id="order_price" class="field num" oninput="recalc()"><div class="lb">목표가</div><input id="target_price" class="field num" readonly title="아래 8개 금액의 합계 (자동)"><div class="lb">이익금</div><input id="profit_amount" class="field num" readonly title="수주가 − 목표가 (자동)"><div class="lb">이익률(%)</div><input id="profit_rate_pct" class="field num" readonly title="이익금 ÷ 수주가 (자동)">
  </div>
  <div class="gg arow" style="padding-top:0">
-  <div class="lb">비 고</div><div class="note">목표가 = 아래 8개 구성비 금액의 합계(자동). 수주가 안에서 어디에 얼마를 쓸지 미리 잡아두는 <b>목표원가</b>이며, 나중에 실제 발생원가와 비교하는 기준이 됩니다. 이익금·이익률도 이 값으로 계산됩니다.</div>
+  <div></div>
   <div class="adist" id="adist">
    <div class="adtop"><b>자동배분</b><span class="lb">목표 이익금</span><input id="ad_profit" class="adin" placeholder="원" title="수주가 − 목표 이익금 = 배분할 총액">
     <span class="adsum" id="ad_sum">비율 합계 0%</span><button class="btn adbtn" type="button" onclick="autoDist()">⇩ 자동배분</button></div>
