@@ -256,10 +256,10 @@ const APP={
     ],
     menus:{
       '원재료':[
-        {name:'원재료',items:['원재료 발주','원재료 발주현황','원재료 입고','원재료 입고확정']}
+        {name:'원재료',items:['원재료 발주','원재료 입고','원재료 입고확정','원재료 발주현황']}
       ],
       '구매품':[
-        {name:'구매품',items:['구매품 발주','구매품 발주현황','구매품 입고','구매품 입고확정']}
+        {name:'구매품',items:['구매품 발주','구매품 입고','구매품 입고확정','구매품 발주현황']}
       ],
       '가공':[
         {name:'가공',items:['가공계획등록','공정이력카드']},
@@ -411,7 +411,7 @@ const pageRegistry={
 '원재료 발주':{id:'material_order_input',file:'material_order_input.html',title:'원재료 발주'},
 '원재료 입고':{id:'material_receipt_input',file:'material_receipt_input.html',title:'원재료 입고'},
 '원재료 입고확정':{id:'material_receipt_confirmation',file:'material_receipt_confirmation.html',title:'원재료 입고확정'},
-'원재료 발주현황':{id:'material_order_status',file:'material_order_status.html',title:'원재료 발주현황'},
+'원재료 발주현황':{id:'material_order_status',file:'material_order_status.html',title:'원재료 발주입고현황'},
 '구매품 발주':{id:'purchase_order_input',file:'purchase_order_input.html',title:'구매품 발주'},
 '구매품 입고':{id:'purchase_receipt_input',file:'purchase_receipt_input.html',title:'구매품 입고'},
 '외주설계발주등록':{id:'outsourced_design_order_input',file:'outsourced_design_order_input.html',title:'설계외주발주'},
@@ -419,7 +419,7 @@ const pageRegistry={
 '외주설계발주현황':{id:'outsourced_design_order_status',file:'outsourced_design_order_status.html',title:'설계외주현황'},
 'PartList 복사':{id:'partlist_copy',file:'partlist_copy.html',title:'PartList 복사'},
 '재고조회':{id:'stock_inquiry',file:'stock_inquiry.html',title:'재고조회'},
-'구매품 발주현황':{id:'purchase_order_status',file:'purchase_order_status.html',title:'구매품 발주현황'},
+'구매품 발주현황':{id:'purchase_order_status',file:'purchase_order_status.html',title:'구매품 발주입고현황'},
 '외주가공 발주':{id:'outsourcing_order_input',file:'outsourcing_order_input.html',title:'외주가공 발주'},
 '외주가공 입고':{id:'outsourcing_receipt_input',file:'outsourcing_receipt_input.html',title:'외주가공 입고'},
 '외주가공 입고확정':{id:'outsourcing_receipt_confirmation',file:'outsourcing_receipt_confirmation.html',title:'외주가공입고확정'},
@@ -544,7 +544,9 @@ const MENU_LABEL={
   '제작계획등록':'제작계획등록','제작계획현황':'제작진행현황',
   '외주설계발주등록':'설계외주발주','외주설계발주입고':'설계외주입고','외주설계발주현황':'설계외주현황',
   'SET외주제작등록':'조립외주발주','SET발주입고':'조립외주입고','SET발주현황':'조립외주현황',
-  '경비등록':'경비등록','경비현황':'경비현황'};
+  '경비등록':'경비등록','경비현황':'경비현황',
+  /* v116: 메뉴 키(권한·즐겨찾기 기준)는 그대로 두고 표시 이름만 변경 */
+  '원재료 발주현황':'원재료 발주입고현황','구매품 발주현황':'구매품 발주입고현황'};
 function menuLink(n){
   if(MENU_OFF.has(n)){const a=el('a','menu-off',`<span title="사용하지 않는 메뉴입니다">${esc(MENU_LABEL[n]||n)}</span>`);a.href='#';a.onclick=e=>{e.preventDefault();e.stopPropagation()};return a}
   const p=pageRegistry[n];const on=p&&p.id===activeId;
@@ -688,8 +690,8 @@ function homeHTML(){
 const sIn=$('#menuSearch'),sRes=$('#searchRes');let sel=0;
 sIn.oninput=()=>{
   const q=sIn.value.trim().toLowerCase();if(!q){sRes.classList.remove('open');return}
-  const hits=flatMenu().filter(m=>m.name.toLowerCase().includes(q)||m.sec.toLowerCase().includes(q)||m.mod.toLowerCase().includes(q)).slice(0,14);sel=0;
-  sRes.innerHTML=hits.length?hits.map((m,i)=>`<button data-name="${esc(m.name)}" class="${i===0?'sel':''}"><span>${esc(m.name)}</span><small>${esc(m.mod+' › '+m.sec)}</small></button>`).join(''):'<button disabled><small>검색 결과 없음</small></button>';
+  const hits=flatMenu().filter(m=>m.name.toLowerCase().includes(q)||String(MENU_LABEL[m.name]||'').toLowerCase().includes(q)||m.sec.toLowerCase().includes(q)||m.mod.toLowerCase().includes(q)).slice(0,14);sel=0;
+  sRes.innerHTML=hits.length?hits.map((m,i)=>`<button data-name="${esc(m.name)}" class="${i===0?'sel':''}"><span>${esc(MENU_LABEL[m.name]||m.name)}</span><small>${esc(m.mod+' › '+m.sec)}</small></button>`).join(''):'<button disabled><small>검색 결과 없음</small></button>';
   sRes.querySelectorAll('button[data-name]').forEach(b=>b.onclick=()=>pick(b.dataset.name));sRes.classList.add('open');
 };
 function pick(n){openByName(n);sIn.value='';sRes.classList.remove('open');sIn.blur()}
