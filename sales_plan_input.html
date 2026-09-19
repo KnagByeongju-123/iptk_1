@@ -29,16 +29,17 @@ table{border-collapse:collapse;min-width:1040px;width:100%;table-layout:fixed}th
 .pct{font-size:11px;color:#5d6d7b;text-align:right}
 /* v116 자동배분 */
 .arow{grid-template-columns:74px minmax(0,1fr);align-items:start}
-.adist{border:1px solid #c5d3de;background:#f4f8fb;padding:6px 8px;border-radius:3px;min-width:0}
+.adist{justify-self:start;width:max-content;max-width:100%;border:1px solid #c5d3de;background:#f4f8fb;padding:6px 8px;border-radius:3px;min-width:0}
 .adtop{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:5px}.adtop>b{color:#2f5f8a;margin-right:4px}
 .adin{width:130px;height:26px;border:1px solid #b5c0c9;text-align:right;padding:0 5px}
 .adsum{font-size:11px;color:#5d6d7b;min-width:88px}.adsum.bad{color:#c62828;font-weight:700}.adsum.ok{color:#2e7d32;font-weight:700}
 .adbtn{background:linear-gradient(#e9f3fc,#c9def0)!important;border-color:#6f9cc4!important;font-weight:700;margin-left:auto}
-.adgrid{display:grid;grid-template-columns:repeat(8,minmax(52px,1fr));gap:3px 4px}
+.adist .adnote{max-width:600px}
+.adgrid{display:grid;grid-template-columns:repeat(8,72px);gap:3px 6px}
 .adc{display:flex;flex-direction:column;gap:2px;min-width:0}.adc>span{font-size:11px;text-align:center;color:#4b5c6a;font-weight:700;white-space:nowrap;overflow:hidden}
 .adr{width:100%;min-width:0;height:24px;border:1px solid #b5c0c9;text-align:right;padding:0 16px 0 3px;background:#fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12'><text x='1' y='10' font-size='10' fill='%238796a1'>%</text></svg>") no-repeat right 2px center}
 .adnote{font-size:10.5px;color:#7a8894;margin-top:4px}
-@media(max-width:1100px){.arow{grid-template-columns:74px minmax(0,1fr)}.adgrid{grid-template-columns:repeat(4,minmax(52px,1fr))}}
+@media(max-width:1100px){.arow{grid-template-columns:74px minmax(0,1fr)}.adgrid{grid-template-columns:repeat(4,72px)}}
 .note{font-size:11px;color:#6b7a87;line-height:1.5}.note b{color:#3d5163}
 .chk{display:flex;align-items:center;gap:3px;white-space:nowrap}
 .chk.src{gap:8px}.chk.src label{display:flex;align-items:center;gap:2px;cursor:pointer}
