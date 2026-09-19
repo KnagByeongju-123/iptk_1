@@ -73,7 +73,7 @@ input.cell,tr.sel input.cell,tr:hover input.cell{color:#22303a;background:#fff;-
     <div class="box"><div class="box-title">협력업체리스트</div>
       <div class="searchbar"><input id="venQ" placeholder="업체 검색" oninput="venFind()" title="입력하면 협력업체가 걸러집니다 (Esc: 지우기)" onkeydown="if(event.key==='Escape'){this.value='';venFind()}"></div><div class="tablewrap"><table><thead><tr><th>협력업체</th></tr></thead><tbody id="venBody"></tbody></table></div></div>
   </section>
-  <div class="midbar"><span class="label">입고요구일</span><input id="reqDate" class="field" type="date" onchange="applyRdate()" title="날짜를 바꾸면 아래 리스트에서 체크한 행에 일괄 적용됩니다"><button class="btn" onclick="pushDown()">⬇ 요청추가</button><button class="btn" onclick="pullUp()">⬆ 요청삭제</button></div>
+  <div class="midbar"><span class="label">입고요구일</span><input id="reqDate" class="field" type="date" onchange="applyRdate()" title="날짜를 바꾸면 아래 리스트에서 체크한 행에 일괄 적용됩니다"><button class="btn" onclick="pushDown()">⬇ 요청추가</button><button class="btn" onclick="reOpen()" title="발주 후 실수·불량·예비품 등으로 추가 발주 (사유가 발주 이력에 남고, 자재표 발주수량에는 포함되지 않음)" style="color:#a04000">↻ 재발주</button><button class="btn" onclick="pullUp()">⬆ 요청삭제</button></div>
   <div class="reqbox"><div class="box-title">구매요청 리스트</div><div class="tablewrap"><table>
     <colgroup><col style="width:40px"><col style="width:38px"><col style="width:100px"><col style="width:100px"><col style="width:50px"><col style="width:70px"><col style="width:120px"><col style="width:66px"><col style="width:130px"><col style="width:66px"><col style="width:66px"><col style="width:66px"><col style="width:56px"><col style="width:70px"><col style="width:70px"><col style="width:86px"><col style="width:86px"><col style="width:96px"><col style="width:88px"><col style="width:150px"><col style="width:56px"></colgroup>
     <thead><tr><th>No</th><th><input type="checkbox" id="reqAll" onclick="reqAllToggle(this)" title="전체선택 / 전체해제"></th><th>협력업체</th><th>제번</th><th>공정</th><th>품번</th><th>부품명</th><th>재질</th><th>설계치수</th><th>두께/Ø</th><th>가로</th><th>세로</th><th>수량</th><th>발주수량</th><th>총중량</th><th>기준단가</th><th>매입단가</th><th>매입금액</th><th>발주일</th><th>입고요구일</th><th>첨부</th></tr></thead>
@@ -223,11 +223,11 @@ async function save(){if(!REQ.length)return msg('저장할 구매요청이 없�
  /* v116: 같은 업체 미입고 발주가 있어도 '추가발주'로 허용. 자재표 수량을 넘길 때만 확인 */
  if(REQ.some(r=>!(Number(r.ord)>0)))return msg('발주수량이 0 이거나 비어 있는 행이 있습니다. 발주수량을 입력하세요.');
  try{await loadOrdQ(j.job)}catch(e){}
- const over=[];const byPart={};REQ.forEach(r=>{byPart[r.part]=(byPart[r.part]||0)+(Number(r.ord)||0)});
+ const over=[];const byPart={};REQ.filter(r=>!r.reorder).forEach(r=>{byPart[r.part]=(byPart[r.part]||0)+(Number(r.ord)||0)});
  for(const p in byPart){const b=(j.bom||[]).find(x=>x.part===p);const q=b?Number(b.qty)||0:0;const done=(OQ_JOB===j.job?OQ[p]:0)||0;
   if(q>0&&done+byPart[p]>q)over.push(` · ${p} — 자재표 ${q} / 기발주 ${done} + 이번 ${byPart[p]} = ${done+byPart[p]}`)}
  if(over.length&&!confirm(`자재표 수량을 넘는 발주가 있습니다.\n\n${over.slice(0,10).join('\n')}\n\n그래도 발주하시겠습니까?`)){msg('발주를 취소했습니다. 구매요청 리스트의 발주수량을 확인하세요.');return}
- const dup=await dupCheck('원재료',j.job,REQ);
+ const dup=await dupCheck('원재료',j.job,REQ.filter(r=>!r.reorder));
  if(dup.length&&!over.length&&!confirm(`아래 품번은 같은 업체로 이미 발주(미입고)돼 있습니다. 추가발주로 진행할까요?\n\n${[...new Set(dup.map(r=>' · '+r.part+' '+(r.vendor||'')))].join('\n')}`)){msg('발주를 취소했습니다.');return}
  const alt=await dupOtherVendor('원재료',j.job,REQ);
  if(alt.length){
@@ -238,7 +238,7 @@ async function save(){if(!REQ.length)return msg('저장할 구매요청이 없�
    return;
   }
  }
- await MESDB.newLines(REQ.map(r=>({category:'원재료',status:'발주',vendor_name:r.vendor,job_no:r.job,item_name:j.item||null,process_code:r.proc,part_no:r.part,part_name:r.name,material:r.mat,spec:r.design,order_qty:Number(r.ord)||null,unit_price:Number(r.buyPrice||r.price)||null,quote_price:Number(r.amount)||null,confirm_price:Number(r.amount)||null,order_date:r.odate||null,required_date:r.rdate||null,remark:r.remark||null})));const n=REQ.length;REQ.length=0;renderReq();/* v112: [저장] 클릭 0.4초 뒤 자동저장이 발주 완료보다 먼저 돌아 옛 요청이 page_state 에 남았다 → 비운 뒤 한 번 더 저장 트리거 */try{document.dispatchEvent(new Event('change'))}catch(e){}msg(`원재료 발주 ${n}건을 DB에 등록했습니다. 발주현황/입고등록 화면에서 확인하세요.`)}catch(e){msg('DB 등록 실패: '+e.message.slice(0,120))}}
+ await MESDB.newLines(REQ.map(r=>({category:'원재료',status:'발주',vendor_name:r.vendor,job_no:r.job,item_name:j.item||null,process_code:r.proc,part_no:r.part,part_name:r.name,material:r.mat,spec:r.design,order_qty:Number(r.ord)||null,unit_price:Number(r.buyPrice||r.price)||null,quote_price:Number(r.amount)||null,confirm_price:Number(r.amount)||null,order_date:r.odate||null,required_date:r.rdate||null,remark:r.remark||null,reorder_reason:r.reorder?(r.reason||'기타'):null})));const n=REQ.length;REQ.length=0;renderReq();/* v112: [저장] 클릭 0.4초 뒤 자동저장이 발주 완료보다 먼저 돌아 옛 요청이 page_state 에 남았다 → 비운 뒤 한 번 더 저장 트리거 */try{document.dispatchEvent(new Event('change'))}catch(e){}msg(`원재료 발주 ${n}건을 DB에 등록했습니다. 발주현황/입고등록 화면에서 확인하세요.`)}catch(e){msg('DB 등록 실패: '+e.message.slice(0,120))}}
 
 /* v116 발주서 A4 페이지 구성: 데이터 행을 넣다 넘치면 다음 장, 마지막 장은 빈 행으로 채움 */
 function a4Build(host,o){
@@ -360,12 +360,12 @@ function sampleFill(){
 <script>
 /* v116: 자재표에 '발주수량'(이 제번·품번으로 이미 나간 원재료 발주 합계) 표시.
    발주수량 ≥ 수량이면 행을 연회색으로 두고 체크 불가. 첫 진입은 전부 미선택. 요청추가 시 기본 발주수량 = 잔량 */
-const OQ_원재료='원재료';let OQ={},OQ_JOB='';
+let RQ={};const OQ_원재료='원재료';let OQ={},OQ_JOB='';
 async function loadOrdQ(job){
  if(!job||!(window.MESDB&&MESDB.table))return;
- try{const rs=await MESDB.table('order_lines').select(`select=part_no,order_qty,status&category=eq.${encodeURIComponent(OQ_원재료)}&job_no=eq.${encodeURIComponent(job)}`,{fresh:true});
-  const m={};(rs||[]).forEach(r=>{if(/취소/.test(r.status||''))return;const k=r.part_no||'';m[k]=(m[k]||0)+(Number(r.order_qty)||0)});
-  OQ=m;OQ_JOB=job}catch(e){}
+ try{const rs=await MESDB.table('order_lines').select(`select=part_no,order_qty,status,reorder_reason&category=eq.${encodeURIComponent(OQ_원재료)}&job_no=eq.${encodeURIComponent(job)}`,{fresh:true});
+  const m={},rq={};(rs||[]).forEach(r=>{if(/취소/.test(r.status||''))return;const k=r.part_no||'';const t=r.reorder_reason?rq:m;t[k]=(t[k]||0)+(Number(r.order_qty)||0)});
+  OQ=m;RQ=rq;OQ_JOB=job}catch(e){}
 }
 function decorateBom(){
  const j=jobView[jobIdx];if(!j||!j.bom)return;const m=OQ_JOB===j.job?OQ:{};
@@ -374,7 +374,7 @@ function decorateBom(){
   const q=Number(b.qty)||0,oq=m[b.part]||0;b.oq=oq;b.rem=Math.max(0,q-oq);
   if(!tr.querySelector('td.oq')){const td=document.createElement('td');td.className='r oq';
    const ref=tr.cells[tr.cells.length-1];tr.insertBefore(td,ref)}
-  tr.querySelector('td.oq').textContent=oq?oq:'';
+  {const rq=(OQ_JOB===j.job?RQ[b.part]:0)||0;const td=tr.querySelector('td.oq');td.textContent=oq?oq:'';if(rq){const e=document.createElement('span');e.className='rq';e.textContent=' +재'+rq;e.title='재발주(실수·불량·예비품 등) 수량 — 자재표 수량 집계에서 제외';td.appendChild(e)}}
   const full=q>0&&oq>=q;
   cb.checked=false;cb.disabled=full;tr.classList.toggle('bom-done',full);
   tr.title=full?`발주완료 — 수량 ${q} / 발주 ${oq}`:(oq?`부분발주 — 잔량 ${q-oq}`:'');
@@ -393,6 +393,43 @@ function decorateBom(){
  /* 첫 조회가 이 스크립트보다 먼저 끝났을 수 있으므로 한 번 더 발주수량을 읽는다 */
  setTimeout(async()=>{try{const j=jobView[jobIdx];if(j&&OQ_JOB!==j.job){await loadOrdQ(j.job);window.renderBom()}}catch(e){}},300);
 })();
+</script>
+<div class="modal" id="reDlg"><div class="sheet" style="width:min(640px,96vw)">
+ <div class="sheet-head"><span>↻ 재발주 — 실수·불량·예비품 등 추가 발주</span><button class="x" style="margin-left:auto" onclick="reDlg.classList.remove('on')">×</button></div>
+ <div style="padding:10px 12px">
+  <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+   <b>사유</b><select id="reWhy" class="field" style="height:26px"><option>불량</option><option>실수</option><option>예비품</option><option>기타</option></select>
+   <b style="margin-left:6px">메모</b><input id="reMemo" class="field" style="flex:1;min-width:160px;height:26px" placeholder="예: 가공 불량 2EA 폐기">
+  </div>
+  <div style="max-height:46vh;overflow:auto;border:1px solid #98a6b2"><table style="width:100%;min-width:0;table-layout:auto"><thead><tr><th style="width:34px"></th><th>품번</th><th>부품명</th><th>수량</th><th>기발주</th><th>재발주</th><th style="width:80px">재발주수량</th></tr></thead><tbody id="reBody"></tbody></table></div>
+  <div style="font-size:11px;color:#6b7a87;margin:6px 0 0">협력업체리스트에서 업체를 선택한 뒤 [요청추가] → 구매요청 리스트에 <b style="color:#a04000">재</b> 표시로 들어가고, [저장]하면 사유가 발주 이력(비고·재발주사유)에 남습니다. 자재표 발주수량에는 합산되지 않습니다.</div>
+  <div style="display:flex;justify-content:center;gap:8px;margin-top:10px"><button class="btn" onclick="reAdd()">⬇ 요청추가</button><button class="btn" onclick="reDlg.classList.remove('on')">닫기</button></div>
+ </div></div></div>
+<script>
+/* v116 재발주: 발주 후 실수·불량·예비품 등으로 추가 발주. order_lines.reorder_reason 에 사유 저장, 비고에 [재발주:사유] 기록 */
+function reOpen(){const j=jobView[jobIdx];if(!j||!(j.bom||[]).length)return msg('제번을 선택해 자재표를 먼저 조회하세요.');
+ reBody.innerHTML=j.bom.map((b,i)=>`<tr><td class="c"><input type="checkbox" data-i="${i}"></td><td>${b.part}</td><td>${b.name||''}</td><td class="r">${b.qty??''}</td><td class="r">${b.oq||''}</td><td class="r">${((OQ_JOB===j.job?RQ[b.part]:0)||'')}</td><td><input class="cell" data-q="${i}" value="1" style="width:100%;text-align:right" onfocus="this.select()" oninput="this.closest('tr').querySelector('input[type=checkbox]').checked=true"></td></tr>`).join('');
+ reMemo.value='';reDlg.classList.add('on')}
+async function reAdd(){const j=jobView[jobIdx];if(!j)return;
+ const picks=[...reBody.querySelectorAll('input[type=checkbox]:checked')].map(c=>{const i=Number(c.dataset.i);const q=Math.trunc(Number(reBody.querySelector(`input[data-q="${i}"]`).value)||0);return {i,q}}).filter(x=>x.q>0);
+ if(!picks.length)return msg('재발주할 품번을 체크하고 재발주수량을 입력하세요.');
+ if(!pickedVendors().length)return msg('협력업체리스트에서 재발주할 업체를 선택하세요.');
+ const why=reWhy.value||'기타',memo=(reMemo.value||'').trim();
+ /* 요청추가(pushDown) 를 그대로 재사용: 선택 품번만 잠시 체크하고 잔량 자리에 재발주수량을 넣는다 */
+ const keep=j.bom.map(b=>b.rem);const before=REQ.length;const reqKeys=new Set(REQ.map(r=>[r.vendor,r.job,r.proc,r.part].join('|')));
+ bomBody.querySelectorAll('input[type=checkbox][data-i]').forEach(c=>{c.checked=false});
+ for(const p of picks){j.bom[p.i].rem=p.q;const c=bomBody.querySelector(`input[data-i="${p.i}"]`);if(c){c.disabled=false;c.checked=true}}
+ try{await pushDown()}finally{j.bom.forEach((b,i)=>b.rem=keep[i]);renderBom()}
+ const added=REQ.slice(before);
+ added.forEach(r=>{r.reorder=true;r.reason=why;r.remark=`[재발주:${why}]`+(memo?' '+memo:'')+(r.remark?' '+r.remark:'')});
+ renderReq();reDlg.classList.remove('on');
+ const skipped=picks.length*pickedVendors().length-added.length;
+ msg(added.length?`재발주 ${added.length}건을 구매요청 리스트에 추가했습니다 (사유: ${why}). [저장]하면 발주 이력에 남습니다.`+(skipped>0?` — 같은 업체·품번이 이미 리스트에 있어 ${skipped}건은 제외`:''):'이미 구매요청 리스트에 같은 업체·품번이 있어 추가하지 않았습니다. 리스트에서 [요청삭제] 후 다시 하세요.')}
+(function(){const _rr=window.renderReq;window.renderReq=function(){_rr.apply(this,arguments);
+ [...reqBody.rows].forEach((tr,i)=>{const r=REQ[i];if(!r||!r.reorder)return;tr.classList.add('reord');const c=tr.cells[5];
+  if(c&&!c.querySelector('.rb')){const e=document.createElement('span');e.className='rb';e.textContent='재';e.title='재발주 — '+(r.remark||'');c.prepend(e)}})};
+ const st=document.createElement('style');st.textContent='.rb{display:inline-block;margin-right:4px;padding:0 4px;border-radius:3px;background:#a04000;color:#fff;font-size:10px;font-weight:700;line-height:15px}#reqBody tr.reord td{background:#fff6ec}#bomBody .rq{color:#a04000;font-weight:700;font-size:11px}#reBody td{height:26px;border-bottom:1px solid #dde3e8;padding:0 6px}';
+ document.head.appendChild(st)})();
 </script>
 </body>
 </html>
