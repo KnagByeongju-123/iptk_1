@@ -108,8 +108,10 @@ async function receive(){if(sel<0)return msg('입고할 발주를 선택하세�
  }
  RCP.push(rec);o.progress_rate=rate;if(rate>=100)o.receipt_date=fDate.value;fRemark.value='';
  const okmsg=`${o.job_no} ${rate>=100?'입고완료(확정)':'부분입고 '+rate+'%'} 처리했습니다.${(window.MESDB&&MESDB.online)?' (DB 반영)':' (DB 미연결 - 로컬)'}`;
- if(onlyOpen.checked&&rate>=100){search();msg(okmsg+' 미입고 목록에서 제외되었습니다.')}
- else{renderOrd();renderRcp();msg(okmsg)}}
+ /* v116: 입고처리 후 입고 등록 칸 비우기 + 선택 해제 (같은 발주 중복 입고 방지) */
+ const clr=()=>{sel=-1;[fJob,fProc,fVen,fNego,fDate,fAmt,fRemark].forEach(n=>n.value='');fRate.value=100};
+ if(onlyOpen.checked&&rate>=100){search();clr();renderOrd();renderRcp();msg(okmsg+' 미입고 목록에서 제외되었습니다.')}
+ else{clr();renderOrd();renderRcp();msg(okmsg)}}
 async function cancelReceipt(){const ids=[...rcpBody.querySelectorAll('input:checked')].map(x=>Number(x.dataset.no));if(!ids.length)return msg('취소할 입고 이력을 선택하세요.');if(!confirm(`${ids.length}건의 입고를 취소하시겠습니까?`))return;
  if(window.MESDB&&MESDB.online){try{for(const id of ids)await MESDB.table('outsourced_design_receipts').delete({receipt_no:id})}catch(e){return msg('입고취소 실패: '+String(e.message||e).slice(0,130))}}for(let i=RCP.length-1;i>=0;i--)if(ids.includes(RCP[i].receipt_no)){const r=RCP.splice(i,1)[0];const o=ORD.find(x=>sameSeq(x.seq,r.order_seq));if(o){const rest=RCP.filter(x=>sameSeq(x.order_seq,o.seq));o.progress_rate=rest.length?Math.max(...rest.map(x=>Number(x.progress_rate)||0)):0;o.receipt_date=o.progress_rate>=100?o.receipt_date:null;
   if(window.MESDB&&MESDB.online){try{await MESDB.table('order_lines').upsert({line_id:o.seq,nego_rate:o.progress_rate,receipt_date:o.receipt_date||null,confirm_date:o.progress_rate>=100?o.receipt_date:null,status:o.progress_rate>=100?'입고확정':'발주',updated_at:new Date().toISOString()},'line_id')}catch(e){}}}}try{MESDB.notify&&MESDB.notify(['order_lines','outsourced_design_receipts'])}catch(e){}search();msg(`${ids.length}건 입고를 취소했습니다.`)}
