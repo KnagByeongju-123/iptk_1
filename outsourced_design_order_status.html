@@ -37,8 +37,8 @@ tfoot th{position:sticky;bottom:0;background:linear-gradient(#e6eef5,#d3e0ea)}
     </div>
   </section>
   <div class="gridbox"><div class="tablewrap"><table>
-    <colgroup><col style="width:44px"><col style="width:110px"><col style="width:130px"><col style="width:110px"><col style="width:74px"><col style="width:110px"><col style="width:108px"><col style="width:50px"><col style="width:74px"><col style="width:90px"><col style="width:90px"><col style="width:90px"><col style="width:96px"><col style="width:86px"><col style="width:92px"><col style="width:92px"><col style="width:100px"></colgroup>
-    <thead><tr><th>No</th><th>제번</th><th>품명</th><th>모델</th><th>국내/해외</th><th>거래처</th><th>수주가</th><th>공정</th><th>유상사급</th><th>견적가</th><th>네고가</th><th>차액</th><th>협력업체</th><th>진행률</th><th>입고일</th><th>발주일</th><th>입고예정일</th></tr></thead>
+    <colgroup><col style="width:44px"><col style="width:110px"><col style="width:130px"><col style="width:110px"><col style="width:74px"><col style="width:110px"><col style="width:108px"><col style="width:50px"><col style="width:74px"><col style="width:90px"><col style="width:90px"><col style="width:90px"><col style="width:96px"><col style="width:86px"><col style="width:92px"><col style="width:100px"><col style="width:92px"></colgroup>
+    <thead><tr><th>No</th><th>제번</th><th>품명</th><th>모델</th><th>국내/해외</th><th>거래처</th><th>수주가</th><th>공정</th><th>유상사급</th><th>견적가</th><th>네고가</th><th>차액</th><th>협력업체</th><th>진행률</th><th>발주일</th><th>입고예정일</th><th>입고일</th></tr></thead>
     <tbody id="body"></tbody>
     <tfoot><tr><th colspan="9" class="r">합 계</th><th class="r" id="sumQuote">0</th><th class="r" id="sumNego">0</th><th class="r" id="sumDiff">0</th><th colspan="5"></th></tr></tfoot>
   </table></div></div>
@@ -68,7 +68,7 @@ async function loadRows(){
  }catch(e){msg('조회 실패: '+String(e.message||e).slice(0,120));render()}
 }
 function within(v,a,b){if(!a&&!b)return true;if(!v)return false;return (!a||v>=a)&&(!b||v<=b)}
-function render(){selIdx=-1;body.innerHTML=view.map((r,i)=>`<tr onclick="sel(this,${i})" ondblclick="sel(this,${i});detail(${i})" title="더블클릭하면 입고 이력을 봅니다"><td class="c">${i+1}</td><td>${r.job}</td><td>${r.item}</td><td>${r.model}</td><td class="c">${r.area}</td><td>${r.cust}</td><td class="r">${money(r.amount)}</td><td class="c">${r.proc}</td><td class="c">${r.paid}</td><td class="r">${money(r.quote)}</td><td class="r">${money(r.nego)}</td><td class="r">${money(r.diff)}</td><td>${r.partner}</td><td><div class="bar"><i style="width:${r.rate}%"></i><b>${r.rate}%</b></div></td><td class="c">${r.idate}</td><td class="c">${r.odate}</td><td class="c">${r.edate}</td></tr>`).join('');
+function render(){selIdx=-1;body.innerHTML=view.map((r,i)=>`<tr onclick="sel(this,${i})" ondblclick="sel(this,${i});detail(${i})" title="더블클릭하면 입고 이력을 봅니다"><td class="c">${i+1}</td><td>${r.job}</td><td>${r.item}</td><td>${r.model}</td><td class="c">${r.area}</td><td>${r.cust}</td><td class="r">${money(r.amount)}</td><td class="c">${r.proc}</td><td class="c">${r.paid}</td><td class="r">${money(r.quote)}</td><td class="r">${money(r.nego)}</td><td class="r">${money(r.diff)}</td><td>${r.partner}</td><td><div class="bar"><i style="width:${r.rate}%"></i><b>${r.rate}%</b></div></td><td class="c">${r.odate}</td><td class="c">${r.edate}</td><td class="c">${r.idate}</td></tr>`).join('');
 sumQuote.textContent=money(view.reduce((a,r)=>a+(Number(r.quote)||0),0));sumNego.textContent=money(view.reduce((a,r)=>a+(Number(r.nego)||0),0));sumDiff.textContent=money(view.reduce((a,r)=>a+(Number(r.diff)||0),0));countText.textContent=`${view.length}건`}
 let selIdx=-1;
 function sel(tr,i){selIdx=(i==null?-1:Number(i));document.querySelectorAll('#body tr').forEach(x=>x.classList.remove('sel'));tr.classList.add('sel')}
@@ -97,7 +97,7 @@ async function cancelOrder(){
 function search(){const st=document.querySelector('input[name=st]:checked').value;const j=jobQ.value.trim().toLowerCase(),it=itemQ.value.trim().toLowerCase(),m=modelQ.value.trim().toLowerCase();
 view=rows.filter(r=>(st==='전체'||(st==='입고'?!!r.idate:!r.idate))&&(!j||r.job.toLowerCase().includes(j))&&(!it||r.item.toLowerCase().includes(it))&&(!m||r.model.toLowerCase().includes(m))&&within(r.odate,od1.value,od2.value)&&within(r.edate,ed1.value,ed2.value)&&within(r.idate,rd1.value,rd2.value));
 render();msg(`${st} 기준 ${view.length}건을 조회했습니다.`)}
-function exportCsv(){const out=[['제번','품명','모델','국내/해외','거래처','수주가','공정','견적가','네고가','차액','협력업체','진행률','입고일','발주일','입고예정일'],...view.map(r=>[r.job,r.item,r.model,r.area,r.cust,r.amount,r.proc,r.quote,r.nego,r.diff,r.partner,r.rate,r.idate,r.odate,r.edate])];const csv='\ufeff'+out.map(a=>a.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='outsourced_design_order_status.csv';a.click();URL.revokeObjectURL(a.href);msg('EXCEL(CSV) 파일을 생성했습니다.')}
+function exportCsv(){const out=[['제번','품명','모델','국내/해외','거래처','수주가','공정','견적가','네고가','차액','협력업체','진행률','발주일','입고예정일','입고일'],...view.map(r=>[r.job,r.item,r.model,r.area,r.cust,r.amount,r.proc,r.quote,r.nego,r.diff,r.partner,r.rate,r.odate,r.edate,r.idate])];const csv='\ufeff'+out.map(a=>a.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='outsourced_design_order_status.csv';a.click();URL.revokeObjectURL(a.href);msg('EXCEL(CSV) 파일을 생성했습니다.')}
 function msg(t){message.textContent=t}
 /* v73: 외주설계실적조회를 이 화면으로 통합 — 발주 행의 입고(진척) 이력을 팝업으로 본다 */
 const esc=v=>String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
