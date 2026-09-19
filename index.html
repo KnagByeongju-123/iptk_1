@@ -149,6 +149,7 @@ input,select{font:inherit}
 
 @media (max-width:1100px){.modcard{grid-template-columns:repeat(2,1fr)}.home>.card{grid-column:span 12!important}}
 @media (max-width:900px){.top-menu,.ubtn .txt{display:none}.search{width:170px}}
+a.menu-off,a.menu-off:hover{color:#9aa5ae!important;opacity:.55;cursor:not-allowed!important;background:none!important;text-decoration:none}
 </style>
 </head>
 <body>
@@ -503,7 +504,9 @@ function locate(name){
   for(const mod of MODULES)for(const [sec,gs] of Object.entries(APP[mod]?.menus||{}))for(const g of gs)if(g.items.includes(name))return{mod,sec,group:g.name};
   return null;
 }
-function flatMenu(){const out=[];for(const mod of visibleModules())for(const sec of (APP[mod]?.secondary||[]))for(const g of groupsOf(mod,sec.name))for(const n of g.items)out.push({name:n,mod,sec:sec.name,group:g.name});return out}
+/* v116: 메뉴 비활성화 — 목록에는 흐리게 남기고 열리지 않게 한다 (외주가공은 QR스캔·외주가공 발주 화면에서 입고/입고확정 처리) */
+const MENU_OFF=new Set(['외주가공 입고','외주가공 입고확정']);
+function flatMenu(){const out=[];for(const mod of visibleModules())for(const sec of (APP[mod]?.secondary||[]))for(const g of groupsOf(mod,sec.name))for(const n of g.items)if(!MENU_OFF.has(n))out.push({name:n,mod,sec:sec.name,group:g.name});return out}
 
 /* ---------- 상단 모듈 메뉴 (메가) ---------- */
 function buildTop(){
@@ -543,6 +546,7 @@ const MENU_LABEL={
   'SET외주제작등록':'조립외주발주','SET발주입고':'조립외주입고','SET발주현황':'조립외주현황',
   '경비등록':'경비등록','경비현황':'경비현황'};
 function menuLink(n){
+  if(MENU_OFF.has(n)){const a=el('a','menu-off',`<span title="사용하지 않는 메뉴입니다">${esc(MENU_LABEL[n]||n)}</span>`);a.href='#';a.onclick=e=>{e.preventDefault();e.stopPropagation()};return a}
   const p=pageRegistry[n];const on=p&&p.id===activeId;
   const a=el('a',on?'active':'',`<span title="${esc(n)}">${esc(MENU_LABEL[n]||n)}</span><span class="star ${favs.includes(n)?'on':''}" title="즐겨찾기">★</span>`);
   a.href='#';a.dataset.name=n;a.onclick=e=>{e.preventDefault();openByName(n);document.querySelectorAll('.top-menu>li.pin').forEach(x=>x.classList.remove('pin'))};
@@ -567,6 +571,7 @@ function renderFav(){
 /* ---------- 페이지 열기 ---------- */
 function slugify(name){return 'pending_'+Math.abs([...name].reduce((a,c)=>((a<<5)-a+c.charCodeAt(0))|0,0))}
 function openByName(name){
+  if(MENU_OFF.has(name)){statusMsg.textContent=`${name} 메뉴는 사용하지 않습니다.`;return}
   let p=pageRegistry[name];if(!p){p={id:slugify(name),title:name,file:null};pageRegistry[name]=p}
   const loc=locate(name);if(loc){p.menu=name;p.mod=loc.mod;p.sec=loc.sec;if(loc.mod!==activeModule){activeModule=loc.mod;buildTop()}}
   openPage(p);
