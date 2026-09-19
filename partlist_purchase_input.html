@@ -198,7 +198,10 @@ async function saveChecked(){
   for(const r of sel)if(r._new){const i=pend.indexOf(r);if(i>=0)pend.splice(i,1)}
   chk.clear();regClose();notify();
   await loadJob(job);
-  msg(`${job} 구매품 PartList ${fin.length}건 일괄 등록 (미등록 ${nNew} · 기존 ${nOld}) · 등록자 ${by} · ${dt}`);
+  const okm=`${job} 구매품 PartList ${fin.length}건을 등록했습니다.\n(미등록 ${nNew} · 기존 ${nOld}) · 등록자 ${by} · ${dt}`;
+  msg(okm.replace('\n',' '));
+  /* v116: 다른 저장·등록 화면과 같은 완료 팝업 */
+  try{(window.MESPOP||window.parent?.MESPOP)?.ok(okm,'등록 완료')}catch(e){}
  }catch(e){const m=String(e.message||e);
   alert('등록 실패: '+(/무결성|foreign key/i.test(m)?'등록되지 않은 제번입니다. 수주등록을 먼저 하세요.':m.slice(0,160)))}
 }
