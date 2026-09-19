@@ -27,6 +27,18 @@ table{border-collapse:collapse;min-width:1040px;width:100%;table-layout:fixed}th
 .amt .hd{text-align:center;font-weight:700;font-size:11px;color:#4b5c6a;padding-bottom:2px}
 .amt input{width:100%;height:26px;border:1px solid #b5c0c9;text-align:right;padding:0 5px}
 .pct{font-size:11px;color:#5d6d7b;text-align:right}
+/* v116 자동배분 */
+.arow{grid-template-columns:74px minmax(220px,380px) minmax(0,1fr);align-items:start}
+.adist{border:1px solid #c5d3de;background:#f4f8fb;padding:6px 8px;border-radius:3px;min-width:0}
+.adtop{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:5px}.adtop>b{color:#2f5f8a;margin-right:4px}
+.adin{width:130px;height:26px;border:1px solid #b5c0c9;text-align:right;padding:0 5px}
+.adsum{font-size:11px;color:#5d6d7b;min-width:88px}.adsum.bad{color:#c62828;font-weight:700}.adsum.ok{color:#2e7d32;font-weight:700}
+.adbtn{background:linear-gradient(#e9f3fc,#c9def0)!important;border-color:#6f9cc4!important;font-weight:700;margin-left:auto}
+.adgrid{display:grid;grid-template-columns:repeat(8,minmax(52px,1fr));gap:3px 4px}
+.adc{display:flex;flex-direction:column;gap:2px;min-width:0}.adc>span{font-size:11px;text-align:center;color:#4b5c6a;font-weight:700;white-space:nowrap;overflow:hidden}
+.adr{width:100%;min-width:0;height:24px;border:1px solid #b5c0c9;text-align:right;padding:0 16px 0 3px;background:#fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12'><text x='1' y='10' font-size='10' fill='%238796a1'>%</text></svg>") no-repeat right 2px center}
+.adnote{font-size:10.5px;color:#7a8894;margin-top:4px}
+@media(max-width:1100px){.arow{grid-template-columns:74px minmax(0,1fr)}.adist{grid-column:1/-1}.adgrid{grid-template-columns:repeat(4,minmax(52px,1fr))}}
 .note{font-size:11px;color:#6b7a87;line-height:1.5}.note b{color:#3d5163}
 .chk{display:flex;align-items:center;gap:3px;white-space:nowrap}
 .chk.src{gap:8px}.chk.src label{display:flex;align-items:center;gap:2px;cursor:pointer}
@@ -63,8 +75,23 @@ table{border-collapse:collapse;min-width:1040px;width:100%;table-layout:fixed}th
  <div class="gg g4">
   <div class="lb">수주가</div><input id="order_price" class="field num" oninput="recalc()"><div class="lb">목표가</div><input id="target_price" class="field num" readonly title="아래 8개 금액의 합계 (자동)"><div class="lb">이익금</div><input id="profit_amount" class="field num" readonly title="수주가 − 목표가 (자동)"><div class="lb">이익률(%)</div><input id="profit_rate_pct" class="field num" readonly title="이익금 ÷ 수주가 (자동)">
  </div>
- <div class="gg" style="grid-template-columns:74px 1fr;padding-top:0">
+ <div class="gg arow" style="padding-top:0">
   <div class="lb">비 고</div><div class="note">목표가 = 아래 8개 구성비 금액의 합계(자동). 수주가 안에서 어디에 얼마를 쓸지 미리 잡아두는 <b>목표원가</b>이며, 나중에 실제 발생원가와 비교하는 기준이 됩니다. 이익금·이익률도 이 값으로 계산됩니다.</div>
+  <div class="adist" id="adist">
+   <div class="adtop"><b>자동배분</b><span class="lb">목표 이익금</span><input id="ad_profit" class="adin" placeholder="원" title="수주가 − 목표 이익금 = 배분할 총액">
+    <span class="adsum" id="ad_sum">비율 합계 0%</span><button class="btn adbtn" type="button" onclick="autoDist()">⇩ 자동배분</button></div>
+   <div class="adgrid">
+    <label class="adc"><span>설계 사내</span><input id="r1" class="adr"></label>
+    <label class="adc"><span>설계 사외</span><input id="r2" class="adr"></label>
+    <label class="adc"><span>원재료</span><input id="r3" class="adr"></label>
+    <label class="adc"><span>구매</span><input id="r4" class="adr"></label>
+    <label class="adc"><span>가공 사내</span><input id="r5" class="adr"></label>
+    <label class="adc"><span>가공 사외</span><input id="r6" class="adr"></label>
+    <label class="adc"><span>조립 사내</span><input id="r7" class="adr"></label>
+    <label class="adc"><span>조립 사외</span><input id="r8" class="adr"></label>
+   </div>
+   <div class="adnote">배분총액 = 수주가 − 목표 이익금, 항목금액 = 배분총액 × 비율 (10만원 미만 절사, 절사분은 이익금으로)</div>
+  </div>
  </div>
  <div class="amt">
   <div></div><div class="hd">설계 사내</div><div class="hd">설계 사외</div><div class="hd">원재료</div><div class="hd">구매</div><div class="hd">가공 사내</div><div class="hd">가공 사외</div><div class="hd">조립 사내</div><div class="hd">조립 사외</div>
@@ -115,6 +142,29 @@ order_price.addEventListener('blur',()=>{const v=num(order_price.value);order_pr
 for(let i=1;i<=8;i++){const n=document.getElementById('a'+i);
  n.addEventListener('blur',()=>{const v=num(n.value);n.value=v?fmt(v):''});
  n.addEventListener('focus',()=>{const v=num(n.value);n.value=v?String(v):''})}
+/* v116 자동배분: 수주가 − 목표 이익금 을 항목 비율로 나누고 10만원 미만 절사 */
+const AD_KEY='mes_sp_autodist';
+function adSum(){let t=0;for(let i=1;i<=8;i++)t+=num(document.getElementById('r'+i).value);t=Math.round(t*100)/100;
+ const e=document.getElementById('ad_sum');e.textContent='비율 합계 '+t+'%';e.className='adsum '+(t===100?'ok':t?'bad':'');return t}
+function adSave(){try{const o={p:ad_profit.value,r:[]};for(let i=1;i<=8;i++)o.r.push(document.getElementById('r'+i).value);localStorage.setItem(AD_KEY,JSON.stringify(o))}catch(e){}}
+(function(){try{const o=JSON.parse(localStorage.getItem(AD_KEY)||'null');if(o){(o.r||[]).forEach((v,i)=>{const n=document.getElementById('r'+(i+1));if(n)n.value=v||''})}}catch(e){}
+ for(let i=1;i<=8;i++)document.getElementById('r'+i).addEventListener('input',adSum);
+ ad_profit.addEventListener('focus',()=>{const v=num(ad_profit.value);ad_profit.value=v?String(v):''});
+ ad_profit.addEventListener('blur',()=>{const v=num(ad_profit.value);ad_profit.value=v?fmt(v):''});
+ adSum()})();
+function autoDist(){
+ const op=num(order_price.value);if(!op){msg('수주가를 먼저 입력하세요.');order_price.focus();return}
+ const pf=num(ad_profit.value);if(pf<0){msg('목표 이익금은 0 이상이어야 합니다.');return}
+ const base=op-pf;if(base<=0){msg(`목표 이익금(${fmt(pf)})이 수주가(${fmt(op)}) 이상입니다.`);ad_profit.focus();return}
+ const tot=adSum();if(tot!==100){msg(`항목별 비율 합계가 ${tot}% 입니다. 100%가 되도록 맞추세요.`);return}
+ let has=false;for(let i=1;i<=8;i++)if(num(document.getElementById('a'+i).value))has=true;
+ if(has&&!confirm('입력된 금액을 자동배분 금액으로 덮어씁니다. 계속할까요?'))return;
+ const U=100000;let sum=0;
+ for(let i=1;i<=8;i++){const r=num(document.getElementById('r'+i).value);
+  const a=Math.floor(base*r/100/U)*U;sum+=a;document.getElementById('a'+i).value=a?fmt(a):''}
+ recalc();adSave();try{document.dispatchEvent(new Event('change'))}catch(e){}
+ msg(`자동배분 완료: 배분총액 ${fmt(base)}원 → 목표가 ${fmt(sum)}원 (절사분 ${fmt(base-sum)}원) / 이익금 ${fmt(op-sum)}원`);
+}
 /* 일수 = 종료일 − 시작일 + 1 */
 function calcDays(p){
  const s=document.getElementById(p+'_start_date').value,e=document.getElementById(p+'_end_date').value,d=document.getElementById(p+'_days');
