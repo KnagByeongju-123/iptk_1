@@ -68,8 +68,8 @@ input.cell,tr.sel input.cell,tr:hover input.cell{color:#22303a;background:#fff;-
       <colgroup><col style="width:36%"><col style="width:34%"><col style="width:15%"><col style="width:15%"></colgroup>
       <thead><tr><th>제번</th><th>품명</th><th>공정코드</th><th>공정명</th></tr></thead><tbody id="jobBody"></tbody></table></div></div>
     <div class="box"><div class="box-title">자재표 리스트</div><div class="tablewrap"><table>
-      <colgroup><col style="width:38px"><col style="width:15%"><col style="width:18%"><col style="width:14%"><col style="width:23%"><col style="width:10%"><col style="width:12%"></colgroup>
-      <thead><tr><th><input type="checkbox" id="bomAll" onclick="bomAllToggle(this)" title="전체선택 / 전체해제"></th><th>품번</th><th>부품명</th><th>재질</th><th>규격</th><th>수량</th><th>첨부</th></tr></thead><tbody id="bomBody"></tbody></table></div></div>
+      <colgroup><col style="width:38px"><col style="width:14%"><col style="width:17%"><col style="width:12%"><col style="width:21%"><col style="width:9%"><col style="width:10%"><col style="width:10%"></colgroup>
+      <thead><tr><th><input type="checkbox" id="bomAll" onclick="bomAllToggle(this)" title="전체선택 / 전체해제"></th><th>품번</th><th>부품명</th><th>재질</th><th>규격</th><th>수량</th><th title="이 제번에서 이미 발주된 수량(원재료/구매품 발주 합계)">발주수량</th><th>첨부</th></tr></thead><tbody id="bomBody"></tbody></table></div></div>
     <div class="box"><div class="box-title">협력업체리스트</div>
       <div class="searchbar"><input id="venQ" placeholder="업체 검색" oninput="venFind()" title="입력하면 협력업체가 걸러집니다 (Esc: 지우기)" onkeydown="if(event.key==='Escape'){this.value='';venFind()}"></div><div class="tablewrap"><table><thead><tr><th>협력업체</th></tr></thead><tbody id="venBody"></tbody></table></div></div>
   </section>
@@ -106,7 +106,7 @@ function venFind(){const q=(venQ.value||'').trim().toLowerCase();
  venIdx=-1;renderVendors();
  msg(q?`협력업체 ${venView.length}건 검색`:`협력업체 ${venView.length}건`)}
 function renderVendors(){venBody.innerHTML=venView.map((v,i)=>`<tr class="${i===venIdx?'sel':''}" onclick="pickVendor(${i})"><td>${v}</td></tr>`).join('')}
-function renderBom(){const b=jobView[jobIdx]?.bom||[];bomBody.innerHTML=b.length?b.map((r,i)=>`<tr><td class="c"><input type="checkbox" checked data-i="${i}"></td><td>${r.part}</td><td>${r.name}</td><td class="c">${r.mat}</td><td>${r.spec}</td><td class="r">${r.qty}</td><td class="c">${r.att}</td></tr>`).join(''):'<tr><td colspan="7" class="c" style="color:#8b98a4">자재표가 없습니다.</td></tr>';
+function renderBom(){const b=jobView[jobIdx]?.bom||[];bomBody.innerHTML=b.length?b.map((r,i)=>`<tr><td class="c"><input type="checkbox" checked data-i="${i}"></td><td>${r.part}</td><td>${r.name}</td><td class="c">${r.mat}</td><td>${r.spec}</td><td class="r">${r.qty}</td><td class="c">${r.att}</td></tr>`).join(''):'<tr><td colspan="8" class="c" style="color:#8b98a4">자재표가 없습니다.</td></tr>';
  if(typeof syncBomAll==='function')syncBomAll()}
 /* v115: 구매요청 리스트 전체선택 — 제목행 체크박스로 전체선택/해제 */
 function reqChks(){return [...reqBody.querySelectorAll('input[type=checkbox]')]}
@@ -121,7 +121,7 @@ document.addEventListener('change',e=>{
  if(e.target&&e.target.closest&&e.target.closest('#reqBody'))syncReqAll();
 });
 /* v115: 자재표 리스트 전체선택 — 제목행 체크박스로 전체선택/해제, 개별 체크 시 상태 동기화 */
-function bomChks(){return [...bomBody.querySelectorAll('input[type=checkbox]')]}
+function bomChks(){return [...bomBody.querySelectorAll('input[type=checkbox]:not(:disabled)')]}
 function bomAllToggle(el){bomChks().forEach(c=>c.checked=el.checked);syncBomAll();
  msg(el.checked?`자재표 ${bomChks().length}건을 모두 선택했습니다.`:'자재표 선택을 모두 해제했습니다.')}
 function syncBomAll(){
@@ -168,7 +168,7 @@ async function pushDown(){const j=jobView[jobIdx];if(!j)return;const picks=[...b
   if(have.has(k)){dup.unshift(combos[i].b.part);combos.splice(i,1)}else have.add(k);
  }
  if(!combos.length){renderReq();return msg(`이미 요청 리스트에 있어 추가하지 않았습니다: ${[...new Set(dup)].join(', ')} — 아래 구매요청 리스트에서 수량·입고요구일을 수정하거나 [요청삭제] 후 다시 추가하세요.`)};
- combos.forEach(({v,b})=>{const dims=String(b.spec).split(/[*xX×]/).map(Number);REQ.push({no:REQ.length?Math.max(...REQ.map(r=>r.no))+1:1,vendor:v,job:j.job,proc:j.proc,part:b.part,name:b.name,mat:b.mat,design:b.spec,th:dims[0]||null,w:dims[1]||null,l:dims[2]||null,qty:b.qty,ord:b.qty,wt:null,stdPrice:0,buyPrice:0,price:0,amount:0,odate:new Date().toISOString().slice(0,10),rdate:d,att:b.att,remark:''})});
+ combos.forEach(({v,b})=>{const dims=String(b.spec).split(/[*xX×]/).map(Number);REQ.push({no:REQ.length?Math.max(...REQ.map(r=>r.no))+1:1,vendor:v,job:j.job,proc:j.proc,part:b.part,name:b.name,mat:b.mat,design:b.spec,th:dims[0]||null,w:dims[1]||null,l:dims[2]||null,qty:b.qty,ord:(b.rem!=null&&b.rem>0?b.rem:b.qty),wt:null,stdPrice:0,buyPrice:0,price:0,amount:0,odate:new Date().toISOString().slice(0,10),rdate:d,att:b.att,remark:''})});
  /* v39: 중량(설계치수 기준)과 자재 단가를 자동 산출해 발주금액을 채운다.
     금액이 없으면 입고확정을 해도 제조원가에 원재료비가 0으로 잡힌다. */
  if(window.MESPRICE){
@@ -338,6 +338,43 @@ function sampleFill(){
   if(window.MESDEMO)return MESDEMO.run('material_order_input',{});
   var e=document.getElementById('message'); if(e)e.textContent='예제 모듈을 불러오지 못했습니다.';
 }
+</script>
+<script>
+/* v116: 자재표에 '발주수량'(이 제번·품번으로 이미 나간 원재료 발주 합계) 표시.
+   발주수량 ≥ 수량이면 행을 연회색으로 두고 체크 불가. 첫 진입은 전부 미선택. 요청추가 시 기본 발주수량 = 잔량 */
+const OQ_원재료='원재료';let OQ={},OQ_JOB='';
+async function loadOrdQ(job){
+ if(!job||!(window.MESDB&&MESDB.table))return;
+ try{const rs=await MESDB.table('order_lines').select(`select=part_no,order_qty,status&category=eq.${encodeURIComponent(OQ_원재료)}&job_no=eq.${encodeURIComponent(job)}`,{fresh:true});
+  const m={};(rs||[]).forEach(r=>{if(/취소/.test(r.status||''))return;const k=r.part_no||'';m[k]=(m[k]||0)+(Number(r.order_qty)||0)});
+  OQ=m;OQ_JOB=job}catch(e){}
+}
+function decorateBom(){
+ const j=jobView[jobIdx];if(!j||!j.bom)return;const m=OQ_JOB===j.job?OQ:{};
+ bomBody.querySelectorAll('input[type=checkbox][data-i]').forEach(cb=>{
+  const b=j.bom[Number(cb.dataset.i)];if(!b)return;const tr=cb.closest('tr');
+  const q=Number(b.qty)||0,oq=m[b.part]||0;b.oq=oq;b.rem=Math.max(0,q-oq);
+  if(!tr.querySelector('td.oq')){const td=document.createElement('td');td.className='r oq';
+   const ref=tr.cells[tr.cells.length-1];tr.insertBefore(td,ref)}
+  tr.querySelector('td.oq').textContent=oq?oq:'';
+  const full=q>0&&oq>=q;
+  cb.checked=false;cb.disabled=full;tr.classList.toggle('bom-done',full);
+  tr.title=full?`발주완료 — 수량 ${q} / 발주 ${oq}`:(oq?`부분발주 — 잔량 ${q-oq}`:'');
+  tr.classList.toggle('bom-part',!full&&oq>0);
+ });
+ try{syncBomAll()}catch(e){}
+}
+(function(){
+ const _rb=window.renderBom;window.renderBom=function(){_rb.apply(this,arguments);decorateBom()};
+ const _lb=window.loadBom;window.loadBom=async function(){const r=await _lb.apply(this,arguments);const j=jobView[jobIdx];if(j){await loadOrdQ(j.job);window.renderBom()}return r};
+ const _sv=window.save;window.save=async function(){const r=await _sv.apply(this,arguments);try{const j=jobView[jobIdx];if(j){await loadOrdQ(j.job);window.renderBom()}}catch(e){}return r};
+ if(window.MES){if(MES.save)MES.save=window.save}
+ const st=document.createElement('style');st.textContent='#bomBody tr.bom-done td{color:#b4bcc3!important}#bomBody tr.bom-done input{cursor:not-allowed;opacity:.45}#bomBody tr.bom-part td.oq{color:#c77700;font-weight:700}';
+ document.head.appendChild(st);
+ try{window.renderBom()}catch(e){}
+ /* 첫 조회가 이 스크립트보다 먼저 끝났을 수 있으므로 한 번 더 발주수량을 읽는다 */
+ setTimeout(async()=>{try{const j=jobView[jobIdx];if(j&&OQ_JOB!==j.job){await loadOrdQ(j.job);window.renderBom()}}catch(e){}},300);
+})();
 </script>
 </body>
 </html>
