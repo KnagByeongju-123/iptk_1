@@ -69,6 +69,15 @@ html[data-mw="lg"] .formgrid{grid-template-columns:repeat(4,84px minmax(0,1fr))}
 html[data-mw="md"] .formgrid{grid-template-columns:repeat(3,84px minmax(0,1fr))}
 html[data-mw="sm"] .formgrid{grid-template-columns:repeat(2,84px minmax(0,1fr))}
 html[data-mw="xs"] .formgrid{grid-template-columns:84px minmax(0,1fr)}
+/* v116 수주등록 배치: 구분선 + 납기완료일·정산완료일 분리, 첨부파일 팝업 */
+.formgrid .gsep{grid-column:1/-1;height:0;border-top:1px dashed #9fb0bf;margin:4px 0 2px}
+.fillsp{flex:1;min-height:0}
+.attbox{width:min(900px,94vw)}
+.attbox .toolbar{padding:0 0 6px;background:none;border:0;height:auto}
+.attbox .att.attdlg{margin:0;height:min(340px,55vh);flex:none}
+.attbtn b{display:inline-block;min-width:18px;margin-left:5px;padding:0 5px;border-radius:9px;background:#2f75b5;color:#fff;font-size:11px;line-height:17px}
+.attbtn b:empty{display:none}
+@media(max-width:680px){.foot{flex-wrap:wrap;height:auto;min-height:42px}.dlg.attbox{margin-top:20px}}
 /* 첨부파일: 비어 있을 때 과도한 여백 축소 */
 .filearea .empty,#fileEmpty{height:64px!important}
 </style></head><body><div class="screen">
@@ -97,24 +106,27 @@ html[data-mw="xs"] .formgrid{grid-template-columns:84px minmax(0,1fr)}
  <div class="label">공정(조)수</div><div><input id="proc_cnt" class="field num" title="공정 SET 수(조수). 원가 배부 단위가 됩니다."></div>
 
  <div class="label">견적가</div><div><input id="quo_price" class="field num"></div>
+ <div class="label">수주가</div><div><input id="order_price" class="field num"></div>
  <div class="label">기계사양</div><div class="lk"><input id="ms_code"><input id="ms_name" readonly><button onclick="openLook('mspec','ms_code','ms_name')">…</button></div>
  <div class="label">사용재료</div><div><input id="material_used" class="field"></div>
  <div class="label">T/O 완료일</div><div><input id="s1c" type="date" class="field"></div>
- <div class="label">납기완료일</div><div><input id="dlvc" type="date" class="field"></div>
  <div class="label">ECO</div><div><input id="eco" class="field"></div>
 
  <div class="label">비 고</div><div class="span3"><input id="remark" class="field"></div>
- <div class="label">수주가</div><div><input id="order_price" class="field num"></div>
+ <div class="gsep"></div>
+ <div class="label">납기완료일</div><div><input id="dlvc" type="date" class="field"></div>
  <div class="label">정산완료일</div><div><input id="comp_date" type="date" class="field" title="납품 후 잔여 수정·검수·정산까지 끝나 이 제번을 종결한 날."></div>
 </section>
-<div class="secthead">첨부파일</div>
-<div class="toolbar"><button class="btn" onclick="attPick()">파일첨부</button><button class="btn" onclick="attOpen(1)">다운로드</button><button class="btn" onclick="attOpen()">미리보기</button><button class="btn" onclick="attDel()">파일삭제</button><input type="file" id="attFile" multiple style="display:none" onchange="attUpload(this.files)"></div>
-<div class="att"><table style="min-width:900px"><thead><tr><th style="width:34px"></th><th>파일명</th><th style="width:150px">Version</th><th style="width:280px">파일내용</th><th style="width:90px">크기</th><th style="width:90px">확장자</th></tr></thead><tbody id="attBody"></tbody></table></div>
-<footer class="foot"><button class="btn" onclick="save()">▤ 저장</button><button class="btn" onclick="clearForm()">＋ 신규</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">제번 등 필수항목을 입력하고 저장하세요.</span></footer>
+<div class="fillsp"></div>
+<div class="secthead" style="display:none">첨부파일</div>
+
+<div class="mask" id="attMask" onclick="if(event.target===this)attClose()"><div class="dlg attbox"><div class="dlghead">첨부파일 <span id="attJob" style="font-weight:400;color:#6b7a86;margin-left:8px"></span><button onclick="attClose()">✕</button></div><div class="dlgbody"><div class="toolbar"><button class="btn" onclick="attPick()">파일첨부</button><button class="btn" onclick="attOpen(1)">다운로드</button><button class="btn" onclick="attOpen()">미리보기</button><button class="btn" onclick="attDel()">파일삭제</button><input type="file" id="attFile" multiple style="display:none" onchange="attUpload(this.files)"></div>
+<div class="att attdlg"><table style="min-width:640px"><thead><tr><th style="width:34px"></th><th>파일명</th><th style="width:150px">Version</th><th style="width:280px">파일내용</th><th style="width:90px">크기</th><th style="width:90px">확장자</th></tr></thead><tbody id="attBody"></tbody></table></div></div><div class="dlgfoot"><button class="btn" onclick="attClose()">닫기</button></div></div></div>
+<footer class="foot"><button class="btn attbtn" id="attBtn" onclick="attShow()">📎 첨부파일<b id="attCnt"></b></button><button class="btn" onclick="save()">▤ 저장</button><button class="btn" onclick="clearForm()">＋ 신규등록</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">제번 등 필수항목을 입력하고 저장하세요.</span></footer>
 </div>
 
 
-<script src="mes_lookup.js?v=67"></script>
+<script src="mes_lookup.js?v=116"></script>
 
 <script>
 /* 마스터 조회는 mes_lookup.js(MESLOOK) 사용 - DB 직결 */
@@ -202,7 +214,11 @@ function fmtSize(n){return n>=1048576?(n/1048576).toFixed(1)+'MB':n>=1024?(n/102
 function renderAtt(){
  attBody.innerHTML=ATT.length?ATT.map((a,i)=>`<tr><td class="c"><input type="radio" name="attSel" value="${i}"></td><td>${esc(a.name)}</td><td class="c">${i+1}</td><td>${esc(a.note||'')}</td><td class="c">${fmtSize(a.size||0)}</td><td class="c">${esc(a.ext||'')}</td></tr>`).join('')
  :'<tr><td colspan="6" class="c" style="height:64px;color:#8a97a2">첨부파일이 없습니다.</td></tr>';
+ const c=document.getElementById('attCnt');if(c)c.textContent=ATT.length?ATT.length:'';
 }
+function attShow(){attJob.textContent=job_no.value.trim()?'제번 '+job_no.value.trim():'(제번 미입력)';renderAtt();attMask.classList.add('on')}
+function attClose(){attMask.classList.remove('on')}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&attMask.classList.contains('on'))attClose()});
 function attSel(){const r=document.querySelector('input[name=attSel]:checked');return r?ATT[Number(r.value)]:null}
 function attPick(){
  if(!job_no.value.trim())return msg('제번을 먼저 입력하세요. (첨부는 제번별로 저장됩니다)');
@@ -286,8 +302,15 @@ clearForm();
   return _save.apply(this,arguments)};
  window.MES.save=window.save;window.MES.load=window.load;
 })();
-</script><script src="mes_sample.js?v=67"></script><script src="mes_demo.js?v=67"></script><script src="mes_db.js?v=67"></script>
-<script src="mes_ctx.js?v=67"></script>
+/* v116: 저장 성공 후 입력내용 초기화 (저장 결과 메시지는 유지) */
+(function(){const _save=window.save;window.save=async function(m){
+ const ok=await _save.apply(this,arguments);
+ if(ok===true){const t=message.textContent;clearForm();msg(t+' — 입력칸을 비웠습니다.');
+  try{document.dispatchEvent(new Event('change'))}catch(e){}}
+ return ok};
+ window.MES.save=window.save;})();
+</script><script src="mes_sample.js?v=116"></script><script src="mes_demo.js?v=116"></script><script src="mes_db.js?v=116"></script>
+<script src="mes_ctx.js?v=116"></script>
 
 <script>
 function sampleFill(){
