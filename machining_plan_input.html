@@ -89,7 +89,9 @@ th.sortable.on{color:#1d5da3}
 th.sortable.on .ar{color:#1d5da3}
 #pbody tr.unsaved td:not(.stp):not(.spn){color:#7a8794}
 #pbody tr.unsaved .us{font-size:10px;color:#c0392b;border:1px solid #e3b4ae;border-radius:8px;padding:0 5px;margin-left:4px;vertical-align:1px}
-</style></head><body><div class="screen"><div class="title"><h1>가공계획등록</h1><small>구매관리 · 가공</small></div><section class="filt"><div class="f2"><div class="lb">제 번</div><div><input id="q_job" class="field"></div><div class="lb">품 명</div><div><input id="q_item" class="field"></div></div><div class="guide"><span class="gt">사용순서</span><span class="st"><b>1</b>제번·조 선택</span><span class="ar">▸</span><span class="st"><b>2</b>공정 수정 시 [공정저장]</span><span class="ar">▸</span><span class="st"><b>3</b>번호를 부품으로 드래그해 적용</span><span class="ar">▸</span><span class="st"><b>4</b>[저장]</span><span class="warn">※ 체크 없으면 전체 저장</span></div></section><div class="panes" style="grid-template-rows:1fr 1.2fr"><div class="panes" style="grid-template-columns:470px 1fr;grid-template-rows:1fr;padding:0;gap:8px"><div class="pane"><div class="ph">제번 리스트</div><div class="pb"><table style="min-width:0"><thead><tr><th style="width:46px">NO</th><th style="width:130px">제번</th><th style="width:64px">공정(조)수</th><th style="width:40px">조</th><th style="width:104px">가공완료일</th><th>T/O 예정일</th></tr></thead><tbody id="hbody"></tbody></table></div></div><div class="pane"><div class="ph"><div class="phbar"><span>가공 공정 리스트</span><button class="btn" onclick="routeAdd()" title="기준공정 열을 추가합니다">+ 기준공정</button><button class="btn" onclick="routeSave()" title="변경된 기준공정을 저장합니다">▤ 공정저장</button><button class="btn" onclick="routeDel()" title="선택한 기준공정을 삭제합니다">✕ 공정삭제</button><span class="sp" id="routeMsg">공정 수정 후 [▤ 공정저장] · 번호(열 머리)를 부품 리스트로 끌어 적용 · 번호 클릭=삭제 대상 선택</span></div></div><div class="pb"><table id="rtable" style="min-width:0"><thead id="rhead"></thead><tbody id="rbody"></tbody></table></div></div></div><div class="pane"><div class="ph">부품 리스트</div><div class="pb"><table id="ptable"><thead><tr><th><input type="checkbox" id="pchkAll" onclick="pchkAllToggle(this)" title="전체선택 / 전체해제"></th><th class="sortable" id="thPno" onclick="psort('part_no')">부품코드<span class="ar">⇅</span></th><th class="sortable" id="thPnm" onclick="psort('part_name')">부품명<span class="ar">⇅</span></th><th title="PartList 수량 — 외주가공 발주 기본 수량으로 쓰입니다">수량</th><th>기준공정</th><th>공정1</th><th>공정2</th><th>공정3</th><th>공정4</th><th>공정5</th><th>공정6</th><th>공정7</th><th>공정8</th><th>공정9</th><th>공정10</th><th>공정11</th><th>공정12</th></tr></thead><tbody id="pbody"></tbody></table></div></div></div> <footer class="foot"><button class="btn" onclick="search()">⌕ 검색</button><button class="btn" onclick="save()">▤ 저장</button><button class="btn" onclick="del_()">✕ 삭제</button><button class="btn" onclick="pr()">▤ PRINT</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">제번을 선택하면 부품별 가공공정이 표시됩니다.</span><span class="right" id="countText"></span></footer></div><script>const heads=[];const routes=[];const parts=[];const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+</style></head><script>/* v116: 기준공정ID 는 DB에 숫자로 두고 화면에만 두 자리(05)로 표시 */
+function P2(v){if(v===''||v==null)return '';const n=Number(v);return isNaN(n)?String(v):String(n).padStart(2,'0')}</script>
+<body><div class="screen"><div class="title"><h1>가공계획등록</h1><small>구매관리 · 가공</small></div><section class="filt"><div class="f2"><div class="lb">제 번</div><div><input id="q_job" class="field"></div><div class="lb">품 명</div><div><input id="q_item" class="field"></div></div><div class="guide"><span class="gt">사용순서</span><span class="st"><b>1</b>제번·조 선택</span><span class="ar">▸</span><span class="st"><b>2</b>공정 수정 시 [공정저장]</span><span class="ar">▸</span><span class="st"><b>3</b>번호를 부품으로 드래그해 적용</span><span class="ar">▸</span><span class="st"><b>4</b>[저장]</span><span class="warn">※ 체크 없으면 전체 저장</span></div></section><div class="panes" style="grid-template-rows:1fr 1.2fr"><div class="panes" style="grid-template-columns:470px 1fr;grid-template-rows:1fr;padding:0;gap:8px"><div class="pane"><div class="ph">제번 리스트</div><div class="pb"><table style="min-width:0"><thead><tr><th style="width:46px">NO</th><th style="width:130px">제번</th><th style="width:64px">공정(조)수</th><th style="width:40px">조</th><th style="width:104px">가공완료일</th><th>T/O 예정일</th></tr></thead><tbody id="hbody"></tbody></table></div></div><div class="pane"><div class="ph"><div class="phbar"><span>가공 공정 리스트</span><button class="btn" onclick="routeAdd()" title="기준공정 열을 추가합니다">+ 기준공정</button><button class="btn" onclick="routeSave()" title="변경된 기준공정을 저장합니다">▤ 공정저장</button><button class="btn" onclick="routeDel()" title="선택한 기준공정을 삭제합니다">✕ 공정삭제</button><span class="sp" id="routeMsg">공정 수정 후 [▤ 공정저장] · 번호(열 머리)를 부품 리스트로 끌어 적용 · 번호 클릭=삭제 대상 선택</span></div></div><div class="pb"><table id="rtable" style="min-width:0"><thead id="rhead"></thead><tbody id="rbody"></tbody></table></div></div></div><div class="pane"><div class="ph">부품 리스트</div><div class="pb"><table id="ptable"><thead><tr><th><input type="checkbox" id="pchkAll" onclick="pchkAllToggle(this)" title="전체선택 / 전체해제"></th><th class="sortable" id="thPno" onclick="psort('part_no')">부품코드<span class="ar">⇅</span></th><th class="sortable" id="thPnm" onclick="psort('part_name')">부품명<span class="ar">⇅</span></th><th title="PartList 수량 — 외주가공 발주 기본 수량으로 쓰입니다">수량</th><th>기준공정</th><th>공정1</th><th>공정2</th><th>공정3</th><th>공정4</th><th>공정5</th><th>공정6</th><th>공정7</th><th>공정8</th><th>공정9</th><th>공정10</th><th>공정11</th><th>공정12</th></tr></thead><tbody id="pbody"></tbody></table></div></div></div> <footer class="foot"><button class="btn" onclick="search()">⌕ 검색</button><button class="btn" onclick="save()">▤ 저장</button><button class="btn" onclick="del_()">✕ 삭제</button><button class="btn" onclick="pr()">▤ PRINT</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">제번을 선택하면 부품별 가공공정이 표시됩니다.</span><span class="right" id="countText"></span></footer></div><script>const heads=[];const routes=[];const parts=[];const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const n=v=>v==null?'':Number(v).toLocaleString();const p=v=>v==null?'':Number(v).toFixed(2)+'%';
 const msg=t=>message.textContent=t;
 let view=[...heads];
@@ -444,7 +446,7 @@ function renderRoutes(){
  /* v92: 적용은 드래그&드롭으로만 — 라디오·[부품에 적용] 버튼 없음.
     번호 클릭은 [✕ 공정삭제] 대상 선택(재클릭 해제) */
  if(rh)rh.innerHTML='<tr><th class="rlb">기준공정</th>'
-  +routes.map((r,i)=>`<th data-i="${i}" draggable="true" onclick="pickRouteHead(${i})" title="끌어서 부품 리스트에 놓으면 적용됩니다 (부품 체크 시 체크된 전체) · 클릭=삭제 대상 선택">${esc(r.standard_process_no??'')}</th>`).join('')
+  +routes.map((r,i)=>`<th data-i="${i}" draggable="true" onclick="pickRouteHead(${i})" title="끌어서 부품 리스트에 놓으면 적용됩니다 (부품 체크 시 체크된 전체) · 클릭=삭제 대상 선택">${esc(P2(r.standard_process_no))}</th>`).join('')
   +PH.map(()=>'<th class="phc" title="아래에서 공정을 고르면 새 기준공정이 추가됩니다">＋</th>').join('')+'</tr>';
  rbody.innerHTML=
   `<tr><td class="rlb">기준공정명</td>${routes.map((r,i)=>`<td class="pad0" data-i="${i}"><input class="rname hdr keepcolor" data-i="${i}" value="${esc(r.standard_process_name||'')}" placeholder="자동생성" oninput="routeNameEdit(${i},this.value)"></td>`).join('')}${PH.map(()=>'<td class="pad0 phc"><input class="rname" disabled placeholder="자동생성"></td>').join('')}</tr>`
@@ -476,7 +478,7 @@ function pickRouteHead(i){
  const r=routes[i];if(!r)return;
  routeIdx=i;markRouteHead();
  const st=(r.steps||[]).filter(Boolean);
- msg(`기준공정 ${r.standard_process_no} 선택 · ${st.length?st.map(c=>PROCN[c]||c).join(' → '):'공정 없음'} — [✕ 공정삭제] 대상`);
+ msg(`기준공정 ${P2(r.standard_process_no)} 선택 · ${st.length?st.map(c=>PROCN[c]||c).join(' → '):'공정 없음'} — [✕ 공정삭제] 대상`);
 }
 function routeStep(i,k,v){const r=routes[i];if(!r)return;
  const st=Array.from({length:RSEQN},(_,x)=>(r.steps||[])[x]||'');
@@ -490,7 +492,7 @@ function routeStep(i,k,v){const r=routes[i];if(!r)return;
  const ni=rbody.querySelector(`.rname[data-i="${i}"]`);if(ni&&!r._nameEdited)ni.value=r.standard_process_name;
  paintStep(rbody.querySelector(`select[data-i="${i}"][data-k="${k}"]`),k,st[k]);
  markRouteHead();
- msg(`기준공정 ${r.standard_process_no} 공정${k+1} 변경 · [▤ 공정저장]을 눌러야 확정됩니다.`);}
+ msg(`기준공정 ${P2(r.standard_process_no)} 공정${k+1} 변경 · [▤ 공정저장]을 눌러야 확정됩니다.`);}
 function routeNameEdit(i,v){const r=routes[i];if(!r)return;
  r.standard_process_name=v;r._nameEdited=true;r._dirty=true;
  markColDirty(i);}
@@ -505,7 +507,7 @@ async function routeSave(){
  if(!tg.length)return msg('변경된 기준공정이 없습니다.');
  if(!_online())return msg('DB 미연결 상태에서는 저장할 수 없습니다.');
  const bad=tg.find(r=>!(r.steps||[]).filter(Boolean).length);
- if(bad)return msg(`기준공정 ${bad.standard_process_no}: 공정을 하나 이상 선택하세요.`);
+ if(bad)return msg(`기준공정 ${P2(bad.standard_process_no)}: 공정을 하나 이상 선택하세요.`);
  try{
   const today=new Date().toISOString().slice(0,10);
   for(const r of tg){
@@ -565,7 +567,7 @@ function applyRouteCore(ri,idx,recheck){
  if(recheck!==false)idx.forEach(k=>{const cb=document.querySelector(`#pbody input[data-i="${k}"]`);if(cb)cb.checked=true});
  syncPchkAll();
  routeIdx=ri;markRouteHead();
- rmsg(`부품 ${idx.length}건에 공정순서를 적용했습니다 — ${seq.map(c=>PROCN[c]||c).join(' → ')} · 기준공정 ${r.standard_process_no}. [▤ 저장]을 눌러야 확정됩니다.`);
+ rmsg(`부품 ${idx.length}건에 공정순서를 적용했습니다 — ${seq.map(c=>PROCN[c]||c).join(' → ')} · 기준공정 ${P2(r.standard_process_no)}. [▤ 저장]을 눌러야 확정됩니다.`);
 }
 function pchecked(){return [...document.querySelectorAll('#pbody input[type=checkbox]:checked')]
   .map(c=>Number(c.dataset.i)).filter(n=>!Number.isNaN(n))}
@@ -586,7 +588,7 @@ var RDRAG=-1;
   RDRAG=+th.dataset.i;routeIdx=RDRAG;markRouteHead();
   e.dataTransfer.effectAllowed='copy';
   try{e.dataTransfer.setData('text/plain','route')}catch(_){}
-  msg(`기준공정 ${routes[RDRAG]?routes[RDRAG].standard_process_no:''} — 부품 리스트 행 위에 놓으세요. (체크된 부품이 있으면 체크 전체에 적용)`);
+  msg(`기준공정 ${routes[RDRAG]?P2(routes[RDRAG].standard_process_no):''} — 부품 리스트 행 위에 놓으세요. (체크된 부품이 있으면 체크 전체에 적용)`);
  });
  rh.addEventListener('dragend',()=>{RDRAG=-1;pclear()});
  pbody.addEventListener('dragover',e=>{
