@@ -148,11 +148,33 @@ const AD_KEY='mes_sp_autodist';
 function adSum(){let t=0;for(let i=1;i<=8;i++)t+=num(document.getElementById('r'+i).value);t=Math.round(t*100)/100;
  const e=document.getElementById('ad_sum');e.textContent='비율 합계 '+t+'%';e.className='adsum '+(t===100?'ok':t?'bad':'');return t}
 function adSave(){try{const o={p:ad_profit.value,r:[]};for(let i=1;i<=8;i++)o.r.push(document.getElementById('r'+i).value);localStorage.setItem(AD_KEY,JSON.stringify(o))}catch(e){}}
-(function(){try{const o=JSON.parse(localStorage.getItem(AD_KEY)||'null');if(o){(o.r||[]).forEach((v,i)=>{const n=document.getElementById('r'+(i+1));if(n)n.value=v||''})}}catch(e){}
+/* v116: 기본 배분율은 DB(page_state, page='cfg:sales_plan_autodist')에 공용 저장 — 저장 시 비율 합계 100%면 갱신 */
+const AD_PAGE='cfg:sales_plan_autodist';
+function adGet(){const r=[];for(let i=1;i<=8;i++)r.push(num(document.getElementById('r'+i).value));return r}
+function adPut(r){(r||[]).forEach((v,i)=>{const n=document.getElementById('r'+(i+1));if(n)n.value=v?String(v):''});adSum()}
+async function adStore(){
+ const r=adGet();if(adSum()!==100)return '';
+ try{localStorage.setItem(AD_KEY,JSON.stringify({r}))}catch(e){}
+ try{await waitDB();if(!window.MESDB)return '';
+  await MESDB.table('page_state').upsert({page:AD_PAGE,data:{ratios:r,updated_at:new Date().toISOString()}},'page');
+  return ' / 기본 배분율 저장'}catch(e){return ' / 기본 배분율 저장 실패'}}
+async function adLoad(){
+ try{const o=JSON.parse(localStorage.getItem(AD_KEY)||'null');if(o&&o.r)adPut(o.r)}catch(e){}
+ await waitDB();if(!window.MESDB)return;
+ for(let i=0;i<5;i++){   /* 로그인 토큰 준비 전이면 RLS 로 실패 → 잠시 뒤 재시도 */
+  try{const rs=await MESDB.table('page_state').select(`select=data&page=eq.${encodeURIComponent(AD_PAGE)}&limit=1`,{fresh:true});
+   if(rs&&rs[0]&&rs[0].data&&Array.isArray(rs[0].data.ratios)){adPut(rs[0].data.ratios);return}
+   /* 저장된 기본값이 없으면 최근 제작계획의 구성비(%)를 기본값으로 */
+   const sp=await MESDB.table('sales_plans').select('select=design_internal_pct,design_external_pct,raw_material_pct,purchase_pct,machining_internal_pct,machining_external_pct,assembly_internal_pct,assembly_external_pct&target_price=gt.0&order=row_no.desc&limit=1',{fresh:true});
+   if(sp&&sp[0]&&!adGet().some(v=>v)){const k=['design_internal_pct','design_external_pct','raw_material_pct','purchase_pct','machining_internal_pct','machining_external_pct','assembly_internal_pct','assembly_external_pct'];
+    const r=k.map(x=>Math.round(Number(sp[0][x]||0)));const t=r.reduce((a,b)=>a+b,0);
+    if(t>0){const mx=r.indexOf(Math.max(...r));r[mx]+=100-t;adPut(r)}}
+   return}catch(e){await new Promise(r=>setTimeout(r,600*(i+1)))}}}
+(function(){
  for(let i=1;i<=8;i++)document.getElementById('r'+i).addEventListener('input',adSum);
  ad_profit.addEventListener('focus',()=>{const v=num(ad_profit.value);ad_profit.value=v?String(v):''});
  ad_profit.addEventListener('blur',()=>{const v=num(ad_profit.value);ad_profit.value=v?fmt(v):''});
- adSum()})();
+ adSum();setTimeout(adLoad,0)})();
 function autoDist(){
  const op=num(order_price.value);if(!op){msg('수주가를 먼저 입력하세요.');order_price.focus();return}
  const pf=num(ad_profit.value);if(pf<0){msg('목표 이익금은 0 이상이어야 합니다.');return}
@@ -163,7 +185,7 @@ function autoDist(){
  const U=100000;let sum=0;
  for(let i=1;i<=8;i++){const r=num(document.getElementById('r'+i).value);
   const a=Math.floor(base*r/100/U)*U;sum+=a;document.getElementById('a'+i).value=a?fmt(a):''}
- recalc();adSave();try{document.dispatchEvent(new Event('change'))}catch(e){}
+ recalc();adSave();adStore();try{document.dispatchEvent(new Event('change'))}catch(e){}
  msg(`자동배분 완료: 배분총액 ${fmt(base)}원 → 목표가 ${fmt(sum)}원 (절사분 ${fmt(base-sum)}원) / 이익금 ${fmt(op-sum)}원`);
 }
 /* 일수 = 종료일 − 시작일 + 1 */
@@ -189,9 +211,9 @@ function load(o){
  recalc();
 }
 function clearForm(quiet){
- document.querySelectorAll('input').forEach(n=>{if(n.type==='checkbox')n.checked=false;else if(n.type!=='radio')n.value=''});
+ document.querySelectorAll('input:not(.adr)').forEach(n=>{if(n.type==='checkbox')n.checked=false;else if(n.type!=='radio')n.value=''});
  ['design','machining','assembly'].forEach(k=>setOut(k,false));
- recalc();if(!quiet)message.textContent='입력값을 비웠습니다.';
+ recalc();try{adSum()}catch(e){}if(!quiet)message.textContent='입력값을 비웠습니다.';
 }
 /* v28: 영업계획을 sales_plans 테이블에 실제 저장 + 수주정보 연동 */
 const PCT={design_internal_amount:'design_internal_pct',design_external_amount:'design_external_pct',
@@ -285,7 +307,7 @@ async function loadJob(j){
 async function save(){
  const o=collect();
  if(!o.job_no){msg('제번은 필수입니다.');return}
- if(!online()){msg(`${o.job_no} 저장했습니다. (DB 미연결 - 로컬)`);return}
+ if(!online()){await adStore();msg(`${o.job_no} 저장했습니다. (DB 미연결 - 로컬)`);return}
  try{
   const jb=await MESDB.table('jobs').select(`select=job_no&job_no=eq.${encodeURIComponent(o.job_no)}&limit=1`);
   if(!jb||!jb[0]){msg(`${o.job_no} 은(는) 등록된 제번이 아닙니다. 수주등록을 먼저 진행하세요.`);return}
@@ -313,7 +335,7 @@ async function save(){
   let odMsg='';
   try{odMsg=await syncDesignOrder(o)}catch(e){odMsg=' / 외주설계 발주 반영 실패: '+String(e.message||e).slice(0,80)}
   try{MESDB.notify&&MESDB.notify(['sales_plans','sales_plan_status_rows','order_lines'])}catch(e){}
-  msg(`${o.job_no} 제작계획을 저장했습니다. (목표원가 ${Number(o.target_price||0).toLocaleString()}원 / 이익률 ${o.profit_rate_pct ?? '-'}%)`+odMsg);
+  msg(`${o.job_no} 제작계획을 저장했습니다. (목표원가 ${Number(o.target_price||0).toLocaleString()}원 / 이익률 ${o.profit_rate_pct ?? '-'}%)`+odMsg+(await adStore()));
  }catch(e){
   const m=String(e.message||e);
   msg(/무결성|foreign key/i.test(m)?'저장 실패: 등록되지 않은 제번입니다.':'저장 실패: '+m.slice(0,120));
