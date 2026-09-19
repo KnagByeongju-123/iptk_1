@@ -71,7 +71,10 @@ async function confirmSelected(){const s=selectedRows();if(!s.length)return msg(
  let rl=0;try{rl=MESDB.reloadLines?await MESDB.reloadLines():0}catch(e){rl=-1}
  if(rl===-1){render();return msg('입고확정 저장 실패: DB 반영이 되지 않았습니다. [저장]을 다시 눌러주세요.')}
  dirty=false;search();
- msg(`${s.length}건을 ${d} 기준으로 입고확정했습니다. (DB 저장 완료${doneMode()==='완료'?'':' - 미완료 목록에서 제외'})`)}
+ const okm=`${s.length}건을 ${d} 기준으로 입고확정했습니다.`;
+ /* v116: 입고확정 완료 팝업을 직접 띄운다 (상태줄 감시에만 의존하지 않음) */
+ try{(window.MESPOP||window.parent?.MESPOP)?.ok(okm+'\n'+[...new Set(s.map(r=>r.part).filter(Boolean))].slice(0,8).join(', '),'입고확정 완료')}catch(e){}
+ msg(okm+` (DB 저장 완료${doneMode()==='완료'?'':' - 미완료 목록에서 제외'})`)}
 function cancelConfirm(){const s=selectedRows();if(!s.length)return msg('확정취소할 행을 선택하세요.');s.forEach(r=>{r.confirm='';r.status='입고';r.fix=''});dirty=true;render();msg(`${s.length}건의 입고확정을 취소했습니다. (입고 상태로 복귀)`)}
 async function save(){const done=rows.filter(r=>r.status==='확정').length;
  if(!done&&dirty&&window.MESDB&&MESDB.online){try{await MESDB.syncLines();dirty=false;return msg('입고확정 취소 내용을 DB에 반영했습니다.')}catch(e){return msg('저장 실패: '+String(e.message||e).slice(0,140))}}
