@@ -125,7 +125,7 @@ function renderBom(){const b=jobView[jobIdx]?.bom||[];bomBody.innerHTML=b.length
 function renderReq(){
  /* v115: 재렌더 시 체크 상태 유지 */
  const _on=new Set([...reqBody.querySelectorAll('input[type=checkbox]:checked')].map(c=>c.dataset.no));
- reqBody.innerHTML=REQ.map((r,i)=>`<tr onclick="this.classList.toggle('sel')"><td class="c">${i+1}</td><td class="c"><input type="checkbox" data-no="${r.no}"></td><td>${r.vendor}</td><td>${r.job}</td><td class="c">${r.proc}</td><td>${r.part}</td><td>${r.name}</td><td class="c">${r.mat}</td><td>${r.spec}</td><td class="r">${r.qty}</td><td class="r">${r.ord}</td><td class="c">${r.odate}</td><td class="c"><input class="cell" type="date" value="${r.rdate||''}" onclick="event.stopPropagation()" onchange="setRdate(${r.no},this.value)" title="이 행의 입고요구일을 수정합니다"></td><td class="c">${r.att}</td><td class="c">${r.owner}</td><td class="r">${money(r.stdPrice)}</td><td class="r"><input class="cell" value="${r.buyPrice??0}" onclick="event.stopPropagation()" onchange="setBuy(${r.no},this.value)" title="매입단가를 고치면 매입금액이 다시 계산됩니다"></td><td class="r">${money(r.amount)}</td></tr>`).join('');
+ reqBody.innerHTML=REQ.map((r,i)=>`<tr onclick="this.classList.toggle('sel')"><td class="c">${i+1}</td><td class="c"><input type="checkbox" data-no="${r.no}"></td><td>${r.vendor}</td><td>${r.job}</td><td class="c">${r.proc}</td><td>${r.part}</td><td>${r.name}</td><td class="c">${r.mat}</td><td>${r.spec}</td><td class="r">${r.qty}</td><td class="r"><input class="cell ordin" value="${r.ord??''}" onclick="event.stopPropagation()" onfocus="this.select()" onchange="setOrd(${r.no},this.value)" title="발주수량 — 자재표 수량보다 적게 발주하면 나머지는 나중에 추가발주할 수 있습니다" style="text-align:right"></td><td class="c">${r.odate}</td><td class="c"><input class="cell" type="date" value="${r.rdate||''}" onclick="event.stopPropagation()" onchange="setRdate(${r.no},this.value)" title="이 행의 입고요구일을 수정합니다"></td><td class="c">${r.att}</td><td class="c">${r.owner}</td><td class="r">${money(r.stdPrice)}</td><td class="r"><input class="cell" value="${r.buyPrice??0}" onclick="event.stopPropagation()" onchange="setBuy(${r.no},this.value)" title="매입단가를 고치면 매입금액이 다시 계산됩니다"></td><td class="r">${money(r.amount)}</td></tr>`).join('');
  _on.forEach(no=>{const c=reqBody.querySelector(`input[data-no="${no}"]`);if(c)c.checked=true});
  if(typeof syncReqAll==='function')syncReqAll();
 sumQty.textContent=REQ.reduce((a,r)=>a+(r.qty||0),0);sumOrd.textContent=REQ.reduce((a,r)=>a+(r.ord||0),0);sumBuy.textContent='';sumAmt.textContent=money(REQ.reduce((a,r)=>a+(r.amount||0),0));countText.textContent=`제번 ${jobView.length}건 / 요청 ${REQ.length}건`}
@@ -134,6 +134,16 @@ function calcAmt(r){r.amount=Math.round((Number(r.buyPrice)||0)*(Number(r.ord)||
 /* v112: 구매요청 리스트에서 입고요구일 직접 수정 (요청삭제 후 재추가 불필요) */
 function applyRdate(){const d=reqDate.value;if(!d)return;const ids=[...reqBody.querySelectorAll('input[type=checkbox]:checked')].map(x=>Number(x.dataset.no));if(!ids.length)return;let n=0;REQ.forEach(r=>{if(ids.includes(r.no)){r.rdate=d;n++}});if(n){renderReq();msg(`체크한 ${n}건의 입고요구일을 ${d}로 일괄 수정했습니다.`)}}
 function setRdate(no,v){const r=REQ.find(x=>x.no===no);if(!r)return;r.rdate=v||r.rdate;msg(`${r.part} 입고요구일을 ${r.rdate}로 수정했습니다.`)}
+/* v116: 발주수량 수정 — 중량·매입금액 재계산, 자재표 잔량 초과 시 안내 */
+function setOrd(no,v){const r=REQ.find(x=>x.no===no);if(!r)return;
+ const n=Math.max(0,Math.trunc(Number(String(v).replace(/[^0-9.-]/g,''))||0));r.ord=n;
+ try{if(window.MESPRICE&&r.design&&MESPRICE.weightKg)r.wt=MESPRICE.weightKg(r.design,n||1)||r.wt}catch(e){}
+ calcAmt(r);renderReq();
+ const j=jobView[jobIdx]||{};const b=(j.bom||[]).find(x=>x.part===r.part);
+ const q=b?Number(b.qty)||0:0,done=(typeof OQ!=='undefined'&&OQ_JOB===r.job?OQ[r.part]:0)||0,rem=Math.max(0,q-done);
+ if(!n)msg(`${r.part} 발주수량이 0 입니다. 저장 전에 입력하세요.`);
+ else if(q&&n>rem)msg(`⚠ ${r.part} 발주수량 ${n} — 자재표 ${q} 중 기발주 ${done}, 잔량 ${rem} 을(를) 넘습니다.`);
+ else msg(`${r.part} 발주수량을 ${n}(으)로 수정했습니다.`+(q?` (잔량 ${rem-n} 은 나중에 추가발주 가능)`:''))}
 function setBuy(no,v){const r=REQ.find(x=>x.no===no);if(!r)return;
  r.buyPrice=Number(String(v).replace(/[^0-9.-]/g,''))||0;calcAmt(r);renderReq();
  msg(`${r.part} 매입단가 ${money(r.buyPrice)}원 · 매입금액 ${money(r.amount)}원`)}
@@ -191,7 +201,15 @@ async function dupOtherVendor(cat,job,rows){
  return out;
 }
 async function save(){if(!REQ.length)return msg('저장할 구매요청이 없습니다.');if(!window.MESDB||!MESDB.online){msg(`구매요청 ${REQ.length}건을 저장했습니다. (DB 미연결 - 로컬)`);return}try{const j=jobView[jobIdx]||{};
- const dup=await dupCheck('구매품',j.job,REQ);if(dup.length)return msg(`이미 발주(미입고) 된 품번이 있습니다: ${[...new Set(dup.map(r=>r.part))].join(', ')} — 요청 리스트에서 제외하거나 입고 후 재발주하세요.`);
+ /* v116: 같은 업체 미입고 발주가 있어도 '추가발주'로 허용. 자재표 수량을 넘길 때만 확인 */
+ if(REQ.some(r=>!(Number(r.ord)>0)))return msg('발주수량이 0 이거나 비어 있는 행이 있습니다. 발주수량을 입력하세요.');
+ try{await loadOrdQ(j.job)}catch(e){}
+ const over=[];const byPart={};REQ.forEach(r=>{byPart[r.part]=(byPart[r.part]||0)+(Number(r.ord)||0)});
+ for(const p in byPart){const b=(j.bom||[]).find(x=>x.part===p);const q=b?Number(b.qty)||0:0;const done=(OQ_JOB===j.job?OQ[p]:0)||0;
+  if(q>0&&done+byPart[p]>q)over.push(` · ${p} — 자재표 ${q} / 기발주 ${done} + 이번 ${byPart[p]} = ${done+byPart[p]}`)}
+ if(over.length&&!confirm(`자재표 수량을 넘는 발주가 있습니다.\n\n${over.slice(0,10).join('\n')}\n\n그래도 발주하시겠습니까?`)){msg('발주를 취소했습니다. 구매요청 리스트의 발주수량을 확인하세요.');return}
+ const dup=await dupCheck('구매품',j.job,REQ);
+ if(dup.length&&!over.length&&!confirm(`아래 품번은 같은 업체로 이미 발주(미입고)돼 있습니다. 추가발주로 진행할까요?\n\n${[...new Set(dup.map(r=>' · '+r.part+' '+(r.vendor||'')))].join('\n')}`)){msg('발주를 취소했습니다.');return}
  const alt=await dupOtherVendor('구매품',j.job,REQ);
  if(alt.length){
   const list=alt.slice(0,8).map(a=>` · ${a.part} ${a.name} — 기존 발주: ${a.prev} (${a.date||'일자미상'}, ${a.qty??''}개) → 이번 발주: ${a.now}`).join('\n');
