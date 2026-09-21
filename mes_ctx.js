@@ -90,10 +90,13 @@ function dlgConfirm(o){
       else if(e.key==='Enter'&&document.activeElement&&document.activeElement.dataset.a===undefined){
         e.preventDefault();e.stopPropagation();done(false)}   /* Enter 오입력 방지 */
     }
+    /* v118: 창 안에서 글자를 끌어 선택하다 배경에서 손을 떼면 닫히던 문제 —
+       누르기 시작한 곳도 배경일 때만 닫는다 */
+    bg.addEventListener('mousedown',e=>{bg._d=(e.target===bg)},true);
     bg.addEventListener('click',e=>{
       const b=e.target.closest('button[data-a]');
       if(b){e.stopPropagation();done(b.dataset.a==='1');return}
-      if(e.target===bg){e.stopPropagation();done(false)}
+      if(e.target===bg&&bg._d){e.stopPropagation();done(false)}
     },true);
     document.addEventListener('keydown',key,true);
     /* 기본 포커스는 '취소' — 엔터 연타로 지워지는 사고 방지 */
@@ -1488,7 +1491,8 @@ window.MESCTX={confirm:dlgConfirm};
   const key=e=>{if(e.key==='Enter'||e.key==='Escape'){e.preventDefault();e.stopPropagation();close()}};
   function close(){bg.remove();document.removeEventListener('keydown',key,true)}
   btn.onclick=close;
-  bg.onclick=e=>{if(e.target===bg)close()};
+  bg.onmousedown=e=>{bg._d=(e.target===bg)};
+  bg.onclick=e=>{if(e.target===bg&&bg._d)close()};   /* v118: 드래그 선택 후 닫힘 방지 */
   document.addEventListener('keydown',key,true);
   try{btn.focus()}catch(e){}
  }

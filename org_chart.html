@@ -265,7 +265,9 @@ function expandAll(){collapsed.clear();render()}
 function zoom(d){scale=Math.max(.4,Math.min(2,Math.round((scale+d)*10)/10));paper.style.transform=`scale(${scale})`;zt.textContent=Math.round(scale*100)+'%';drawLines()}
 ctitle.addEventListener('change',()=>{snap();doc.title=ctitle.value.trim();render()});
 cdate.addEventListener('change',()=>{snap();doc.date=cdate.value;render()});
-canvas.addEventListener('click',e=>{if(!e.target.closest('.pop'))closePop()});
+/* v118: 팝업 안에서 드래그 선택 후 밖에서 손을 떼면 닫히던 문제 — 누르기 시작한 곳 기준 */
+canvas.addEventListener('mousedown',e=>{canvas._popOut=!e.target.closest('.pop')},true);
+canvas.addEventListener('click',e=>{if(!e.target.closest('.pop')&&canvas._popOut!==false)closePop()});
 document.addEventListener('keydown',e=>{
   if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;
   if((e.ctrlKey||e.metaKey)&&e.key==='z'){e.preventDefault();undo()}

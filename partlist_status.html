@@ -63,7 +63,7 @@ tbody tr.sel{background:#d6e7f8}
 </div>
 
 <!-- 일괄삭제 -->
-<div class="xmask" id="dMask" onclick="if(event.target===dMask)bulkClose()"><div class="xdlg">
+<div class="xmask" id="dMask" onmousedown="dMask._d=(event.target===dMask)" onclick="if(event.target===dMask&&dMask._d)bulkClose()"><div class="xdlg">
  <div class="xhead"><span>PartList 일괄삭제</span><button onclick="bulkClose()">&times;</button></div>
  <div class="xbody">
   <div class="xrow"><span class="lb" style="width:64px">제 번</span><input id="dJob" class="field" style="width:170px" oninput="bulkReset()" onkeydown="if(event.key==='Enter')bulkCount()"><button class="btn" onclick="bulkCount()">⌕ 건수확인</button></div>

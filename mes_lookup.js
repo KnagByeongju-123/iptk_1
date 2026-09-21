@@ -252,7 +252,9 @@ function ensure(){
  ui.querySelector('#meslk-mst').onclick=openMaster;
  ui.querySelector('#meslk-edsave').onclick=edSave;
  ui.querySelector('#meslk-edcancel').onclick=edClose;
- ui.addEventListener('click',e=>{if(e.target===ui)close()});
+ /* v118: 팝업 안 글자를 끌어 선택하다 배경에서 손을 떼면 닫히던 문제 */
+ ui.addEventListener('mousedown',e=>{ui._d=(e.target===ui)});
+ ui.addEventListener('click',e=>{if(e.target===ui&&ui._d)close()});
  document.addEventListener('keydown',e=>{
   if(!curKind)return;
   /* v60: 편집 패널이 열려 있으면 Esc=편집취소, Enter=편집저장 */

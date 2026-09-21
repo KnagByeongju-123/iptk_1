@@ -60,14 +60,27 @@ tbody tr.new td{color:#1d4f86}
  <button class="btn" onclick="save()">▤ 등록</button>
  <button class="btn" onclick="del_()">✕ 삭제</button>
  <button class="btn red" onclick="bulkOpen()" title="제번 단위로 구매품 PartList 전체를 삭제합니다">⌧ 일괄삭제</button>
+ <button class="btn" onclick="manOpen()" title="엑셀 없이 한 행씩 직접 입력합니다">＋ 수동등록</button>
  <button class="btn" onclick="xls()">▤ 엑셀불러오기</button>
  <button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button>
  <span class="msg" id="message">제번을 선택하면 등록된 구매품 PartList가 표시됩니다.</span><span class="right" id="countText"></span>
 </footer>
 </div>
 
+<!-- 수동등록 -->
+<div class="xmask" id="mMask" onmousedown="mMask._d=(event.target===mMask)" onclick="if(event.target===mMask&&mMask._d)manClose()"><div class="xdlg" style="width:min(580px,94vw)">
+ <div class="xhead"><span>수동등록 - 구매품 · 제번 <b id="mJob"></b></span><button onclick="manClose()">&times;</button></div>
+ <div class="xbody" style="padding:12px">
+  <div class="xrow"><span class="lb" style="width:44px">품번</span><input id="mPn" class="field" style="flex:1 1 150px" placeholder="필수" onkeydown="if(event.key==='Enter')mName.focus()"><span class="lb" style="width:44px">품명</span><input id="mName" class="field" style="flex:1 1 150px"></div>
+  <div class="xrow"><span class="lb" style="width:44px">형식</span><input id="mType" class="field" style="flex:1 1 150px"><span class="lb" style="width:44px">규격</span><input id="mSpec" class="field" style="flex:1 1 150px"></div>
+  <div class="xrow"><span class="lb" style="width:44px">수량</span><input id="mQty" class="field" style="width:110px" value="1" onkeydown="if(event.key==='Enter')manAdd()"></div>
+  <div style="padding:6px 8px;background:#eef4f9;border:1px solid #cfdce6;color:#4a5a68;line-height:1.7">추가한 행은 리스트에 <b>미등록</b>으로 올라갑니다. 체크 후 <b>[▤ 등록]</b>을 눌러야 저장됩니다. 창을 열어둔 채 계속 입력할 수 있습니다.</div>
+  <div style="display:flex;justify-content:center;gap:8px;margin-top:10px"><button class="btn pri" onclick="manAdd()">⬇ 리스트에 추가</button><button class="btn" onclick="manClose()">⊠ 닫기</button></div>
+ </div>
+</div></div>
+
 <!-- 엑셀 불러오기 (붙여넣기) -->
-<div class="xmask" id="xMask" onclick="if(event.target===xMask)xlsClose()"><div class="xdlg">
+<div class="xmask" id="xMask" onmousedown="xMask._d=(event.target===xMask)" onclick="if(event.target===xMask&&xMask._d)xlsClose()"><div class="xdlg">
  <div class="xhead"><span>엑셀 불러오기(구매품) - 제번 <b id="xJob"></b></span><button onclick="xlsClose()">×</button></div>
  <div class="xbody">
   <div style="padding:7px 9px;background:#e9f1f8;border:1px solid #bfd2e2;margin-bottom:6px;line-height:1.7">
@@ -87,7 +100,7 @@ tbody tr.new td{color:#1d4f86}
 </div></div>
 
 <!-- 일괄 등록 (등록자·등록일자) -->
-<div class="xmask" id="rMask" onclick="if(event.target===rMask)regClose()"><div class="xdlg" style="width:min(440px,94vw)">
+<div class="xmask" id="rMask" onmousedown="rMask._d=(event.target===rMask)" onclick="if(event.target===rMask&&rMask._d)regClose()"><div class="xdlg" style="width:min(440px,94vw)">
  <div class="xhead"><span>PartList 등록 - 구매품</span><button onclick="regClose()">&times;</button></div>
  <div class="xbody" style="padding:12px">
   <div id="rInfo" style="padding:8px;background:#fff;border:1px solid #cfd8e0;color:#455;margin-bottom:10px;line-height:1.7"></div>
@@ -98,7 +111,7 @@ tbody tr.new td{color:#1d4f86}
 </div></div>
 
 <!-- 일괄삭제 -->
-<div class="xmask" id="dMask" onclick="if(event.target===dMask)bulkClose()"><div class="xdlg" style="width:min(520px,94vw)">
+<div class="xmask" id="dMask" onmousedown="dMask._d=(event.target===dMask)" onclick="if(event.target===dMask&&dMask._d)bulkClose()"><div class="xdlg" style="width:min(520px,94vw)">
  <div class="xhead"><span>PartList 일괄삭제 - 구매품</span><button onclick="bulkClose()">&times;</button></div>
  <div class="xbody">
   <div class="xrow" style="margin-bottom:8px"><span class="lb">제 번</span><input id="dJob" class="field" style="width:170px" oninput="bulkReset()" onkeydown="if(event.key==='Enter')bulkCount()"><button class="btn" onclick="bulkCount()">⌕ 건수확인</button></div>
@@ -349,8 +362,32 @@ document.addEventListener('paste',e=>{
  e.preventDefault();xls(s);
 });
 
+/* v117: 수동등록 — 엑셀 없이 한 행씩 리스트에 올린다 (추가 후 체크 → [▤ 등록]) */
+function manOpen(){
+ const job=curJobNo();
+ if(!job){msg('제번을 먼저 선택하세요.');q_job.focus();return}
+ mJob.textContent=job;mMask.classList.add('on');setTimeout(()=>mPn.focus(),50);
+}
+function manClose(){mMask.classList.remove('on')}
+function manAdd(){
+ const job=curJobNo();
+ if(!job)return alert('제번을 먼저 선택하세요.');
+ const pn=(mPn.value||'').trim();
+ if(!pn){alert('품번을 입력하세요.');mPn.focus();return}
+ const r={part_no:pn,part_name:(mName.value||'').trim(),type:(mType.value||'').trim()||null,
+  spec:(mSpec.value||'').trim()||null,qty:XNUM(mQty.value)};
+ let rep=false;const i=pend.findIndex(x=>x.part_no===pn);
+ if(i>=0){chk.delete(pend[i].row_no);pend.splice(i,1);rep=true}
+ const id=-(++pendSeq);pend.push({...r,row_no:id,_new:true});chk.add(id);
+ render();
+ [mPn,mName,mType,mSpec].forEach(el=>el.value='');mQty.value='1';mPn.focus();
+ const ex=data.some(x=>x.part_no===pn);
+ msg(`${pn} 을(를) 리스트에 추가했습니다`+(rep?' (미등록 행 교체)':'')+(ex?' (기존 품번 — 등록 시 수정)':'')
+  +'. 체크 후 [▤ 등록]을 누르세요.');
+}
+
 function search(){const j=curJobNo();if(j&&online())return loadJob(j);render()}
-window.MES={search,save,saveChecked,setMessage:msg,reload:loadJob};render();
+window.MES={search,save,saveChecked,setMessage:msg,reload:loadJob,manOpen};render();
 (async()=>{await waitDB();const j=curJobNo();if(j)loadJob(j)})();
 </script>
 <script src="mes_sample.js?v=114"></script><script src="mes_scene.js?v=114"></script><script src="mes_demo.js?v=114"></script><script src="mes_db.js?v=114"></script>
