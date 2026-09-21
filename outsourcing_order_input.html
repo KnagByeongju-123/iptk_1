@@ -292,15 +292,24 @@ async function loadJobs(){
   await loadRoutes();
  }catch(e){msg('제번리스트 조회 실패: '+String(e.message||e).slice(0,110))}
 }
+/* v116: 부품 행 중복 방지 —
+   제번 클릭·콤보 change·새로고침 등으로 loadRoutes() 가 겹쳐 실행되면
+   각 호출이 await 뒤에 같은 ROUTES 배열에 push 해 부품이 2~3행으로 누적됐다.
+   호출 순번(_routeSeq)을 잡아 마지막 호출만 화면에 반영하고,
+   결과는 지역 배열 out 에 담았다가 (조|부품코드) 키로 중복 제거해 한 번에 옮겨 담는다. */
+let _routeSeq=0;
 async function loadRoutes(){
- const j=jobView[jobIdx];ROUTES.length=0;
- if(!j||!_online()){renderRoutes();return}
+ const my=++_routeSeq;                       /* 이번 호출의 순번 */
+ const j=jobView[jobIdx];
+ if(!j||!_online()){ROUTES.length=0;renderRoutes();return}
+ const out=[];                               /* 조회 결과는 ROUTES 가 아니라 여기에 담는다 */
  try{
   /* 1순위: 가공계획에서 확정된 부품별 공정 */
   let rs=await MESDB.table('machining_plan_parts')
     .select(`select=*&job_no=eq.${encodeURIComponent(j.job)}&order=row_no`);
+  if(my!==_routeSeq)return;                  /* 뒤에 다른 호출이 시작됐으면 이 호출은 버린다 */
   if(rs.length){
-   rs.forEach(r=>ROUTES.push({part:r.part_no,name:r.part_name||'',jo:joNum(r.process_code),
+   rs.forEach(r=>out.push({part:r.part_no,name:r.part_name||'',jo:joNum(r.process_code),
      qty:(r.qty!=null?Number(r.qty):1),   /* v115: 가공계획의 부품 수량 = 외주가공 발주 기본 수량 */
      steps:(Array.isArray(r.steps)?r.steps:[]).map(stepCode).filter(Boolean).slice(0,MAXSTEP)}));
   }else{
@@ -308,17 +317,24 @@ async function loadRoutes(){
    const [pm,std]=await Promise.all([
      MESDB.table('partlist_materials').select(`select=part_no,part_name,process_code,qty&job_no=eq.${encodeURIComponent(j.job)}&order=row_no`),
      MESDB.table('machining_standard_routes').select('select=*&order=standard_process_no&limit=1')]);
+   if(my!==_routeSeq)return;
    const steps=(std&&std[0]&&Array.isArray(std[0].steps))?std[0].steps:[];
-   pm.forEach(r=>ROUTES.push({part:r.part_no,name:r.part_name||'',jo:joNum(r.process_code),
+   pm.forEach(r=>out.push({part:r.part_no,name:r.part_name||'',jo:joNum(r.process_code),
      qty:(r.qty!=null?Number(r.qty):1),steps:steps.map(stepCode).filter(Boolean).slice(0,MAXSTEP)}));
    if(pm.length&&!steps.length)msg('기준공정(가공 기준공정관리)이 없어 공정이 비어 있습니다.');
   }
   await loadOrdered(j.job);
+  if(my!==_routeSeq)return;
+  /* 마지막 호출만 화면에 반영 — (조|부품코드) 같은 키는 한 행만 남긴다 */
+  const seen=new Set();
+  ROUTES.length=0;
+  out.forEach(r=>{const k=String(r.jo||'').replace(/조$/,'')+'|'+String(r.part||'').trim().toUpperCase();
+   if(seen.has(k))return;seen.add(k);ROUTES.push(r)});
   renderRoutes();
   PICK.clear();
   const _w=ROUTES.filter(r=>nextStep(r)===-2).length,_d=ROUTES.filter(r=>(r.steps||[]).length&&nextStep(r)===-1).length;
   msg(`${j.job} 부품별 가공공정 ${ROUTES.length}건을 조회했습니다.`+(_w?` · 입고 대기 ${_w}건`:'')+(_d?` · 전공정 완료 ${_d}건`:''));
- }catch(e){renderRoutes();msg('가공공정 조회 실패: '+String(e.message||e).slice(0,110))}
+ }catch(e){if(my!==_routeSeq)return;ROUTES.length=0;renderRoutes();msg('가공공정 조회 실패: '+String(e.message||e).slice(0,110))}
 }
 /* v112: [새로고침] — 다른 화면에서 발주·입고한 내용을 반영해 부품별 가공공정 상태를 다시 그린다.
    RPC·직접 fetch 는 조회 캐시를 거치지 않으므로 dropCache 로 비운 뒤 다시 읽는다. 선택한 제번은 유지. */
