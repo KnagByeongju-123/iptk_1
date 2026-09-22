@@ -219,7 +219,7 @@ a.menu-off,a.menu-off:hover{color:#9aa5ae!important;opacity:.55;cursor:not-allow
 </div>
 
 <script>
-const APP_VER='161';
+const APP_VER='162';
 const APP={
   '영업관리':{
     secondary:[
@@ -261,7 +261,7 @@ const APP={
       ],
       /* v119: 소제목(가공·외주가공·현황) 없이 한 목록으로. 가공계획등록·공정이력카드는 비활성화(MENU_OFF) */
       '가공':[
-        {name:'가공',items:['가공계획등록','공정이력카드','사내가공 실적등록','외주가공 발주','외주가공 입고','외주가공 입고확정','외주가공 QR스캔','외주가공발주현황','외주가공 진척현황']}
+        {name:'가공',items:['가공계획등록','공정이력카드','사내가공 실적등록','사내외가공 등록','외주가공 발주','외주가공 입고','외주가공 입고확정','외주가공 QR스캔','외주가공발주현황','외주가공 진척현황']}
       ]
     }
   },
@@ -408,6 +408,7 @@ const pageRegistry={
 'PartList 현황':{id:'partlist_status',file:'partlist_status.html',title:'PartList 현황'},
 'SET외주제작등록':{id:'set_order_registration',file:'set_order_registration.html',title:'조립외주발주'},
 '가공계획등록':{id:'machining_plan_input',file:'machining_plan_input.html',title:'가공계획등록'},
+'사내외가공 등록':{id:'inhouse_outsourcing_input',file:'inhouse_outsourcing_input.html',title:'사내외가공 등록'},
 '금형원가 내역(부품별)':{id:'job_cost_sheet',file:'job_cost_sheet.html',title:'금형원가 내역 (부품별)'},
 '업체별 가공비 합계':{id:'vendor_cost_summary',file:'vendor_cost_summary.html',title:'업체별 가공비 합계'},
 '매입현황':{id:'purchase_status',file:'purchase_status.html',title:'매입현황'},
