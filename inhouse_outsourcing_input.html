@@ -1,4 +1,4 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>사내외가공 등록</title><style>
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>금형원가(내역)</title><style>
 :root{--line:#98a6b2;--line2:#c5d0d8;--blue:#2f75b5;--ink:#344757;--head1:#e8f1f8;--head2:#c8dbe9;--in:#eaf4ff;--out:#fff3e6}
 *{box-sizing:border-box}html,body{height:100%;margin:0}
 body{font-family:"Malgun Gothic","맑은 고딕",Arial,sans-serif;font-size:12px;color:var(--ink);background:#fff;overflow:hidden}
@@ -55,7 +55,7 @@ tfoot td.sk{z-index:8}
 }
 </style></head><body><div class="screen">
 
-<div class="title"><h1>사내외가공 등록</h1><small>구매관리 · 가공 &nbsp;|&nbsp; 부품별 재료비 + 공정별 사내 가공시간 / 외주 가공비를 한 표에서 등록합니다</small></div>
+<div class="title"><h1>금형원가(내역)</h1><small>원가관리 · 제조원가 &nbsp;|&nbsp; 부품별 재료비 + 공정별 사내 가공시간 / 외주 가공비를 한 표에서 등록합니다</small></div>
 
 <section class="filt">
  <span class="lb">제 번</span><input id="jobQ" class="field" style="width:180px" placeholder="제번 입력/선택">
@@ -434,7 +434,7 @@ function csv(){
     Math.round(matTot)||'',Math.round(procTot)||'',Math.round(matTot+procTot)||'']});
  const t='﻿'+[h,...rows].map(a=>a.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\n');
  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv;charset=utf-8'}));
- a.download=`사내외가공_${(BASEMODE?baseOf(CURJOB):CURJOB)||'전체'}.csv`;a.click();URL.revokeObjectURL(a.href);
+ a.download=`금형원가내역_${(BASEMODE?baseOf(CURJOB):CURJOB)||'전체'}.csv`;a.click();URL.revokeObjectURL(a.href);
  msg(`${ROWS.length}건을 엑셀로 내보냈습니다.`);
 }
 
