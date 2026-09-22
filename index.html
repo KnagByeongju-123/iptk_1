@@ -219,7 +219,7 @@ a.menu-off,a.menu-off:hover{color:#9aa5ae!important;opacity:.55;cursor:not-allow
 </div>
 
 <script>
-const APP_VER='163';
+const APP_VER='164';
 const APP={
   '영업관리':{
     secondary:[
@@ -512,7 +512,7 @@ function locate(name){
 }
 /* v116: 메뉴 비활성화 — 목록에는 흐리게 남기고 열리지 않게 한다 (외주가공은 QR스캔·외주가공 발주 화면에서 입고/입고확정 처리) */
 /* v119: 원재료·구매품 입고/입고확정은 발주 화면 우클릭(진행 칸)에서 처리 → 메뉴 비활성화. 가공계획등록·공정이력카드도 비활성화 */
-const MENU_OFF=new Set(['외주가공 입고','외주가공 입고확정','원재료 입고','원재료 입고확정','구매품 입고','구매품 입고확정','가공계획등록']);
+const MENU_OFF=new Set(['외주가공 입고','외주가공 입고확정','원재료 입고','원재료 입고확정','구매품 입고','구매품 입고확정','가공계획등록','사내가공 실적등록']);
 /* 특정 모듈 안에서만 끄는 메뉴 (기준정보 › 작업지시의 공정이력카드는 그대로 쓴다) */
 const MENU_OFF_IN={'공정이력카드':'구매관리'};
 const menuOff=(n,mod)=>MENU_OFF.has(n)||(mod!=null&&MENU_OFF_IN[n]===mod);
