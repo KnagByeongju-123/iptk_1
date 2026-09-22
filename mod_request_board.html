@@ -3,12 +3,20 @@
 *{box-sizing:border-box}html,body{height:100%;margin:0}body{font-family:"Malgun Gothic","맑은 고딕",Arial,sans-serif;font-size:12px;color:var(--ink);background:#fff;overflow:hidden}
 button,input,select,textarea{font:inherit;color:inherit}.screen{height:100%;display:flex;flex-direction:column;background:#fff}
 .title{height:48px;padding:9px 14px 5px;border-bottom:2px solid #3978ae;flex-shrink:0}.title h1{margin:0;font-size:22px;font-weight:500;color:#4b5c6a}.title h1:before{content:'◯';margin-right:6px;color:#8796a1}.title small{font-size:11px;color:#9ca7af;margin-left:10px}
-.searchline{min-height:38px;margin:0 14px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;border-left:1px solid var(--line);border-right:1px solid var(--line);padding:4px 8px;background:#f6f8fa;flex-shrink:0}
-.searchline input,.searchline select{height:27px;border:1px solid #aeb9c3;padding:0 7px;background:#fff}.searchline input.q{width:min(260px,30vw)}.searchline .lab{font-weight:700;color:#4a5c6c;margin-left:6px}
+.searchline{min-height:38px;margin:8px 14px 0;display:flex;align-items:center;gap:6px;flex-wrap:nowrap;
+  border:1px solid var(--line);padding:5px 9px;background:#f6f8fa;flex-shrink:0;overflow-x:auto}
+.searchline input,.searchline select{height:27px;border:1px solid #aeb9c3;padding:0 7px;background:#fff;flex-shrink:0}
+.searchline select{padding-right:4px}
+.searchline input.q{flex:1 1 220px;min-width:170px;max-width:420px}
+.searchline .lab{height:27px;display:flex;align-items:center;padding:0 8px;border:1px solid #bdc7cf;background:#eef2f5;
+  font-weight:700;font-size:11.5px;color:#4a5c6c;white-space:nowrap;flex-shrink:0}
+.searchline label.chk{display:flex;align-items:center;gap:4px;white-space:nowrap;margin-left:2px;flex-shrink:0}
+.searchline .btn{flex-shrink:0}
 .btn{height:28px;min-width:62px;border:1px solid #9ba8b4;background:linear-gradient(#fff,#dfe6eb);cursor:pointer}.btn:hover{background:#fff}.btn.danger{color:#b3261e}.btn.pri{background:linear-gradient(#5f96cf,#2f75b5);color:#fff;border-color:#2a68a3}
-.body{flex:1;min-height:0;margin:0 14px 0;display:grid;grid-template-columns:minmax(0,1fr) 420px;gap:0}
+.body{flex:1;min-height:0;margin:0 14px 8px;display:grid;grid-template-columns:minmax(560px,1fr) 470px;gap:0}
 .gridbox{min-height:0;border:1px solid var(--line);overflow:auto;background:#fff}
-table{border-collapse:collapse;width:100%;table-layout:fixed;min-width:640px}
+table{border-collapse:collapse;width:100%;table-layout:fixed;min-width:780px}
+td.tit{text-align:left}
 th,td{height:27px;border-right:1px solid var(--line2);border-bottom:1px solid var(--line2);padding:0 7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 th{position:sticky;top:0;z-index:2;text-align:center;background:linear-gradient(var(--head1),var(--head2));color:#405266}
 tbody tr:nth-child(even) td{background:#fafcfd}tbody tr:hover td{background:#edf6fd;cursor:pointer}tbody tr.sel td{background:#2d75b7;color:#fff}.c{text-align:center}
@@ -16,32 +24,48 @@ tbody tr:nth-child(even) td{background:#fafcfd}tbody tr:hover td{background:#edf
 .st.접수{background:#fff3dc;color:#a76a00}.st.검토{background:#e3ecf8;color:#2a5aa8}.st.진행{background:#e3f6ee;color:#1e8a5c}.st.완료{background:#e8ecf3;color:#4a5568}.st.보류{background:#fde6e3;color:#b23a2c}
 tr.sel .st{background:#fff;color:#2d75b7}
 .pr.높음{color:#c62828;font-weight:700}
-.detail{border:1px solid var(--line);border-left:0;background:#fafbfc;padding:10px 12px;overflow:auto;display:grid;gap:6px;align-content:start}
+.detail{border:1px solid var(--line);border-left:0;background:#fafbfc;padding:11px 13px 8px;overflow:auto;display:grid;grid-template-columns:minmax(0,1fr);gap:7px;align-content:start}
+.detail>*{min-width:0}
+.row>*{min-width:0}
 .detail h2{margin:0 0 4px;font-size:14px;color:#3a4e60;border-bottom:1px solid var(--line2);padding-bottom:5px}
-.row{display:grid;grid-template-columns:78px 1fr;align-items:center;gap:6px}.row.two{grid-template-columns:78px 1fr 78px 1fr}
+.row{display:grid;grid-template-columns:[l1] 72px [v1] minmax(0,1fr) [end];align-items:center;gap:6px}
+.row.two{grid-template-columns:[l1] 72px [v1] minmax(0,1fr) [l2] 72px [v2] minmax(0,1fr) [end]}
+.row .fld,.row .mescb{max-width:none!important;width:100%}
 .lab{height:27px;display:flex;align-items:center;justify-content:center;border:1px solid #bdc7cf;background:#eef2f5;font-weight:700;font-size:11.5px}
 .fld{height:27px;border:1px solid #b5c0c9;background:#fff;padding:0 6px;min-width:0;width:100%}
 textarea.fld{height:auto;min-height:110px;padding:5px 6px;resize:vertical;line-height:1.5}
 textarea.fld.reply{min-height:80px;background:#f6fbf6}
-.detail .acts{display:flex;gap:5px;margin-top:4px;flex-wrap:wrap}
+.detail .acts{display:flex;gap:5px;margin-top:6px;padding-top:8px;border-top:1px solid var(--line2);
+  position:sticky;bottom:-8px;background:#fafbfc;flex-wrap:wrap}
 .foot{height:40px;display:flex;align-items:center;padding:5px 14px;border-top:1px solid var(--line);background:#eef2f5;gap:5px;flex-shrink:0}.msg{margin-left:10px;color:#687784}.foot .right{margin-left:auto;color:#7c8993}
-.sum{display:flex;gap:8px;margin-left:auto;font-size:11.5px}.sum b{margin-left:2px}
-@media(max-width:1000px){.body{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto}.detail{border-left:1px solid var(--line);border-top:0;max-height:48%}}
+.sum{display:flex;gap:5px;margin-left:auto;font-size:11px;white-space:nowrap;flex-shrink:0}
+.sum span{padding:2px 8px;border-radius:9px;background:#e8eef4;color:#48596a}
+.sum span.on{background:#2f75b5;color:#fff}.sum b{margin-left:3px}
+@media(max-width:1400px){.body{grid-template-columns:minmax(480px,1fr) 420px}}
+@media(max-width:1200px){.searchline{flex-wrap:wrap;overflow:visible}.sum{margin-left:0}}
+@media(max-width:1120px){.body{grid-template-columns:minmax(0,1fr) 380px}
+ .row{grid-template-columns:[l1] 64px [v1] minmax(0,1fr) [end]}
+ .row.two{grid-template-columns:[l1] 64px [v1] minmax(0,1fr) [l2] 64px [v2] minmax(0,1fr) [end]}}
+@media(max-width:1000px){.body{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto}
+ .detail{border-left:1px solid var(--line);border-top:0;max-height:48%}
+ .searchline{flex-wrap:wrap}}
 </style></head><body><div class="screen">
 <div class="title"><h1>수정요청게시판 <small>화면 수정·오류·기능추가 요청을 등록하고 처리 상태를 확인합니다.</small></h1></div>
 <div class="searchline">
-  <span class="lab">상태</span><select id="fst"><option value="">전체</option><option>접수</option><option>검토</option><option>진행</option><option>완료</option><option>보류</option></select>
-  <span class="lab">모듈</span><select id="fmod"><option value=""></option></select>
-  <span class="lab">구분</span><select id="fcat"><option value="">전체</option><option>수정</option><option>오류</option><option>추가</option><option>문의</option></select>
+  <span class="lab">상태</span><select id="fst" data-nocombo style="width:96px"><option value="">전체</option><option>접수</option><option>검토</option><option>진행</option><option>완료</option><option>보류</option></select>
+  <span class="lab">모듈</span><select id="fmod" data-nocombo style="width:124px"><option value=""></option></select>
+  <span class="lab">구분</span><select id="fcat" data-nocombo style="width:96px"><option value="">전체</option><option>수정</option><option>오류</option><option>추가</option><option>문의</option></select>
   <input id="q" class="q" placeholder="제목 / 내용 / 화면 / 요청자 검색">
   <button class="btn" onclick="search()">⌕ 조회</button>
   <button class="btn" onclick="load()">↻ 새로고침</button>
-  <label style="margin-left:6px"><input type="checkbox" id="hideDone" checked> 완료 숨김</label>
+  <label class="chk"><input type="checkbox" id="hideDone" checked> 완료 숨김</label>
   <span class="sum" id="sum"></span>
 </div>
 <div class="body">
-  <div class="gridbox"><table><thead><tr>
-    <th style="width:48px">No</th><th style="width:88px">요청일</th><th style="width:72px">요청자</th><th style="width:80px">모듈</th><th style="width:130px">화면</th><th style="width:54px">구분</th><th style="width:50px">우선</th><th>제목</th><th style="width:60px">상태</th><th style="width:88px">처리일</th>
+  <div class="gridbox"><table>
+    <colgroup><col style="width:46px"><col style="width:86px"><col style="width:72px"><col style="width:84px"><col style="width:150px"><col style="width:52px"><col style="width:50px"><col style="width:240px"><col style="width:62px"><col style="width:86px"></colgroup>
+    <thead><tr>
+    <th>No</th><th>요청일</th><th>요청자</th><th>모듈</th><th>화면</th><th>구분</th><th>우선</th><th>제목</th><th>상태</th><th>처리일</th>
   </tr></thead><tbody id="tb"></tbody></table></div>
   <div class="detail">
     <h2 id="dtitle">신규 요청</h2>
@@ -62,7 +86,7 @@ textarea.fld.reply{min-height:80px;background:#f6fbf6}
 </div>
 <footer class="foot"><button class="btn" onclick="exportCsv()">⇩ CSV</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">조회 중…</span><span class="right" id="countText"></span></footer>
 </div>
-<script src="mes_db.js?v=159"></script>
+<script src="mes_db.js?v=161"></script>
 <script>
 const T='mod_requests';
 let data=[],view=[],selId=null;
@@ -98,7 +122,8 @@ function render(){
     <td class="c">${view.length-i}</td><td class="c">${esc(r.req_date)}</td><td>${esc(r.requester)}</td><td>${esc(r.module)}</td><td>${esc(r.screen)}</td><td class="c">${esc(r.category)}</td><td class="c pr ${esc(r.priority)}">${esc(r.priority)}</td><td title="${esc(r.title)}">${esc(r.title)}</td><td class="c"><span class="st ${esc(r.status)}">${esc(r.status)}</span></td><td class="c">${r.replied_at?String(r.replied_at).slice(0,10):''}</td></tr>`).join('');
   countText.textContent=`${view.length} / ${data.length}건`;
   const c=s=>data.filter(r=>r.status===s).length;
-  sum.innerHTML=`접수<b>${c('접수')}</b> 검토<b>${c('검토')}</b> 진행<b>${c('진행')}</b> 완료<b>${c('완료')}</b> 보류<b>${c('보류')}</b>`;
+  sum.innerHTML=['접수','검토','진행','완료','보류'].map(k=>
+    `<span class="${c(k)?'on':''}" title="${k} ${c(k)}건">${k}<b>${c(k)}</b></span>`).join('');
 }
 function pick(id){
   selId=id;const r=data.find(x=>x.req_id===id);if(!r)return;
@@ -142,5 +167,5 @@ $('q').addEventListener('keydown',e=>{if(e.key==='Enter')search()});
 window.MES={search,add:fresh,delete:remove,save,exportCsv,setMessage:msg};
 fillLists();fresh();load();
 </script>
-<script src="mes_ctx.js?v=159"></script>
+<script src="mes_ctx.js?v=161"></script>
 </body></html>
