@@ -52,7 +52,7 @@ tfoot td{position:sticky;bottom:0;background:#dfe9f2!important;font-weight:700;b
  <button id="tab1" class="on" onclick="setTab('cost')">▤ 원가내역</button>
  <button id="tab2" onclick="setTab('prog')">◴ 진행현황</button>
 </div>
-<div class="gridbox"><table id="grid" style="min-width:1200px"><thead id="thead"></thead><tbody id="body"></tbody><tfoot id="tfoot"></tfoot></table></div>
+<div class="gridbox"><table id="grid" style="min-width:1280px"><thead id="thead"></thead><tbody id="body"></tbody><tfoot id="tfoot"></tfoot></table></div>
 <div class="sum" id="sumLine"></div>
 <footer class="foot"><button class="btn" onclick="load()">⌕ 조회</button><button class="btn" onclick="csv()">▤ EXCEL</button><button class="btn pri" onclick="window.print()">⎙ 인쇄 (A4 가로)</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">제번을 선택하면 부품별 원가내역이 조회됩니다.</span><span class="right" id="countText"></span></footer>
 </div>
@@ -100,16 +100,18 @@ async function load(){
    MESDB.table('order_lines').select(`select=*&${F1}&order=line_id`).catch(()=>[]),
    MESDB.table('design_results').select(`select=*&${F1}&work_type=eq.가공`).catch(()=>[])
   ]);
-  build(plan||[],pl||[],lines||[],res||[]);
+  /* v159: 형태·이미지 보충 (뷰에 없을 수 있음) */
+  let meta={};try{meta=await MESDB.partMeta(BASEMODE?null:job)||{}}catch(e){}
+  build(plan||[],pl||[],lines||[],res||[],meta);
   msg(`${hdJob.textContent} · 부품 ${ROWS.length}건 · 공정 ${COLS.length}개`);
  }catch(e){msg('조회 실패: '+String(e.message||e).slice(0,130))}
  render();
 }
 
-function build(plan,pl,lines,res){
+function build(plan,pl,lines,res,meta){
  const map=new Map();   /* job|part → row */
  const K=(j,p)=>j+'|'+p;
- const at=(j,p)=>{const k=K(j,p);if(!map.has(k))map.set(k,{job:j,seq:seqOf(j),part:p,name:'',mat:'',spec:'',qty:null,
+ const at=(j,p)=>{const k=K(j,p);if(!map.has(k))map.set(k,{job:j,seq:seqOf(j),part:p,name:'',mat:'',shape:'',img:'',spec:'',qty:null,
    steps:[],inhouse:[],mat_in:'',mat_qty:null,mat_price:null,mat_amt:0,proc:{}});return map.get(k)};
  /* 1) 부품 목록: 가공계획 → PartList(원재료·구매품) */
  plan.forEach(r=>{const x=at(r.job_no,r.part_no);x.name=r.part_name||x.name;
@@ -117,7 +119,8 @@ function build(plan,pl,lines,res){
   if(st.length){x.steps=st;x.inhouse=st.map((c,i)=>!!(Array.isArray(r.inhouse)&&r.inhouse[i]))}
   if(r.qty!=null)x.qty=N(r.qty)});
  pl.forEach(r=>{const x=at(r.job_no,r.part_no);x.name=x.name||r.part_name||'';
-  x.mat=x.mat||r.material||'';x.spec=x.spec||r.design_dimension||r.spec||'';
+  x.mat=x.mat||r.material||'';x.shape=x.shape||r.shape||'';x.img=x.img||r.image_url||'';
+  x.spec=x.spec||r.design_dimension||r.spec||'';
   if(x.qty==null&&r.qty!=null)x.qty=N(r.qty)});
  /* 2) 발주: 원재료·구매품 → 재료비 / 외주가공 → 공정별 금액 */
  lines.forEach(l=>{
@@ -125,7 +128,7 @@ function build(plan,pl,lines,res){
   const x=at(l.job_no,p);x.name=x.name||l.part_name||'';
   const done=l.status==='입고확정', got=done||l.status==='입고';
   if(l.category==='원재료'||l.category==='구매품'){
-   x.mat=x.mat||l.material||'';x.spec=x.spec||l.spec||'';
+   x.mat=x.mat||l.material||'';x.shape=x.shape||l.shape||'';x.spec=x.spec||l.spec||'';
    const d=D(l.confirm_date||l.receipt_date);
    if(got&&d&&(!x.mat_in||d>x.mat_in))x.mat_in=d;
    if(l.unit_price!=null&&!x.mat_price)x.mat_price=N(l.unit_price);
@@ -151,7 +154,8 @@ function build(plan,pl,lines,res){
   const d=D(r.work_date);if(d&&d>q.dIn)q.dIn=d;
  });
  ROWS=[...map.values()];
- ROWS.forEach(x=>{
+ ROWS.forEach(x=>{const m=(meta||{})[x.job+'|'+x.part];
+  if(m){if(!x.shape)x.shape=m.shape||'';if(!x.img)x.img=m.image_url||''}
   x.matTot=x.mat_amt;
   x.procTot=Object.values(x.proc).reduce((a,q)=>a+q.out+q.cost,0);
   x.total=x.matTot+x.procTot;
@@ -178,18 +182,18 @@ function render(){
  const pcW=Math.max(62,Math.min(96,Math.round(760/Math.max(1,COLS.length))));
  if(TAB==='cost'){
   thead.innerHTML=`<tr>
-    <th class="grp" colspan="${showJob?9:8}">부품 · 재료비</th>
+    <th class="grp" colspan="${showJob?10:9}">부품 · 재료비</th>
     <th class="grp" colspan="${COLS.length||1}">공정별 가공비 &nbsp;<span style="font-weight:400;font-size:10px">(위 사내 h · 아래 외주 원)</span></th>
     <th class="grp" colspan="2">합계</th></tr>
    <tr><th style="width:74px">입고일</th>${showJob?'<th style="width:44px">공정</th>':''}
     <th style="width:88px">품번</th><th style="width:150px">부품명</th><th style="width:70px">재질</th>
-    <th style="width:120px">규격</th><th style="width:78px">단가</th><th style="width:42px">수량</th><th style="width:96px">재료비</th>
+    <th style="width:58px">형태</th><th style="width:120px">규격</th><th style="width:78px">단가</th><th style="width:42px">수량</th><th style="width:96px">재료비</th>
     ${COLS.map(c=>`<th style="width:${pcW}px" title="${esc(c)} ${esc(pn(c))}">${esc(pn(c))}</th>`).join('')||'<th>가공 기록 없음</th>'}
     <th style="width:70px">가공비</th><th style="width:104px">합계</th></tr>`;
   body.innerHTML=v.length?v.map(x=>`<tr title="${esc(x.part)} ${esc(x.name)}">
     <td class="c">${esc(MD(x.mat_in))}</td>${showJob?`<td class="c">${esc(x.seq)}</td>`:''}
-    <td>${esc(x.part)}</td><td>${esc(x.name)}</td><td class="c">${esc(x.mat)}</td>
-    <td>${esc(x.spec)}</td><td class="num">${x.mat_price?F(x.mat_price):''}</td><td class="num">${x.qty??''}</td><td class="num">${x.matTot?F(x.matTot):''}</td>
+    <td>${x.img&&window.MESDB&&MESDB.imgBox?MESDB.imgBox(x.img,20)+' ':''}${esc(x.part)}</td><td>${esc(x.name)}</td><td class="c">${esc(x.mat)}</td>
+    <td class="c">${esc(x.shape||'')}</td><td>${esc(x.spec)}</td><td class="num">${x.mat_price?F(x.mat_price):''}</td><td class="num">${x.qty??''}</td><td class="num">${x.matTot?F(x.matTot):''}</td>
     ${COLS.map(c=>{const q=x.proc[c];
       if(!q)return `<td class="pc">${(x.steps.includes(c))?'<span style="color:#c3ccd4">·</span>':''}</td>`;
       const tip=`${pn(c)}${q.vendor?' · '+q.vendor:''}${q.st?' · '+q.st:''}${q.min?' · 사내 '+H(q.min)+'h':''}${q.wait?' · 미확정 '+F(q.wait)+'원':''}`;
@@ -197,26 +201,26 @@ function render(){
         (q.min?`<span class="h">${H(q.min)}</span><br>`:'')+
         (q.out?`<span class="o">${F(q.out)}</span>`:(q.wait?`<span class="w">(${F(q.wait)})</span>`:(q.cost&&!q.min?F(q.cost):'')))+'</td>'}).join('')||'<td></td>'}
     <td class="num">${x.procTot?F(x.procTot):''}</td><td class="num"><b>${x.total?F(x.total):''}</b></td></tr>`).join('')
-   :`<tr><td colspan="${(showJob?9:8)+(COLS.length||1)+2}" class="c" style="height:110px;color:#8a97a2">${CURJOB?'부품이 없습니다. PartList 또는 가공계획을 먼저 등록하세요.':'제번을 선택하세요.'}</td></tr>`;
+   :`<tr><td colspan="${(showJob?10:9)+(COLS.length||1)+2}" class="c" style="height:110px;color:#8a97a2">${CURJOB?'부품이 없습니다. PartList 또는 가공계획을 먼저 등록하세요.':'제번을 선택하세요.'}</td></tr>`;
   const S=k=>v.reduce((a,x)=>a+N(x[k]),0);
-  tfoot.innerHTML=v.length?`<tr><td class="c" colspan="${showJob?8:7}">합 계 (${v.length}건)</td><td class="num">${F(S('matTot'))}</td>
+  tfoot.innerHTML=v.length?`<tr><td class="c" colspan="${showJob?9:8}">합 계 (${v.length}건)</td><td class="num">${F(S('matTot'))}</td>
    ${COLS.map(c=>{const o=v.reduce((a,x)=>a+(x.proc[c]?x.proc[c].out+x.proc[c].cost:0),0);return `<td class="num">${o?F(o):''}</td>`}).join('')||'<td></td>'}
    <td class="num">${F(S('procTot'))}</td><td class="num">${F(S('total'))}</td></tr>`:'';
   sumLine.innerHTML=v.length?`재료비 <b>${F(S('matTot'))}</b>원 · 가공비 <b>${F(S('procTot'))}</b>원 (사내 ${H(S('minTot'))}h 포함) · 합계 <b>${F(S('total'))}</b>원`:'';
  }else{
   thead.innerHTML=`<tr>
-    <th class="grp" colspan="${showJob?6:5}">부품</th>
+    <th class="grp" colspan="${showJob?7:6}">부품</th>
     <th class="grp" colspan="${COLS.length||1}">공정별 완료일 &nbsp;<span style="font-weight:400;font-size:10px">(노랑 = 완료 · 파랑 = 진행)</span></th>
     <th class="grp" colspan="2">진행</th></tr>
    <tr>${showJob?'<th style="width:44px">공정</th>':''}
     <th style="width:88px">품번</th><th style="width:170px">부품명</th><th style="width:70px">재질</th>
-    <th style="width:130px">규격</th><th style="width:42px">수량</th>
+    <th style="width:58px">형태</th><th style="width:130px">규격</th><th style="width:42px">수량</th>
     ${COLS.map(c=>`<th style="width:${pcW}px" title="${esc(c)} ${esc(pn(c))}">${esc(pn(c))}</th>`).join('')||'<th>공정 없음</th>'}
     <th style="width:70px">진행률</th><th style="width:92px">상태</th></tr>`;
   body.innerHTML=v.length?v.map(x=>{
    const pct=x.stepN?Math.round(x.doneN/x.stepN*100):0;
    return `<tr title="${esc(x.part)} ${esc(x.name)}">${showJob?`<td class="c">${esc(x.seq)}</td>`:''}
-    <td>${esc(x.part)}</td><td>${esc(x.name)}</td><td class="c">${esc(x.mat)}</td><td>${esc(x.spec)}</td><td class="num">${x.qty??''}</td>
+    <td>${x.img&&window.MESDB&&MESDB.imgBox?MESDB.imgBox(x.img,20)+' ':''}${esc(x.part)}</td><td>${esc(x.name)}</td><td class="c">${esc(x.mat)}</td><td class="c">${esc(x.shape||'')}</td><td>${esc(x.spec)}</td><td class="num">${x.qty??''}</td>
     ${COLS.map(c=>{const q=x.proc[c],plan=x.steps.includes(c);
       if(!q)return `<td class="dt">${plan?'<span style="color:#c3ccd4">예정</span>':''}</td>`;
       const d=q.dOut||q.dIn, out=!!q.out||q.st==='입고확정'||q.st==='입고'||q.st==='발주';
@@ -225,9 +229,9 @@ function render(){
       return `<td class="dt ${cls} ${out&&!q.min?'out':''}" title="${esc(pn(c))}${q.vendor?' · '+esc(q.vendor):''}${q.st?' · '+esc(q.st):''}${q.min?' · 사내 '+H(q.min)+'h':''}">${esc(txt)}</td>`}).join('')||'<td></td>'}
     <td class="num">${x.stepN?pct+'%':''}</td>
     <td class="c" style="${pct===100?'color:#1d6b3a;font-weight:700':''}">${x.stepN?(pct===100?'완료':`${x.doneN}/${x.stepN}`):''}</td></tr>`}).join('')
-   :`<tr><td colspan="${(showJob?6:5)+(COLS.length||1)+2}" class="c" style="height:110px;color:#8a97a2">${CURJOB?'부품이 없습니다.':'제번을 선택하세요.'}</td></tr>`;
+   :`<tr><td colspan="${(showJob?7:6)+(COLS.length||1)+2}" class="c" style="height:110px;color:#8a97a2">${CURJOB?'부품이 없습니다.':'제번을 선택하세요.'}</td></tr>`;
   const done=v.filter(x=>x.stepN&&x.doneN>=x.stepN).length;
-  tfoot.innerHTML=v.length?`<tr><td class="c" colspan="${(showJob?6:5)+(COLS.length||1)}">완료 ${done} / ${v.length} 부품</td>
+  tfoot.innerHTML=v.length?`<tr><td class="c" colspan="${(showJob?7:6)+(COLS.length||1)}">완료 ${done} / ${v.length} 부품</td>
    <td class="num">${v.length?Math.round(done/v.length*100):0}%</td><td></td></tr>`:'';
   sumLine.innerHTML=v.length?`부품 <b>${v.length}</b>건 · 공정 완료 <b>${done}</b>건 · 사내 가공 <b>${H(v.reduce((a,x)=>a+x.minTot,0))}</b>h`:'';
  }
@@ -239,14 +243,14 @@ function csv(){
  const showJob=BASEMODE;
  let h,rows;
  if(TAB==='cost'){
-  h=['입고일',...(showJob?['공정']:[]),'품번','부품명','재질','규격','단가','수량','재료비',
+  h=['입고일',...(showJob?['공정']:[]),'품번','부품명','재질','형태','규격','단가','수량','재료비',
      ...COLS.flatMap(c=>[pn(c)+' 사내(h)',pn(c)+' 외주(원)']),'가공비','합계'];
-  rows=v.map(x=>[D(x.mat_in),...(showJob?[x.seq]:[]),x.part,x.name,x.mat,x.spec,Math.round(x.mat_price)||'',x.qty??'',Math.round(x.matTot)||'',
+  rows=v.map(x=>[D(x.mat_in),...(showJob?[x.seq]:[]),x.part,x.name,x.mat,x.shape||'',x.spec,Math.round(x.mat_price)||'',x.qty??'',Math.round(x.matTot)||'',
    ...COLS.flatMap(c=>{const q=x.proc[c];return q?[q.min?(q.min/60).toFixed(1):'',Math.round(q.out+q.cost)||'']:['','']}),
    Math.round(x.procTot)||'',Math.round(x.total)||'']);
  }else{
-  h=[...(showJob?['공정']:[]),'품번','부품명','재질','규격','수량',...COLS.map(c=>pn(c)),'완료','전체','진행률'];
-  rows=v.map(x=>[...(showJob?[x.seq]:[]),x.part,x.name,x.mat,x.spec,x.qty??'',
+  h=[...(showJob?['공정']:[]),'품번','부품명','재질','형태','규격','수량',...COLS.map(c=>pn(c)),'완료','전체','진행률'];
+  rows=v.map(x=>[...(showJob?[x.seq]:[]),x.part,x.name,x.mat,x.shape||'',x.spec,x.qty??'',
    ...COLS.map(c=>{const q=x.proc[c];return q?(q.dOut||q.dIn||q.st||''):(x.steps.includes(c)?'예정':'')}),
    x.doneN,x.stepN,x.stepN?Math.round(x.doneN/x.stepN*100)+'%':'']);
  }
@@ -259,8 +263,8 @@ window.MES={search:load,csv,setMessage:msg,reload:load};
 render();
 (async()=>{await waitDB();const j=(jobQ.value||'').trim();if(j&&online())load()})();
 </script>
-<script src="mes_db.js?v=121"></script>
-<script src="mes_ctx.js?v=121"></script>
+<script src="mes_db.js?v=159"></script>
+<script src="mes_ctx.js?v=159"></script>
 <script src="mes_jobpick.js?v=121"></script>
 <script>try{MESJOB.attach("jobQ",{onPick:j=>{jobQ.value=j;load()}})}catch(e){}
 jobQ.addEventListener('keydown',e=>{if(e.key==='Enter')load()});

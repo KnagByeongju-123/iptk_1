@@ -860,14 +860,14 @@ window.MES={search,save,exportCsv,setMessage:msg,reload:refreshAll};
 </script>
 <div id="ctxMask" onclick="ctxClose()"></div>
 <div id="ctxPop"><div class="ch" id="ctxHead"><span id="ctxTitle"></span><button class="x" onclick="ctxClose()">✕</button></div><div class="cb" id="ctxBody"></div><div class="cf" id="ctxFoot"></div></div>
-<script src="mes_sample.js?v=92"></script><script src="mes_scene.js?v=92"></script><script src="mes_demo.js?v=92"></script><script src="mes_db.js?v=92"></script>
+<script src="mes_sample.js?v=92"></script><script src="mes_scene.js?v=92"></script><script src="mes_demo.js?v=92"></script><script src="mes_db.js?v=159"></script>
 <script>
 /* v39: JOBS/ROUTES 는 page_state 스냅샷이 아니라 실데이터에서 매번 로드한다.
    (스냅샷에 갇혀 신규 수주가 안 뜨던 문제) */
 REQ.length=0;if(typeof renderReq==='function')renderReq();
 loadJobs();
 </script>
-<script src="mes_ctx.js?v=92"></script>
+<script src="mes_ctx.js?v=159"></script>
 <script src="mes_lookup.js?v=92"></script>
 <script>
 /* 협력업체 목록: 하드코딩 → 마스터 직결 */
@@ -890,7 +890,7 @@ window.MESLOOK_RELOAD_VENDORS=async()=>{MESLOOK.invalidate('vendor_outsourcing')
  if(typeof renderVendors==='function')renderVendors();
  if(typeof renderRoutes==='function')renderRoutes();};
 </script>
-<script src="mes_price.js?v=92"></script>
+<script src="mes_price.js?v=159"></script>
 <script src="mes_route_edit.js?v=157"></script>
 <script src="mes_vendorcheck.js?v=92"></script>
 <script>

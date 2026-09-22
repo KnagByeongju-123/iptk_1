@@ -37,7 +37,7 @@ tbody tr.sel .step{background:transparent;color:#fff;border-color:#cfe2f4}
 </section>
 <div class="panes">
  <div class="pane"><div class="ph">부품 목록 <span class="sp" id="partCnt"></span></div>
-  <div class="pb"><table><thead><tr><th style="width:36px">No</th><th style="width:110px">품번</th><th>품명</th><th style="width:44px">수량</th><th>가공공정 (■ 사내)</th><th style="width:80px">가공시간</th><th style="width:90px">가공비</th></tr></thead><tbody id="partBody"></tbody></table></div></div>
+  <div class="pb"><table><thead><tr><th style="width:36px">No</th><th style="width:40px" title="PartList 등록에서 올린 부품 이미지">📷</th><th style="width:110px">품번</th><th>품명</th><th style="width:44px">수량</th><th>가공공정 (■ 사내)</th><th style="width:80px">가공시간</th><th style="width:90px">가공비</th></tr></thead><tbody id="partBody"></tbody></table></div></div>
  <div class="pane"><div class="ph">가공 실적 <span id="curPart" style="font-weight:400;color:#2f5f8a"></span><span class="sp" id="resCnt"></span></div>
   <div class="pb"><table><thead><tr><th style="width:36px"></th><th style="width:90px">공정</th><th style="width:90px">설비</th><th style="width:80px">작업자</th><th style="width:88px">작업일</th><th style="width:70px">분</th><th style="width:80px">단가</th><th style="width:90px">가공비</th></tr></thead><tbody id="resBody"></tbody></table></div>
   <div class="entry">
@@ -88,6 +88,7 @@ async function loadJob(job){
     PARTS.push({part:r.part_no,name:r.part_name||'',qty:r.qty??'',steps:st,inhouse:st.map((c,i)=>!!(Array.isArray(r.inhouse)&&r.inhouse[i])),jo:r.process_code||''})})}
   else{const pl=await MESDB.table('partlist_all').select(`select=part_no,part_name,qty,order_type&job_no=eq.${j}&order=part_no`);
     pl.forEach(r=>PARTS.push({part:r.part_no,name:r.part_name||'',qty:r.qty??'',steps:[],inhouse:[],jo:''}))}
+  try{const im=await MESDB.partImages(job);PARTS.forEach(p=>{if(im[p.part])p.image=im[p.part]})}catch(e){}
   await loadRes();
   msg(`${job} 부품 ${PARTS.length}건 · 가공실적 ${RES.length}건`);
  }catch(e){msg('조회 실패: '+String(e.message||e).slice(0,120))}
@@ -102,8 +103,8 @@ function renderParts(){
  const q=(partQ.value||'').trim().toLowerCase();
  const v=PARTS.map((p,i)=>({p,i})).filter(({p})=>!q||p.part.toLowerCase().includes(q)||p.name.toLowerCase().includes(q));
  partBody.innerHTML=v.length?v.map(({p,i},k)=>{const rs=RES.filter(r=>r.part===p.part),m=rs.reduce((a,r)=>a+r.min,0),c=rs.reduce((a,r)=>a+r.cost,0);
-  return `<tr class="${i===partIdx?'sel':''}" onclick="pickPart(${i})"><td class="c">${k+1}</td><td>${esc(p.part)}</td><td>${esc(p.name)}</td><td class="c">${esc(p.qty)}</td><td>${p.steps.map((s,j)=>`<span class="step ${p.inhouse[j]?'in':''}" title="${p.inhouse[j]?'사내가공':'외주'}">${esc(pn(s))}</span>`).join('')||'<span style="color:#9aa5ad">가공계획 없음</span>'}</td><td class="num">${m?m+'분':''}</td><td class="num">${c?F(c):''}</td></tr>`}).join('')
-  :`<tr><td colspan="7" class="c" style="height:100px;color:#8a97a2">${curJob?'부품이 없습니다. PartList 또는 가공계획을 먼저 등록하세요.':'제번을 선택하세요.'}</td></tr>`;
+  return `<tr class="${i===partIdx?'sel':''}" onclick="pickPart(${i})"><td class="c">${k+1}</td><td class="c">${p.image?MESDB.imgBox(p.image,22):''}</td><td>${esc(p.part)}</td><td>${esc(p.name)}</td><td class="c">${esc(p.qty)}</td><td>${p.steps.map((s,j)=>`<span class="step ${p.inhouse[j]?'in':''}" title="${p.inhouse[j]?'사내가공':'외주'}">${esc(pn(s))}</span>`).join('')||'<span style="color:#9aa5ad">가공계획 없음</span>'}</td><td class="num">${m?m+'분':''}</td><td class="num">${c?F(c):''}</td></tr>`}).join('')
+  :`<tr><td colspan="8" class="c" style="height:100px;color:#8a97a2">${curJob?'부품이 없습니다. PartList 또는 가공계획을 먼저 등록하세요.':'제번을 선택하세요.'}</td></tr>`;
  partCnt.textContent=PARTS.length?`${PARTS.length}건`:'';
 }
 function pickPart(i){partIdx=i;resIdx=-1;const p=PARTS[i];curPart.textContent=p?`— ${p.part} ${p.name}`:'';
@@ -153,6 +154,7 @@ function printSheet(){
  sheet.innerHTML=`<h2>가공 작업표지</h2>
   <table><tr><th style="width:90px">제번</th><td>${esc(curJob)}</td><th style="width:90px">품번</th><td>${esc(p.part)}</td><th style="width:90px">수량</th><td>${esc(p.qty)}</td></tr>
   <tr><th>품명</th><td colspan="3">${esc(p.name)}</td><th>출력일</th><td>${new Date().toISOString().slice(0,10)}</td></tr></table>
+  ${p.image?`<div style="margin:10px 0;text-align:center"><img src="${String(p.image).replace(/"/g,'&quot;')}" style="max-width:300px;max-height:230px;border:1px solid #666"></div>`:''}
   <br><table><thead><tr><th style="text-align:center">순서</th><th>가공공정</th><th style="text-align:center">구분</th><th style="text-align:center">작업자</th><th style="text-align:center">작업일</th><th style="text-align:center">확인</th></tr></thead><tbody>${rows}</tbody></table>
   <p style="margin-top:10px;color:#444">※ 도면과 함께 첨부하여 현장에 전달합니다. 공정 순서대로 작업 후 작업자·작업일을 기입하세요.</p>`;
  window.print();
@@ -165,8 +167,8 @@ window.MES={search,save:addResult,exportCsv,setMessage:msg,reload:loadJob};
 renderParts();renderRes();
 (async()=>{await waitDB();if(online())await loadMasters();const j=(jobQ.value||'').trim();if(j)loadJob(j)})();
 </script>
-<script src="mes_db.js?v=121"></script>
-<script src="mes_ctx.js?v=121"></script>
+<script src="mes_db.js?v=159"></script>
+<script src="mes_ctx.js?v=159"></script>
 <script src="mes_jobpick.js?v=121"></script>
 <script>try{MESJOB.attach("jobQ",{onPick:j=>loadJob(j)})}catch(e){}
 jobQ.addEventListener('keydown',e=>{if(e.key==='Enter')search()});</script>

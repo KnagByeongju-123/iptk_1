@@ -45,13 +45,14 @@ tbody tr.sel{background:#d6e7f8}
  <span class="hint">제번·품번의 맨 위 빈칸은 전체검색입니다. 행 체크 → [✕ 삭제]</span>
 </section>
 
-<div class="gridbox"><table style="min-width:1250px"><thead><tr>
+<div class="gridbox"><table style="min-width:1360px"><thead><tr>
  <th style="width:36px"><input type="checkbox" id="chkAll" onclick="chkAllRows(this.checked)" title="전체 선택"></th>
  <th style="width:50px">No</th>
  <th class="sortable" style="width:125px" onclick="setSort('job_no')" title="클릭하면 제번 정렬">제번<span class="sortmark" id="sortJob"></span></th>
  <th class="sortable" style="width:135px" onclick="setSort('part_no')" title="클릭하면 품번 정렬">품번<span class="sortmark" id="sortPart"></span></th>
  <th style="width:230px">품명</th>
- <th style="width:90px">발주구분</th><th style="width:100px">재질</th><th style="width:200px">규격</th>
+ <th style="width:34px" title="부품 이미지">📷</th>
+ <th style="width:90px">발주구분</th><th style="width:100px">재질</th><th style="width:70px">형태</th><th style="width:200px">규격</th>
  <th style="width:70px">수량</th><th style="width:100px">등록자</th><th>등록일자</th>
 </tr></thead><tbody id="body"></tbody></table></div>
 
@@ -100,8 +101,8 @@ function view(){
 function setSort(k){if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=1}render()}
 function render(){
  const v=view();
- body.innerHTML=v.length?v.map((r,i)=>`<tr class="${chk.has(r._id)?'sel':''}" onclick="rowClick(${r._id},event)"><td class="c"><input type="checkbox" ${chk.has(r._id)?'checked':''} onclick="toggleChk(${r._id},this.checked)"></td><td class="c">${i+1}</td><td>${esc(r.job_no||'')}</td><td>${esc(r.part_no)}</td><td>${esc(r.part_name||'')}</td><td class="c">${esc(r.order_type||'')}</td><td class="c">${esc(r.material||'')}</td><td>${esc(r.design_dimension||r.spec||'')}</td><td class="num">${fmt(r.qty)}</td><td class="c">${esc(r.registered_by||'')}</td><td class="c">${esc(r.registered_date||'')}</td></tr>`).join('')
-  :`<tr><td colspan="11" class="c" style="height:120px;color:#8a97a2">${loaded?'검색 결과가 없습니다.':'조건을 선택하거나 제번·품번을 빈칸으로 두고 [조회]를 누르세요.'}</td></tr>`;
+ body.innerHTML=v.length?v.map((r,i)=>`<tr class="${chk.has(r._id)?'sel':''}" onclick="rowClick(${r._id},event)"><td class="c"><input type="checkbox" ${chk.has(r._id)?'checked':''} onclick="toggleChk(${r._id},this.checked)"></td><td class="c">${i+1}</td><td>${esc(r.job_no||'')}</td><td>${esc(r.part_no)}</td><td>${esc(r.part_name||'')}</td><td class="c">${r.image_url&&window.MESDB&&MESDB.imgBox?MESDB.imgBox(r.image_url,22):''}</td><td class="c">${esc(r.order_type||'')}</td><td class="c">${esc(r.material||'')}</td><td class="c">${esc(r.shape||'')}</td><td>${esc(r.design_dimension||r.spec||'')}</td><td class="num">${fmt(r.qty)}</td><td class="c">${esc(r.registered_by||'')}</td><td class="c">${esc(r.registered_date||'')}</td></tr>`).join('')
+  :`<tr><td colspan="13" class="c" style="height:120px;color:#8a97a2">${loaded?'검색 결과가 없습니다.':'조건을 선택하거나 제번·품번을 빈칸으로 두고 [조회]를 누르세요.'}</td></tr>`;
  chkAll.checked=v.length>0&&v.every(r=>chk.has(r._id));
  const sc=v.filter(r=>chk.has(r._id)).length;
  countText.textContent=`${v.length}건`+(sc?` · 선택 ${sc}`:'');
@@ -158,6 +159,14 @@ async function search(){
  try{
   const rs=await fetchRows();
   data.length=0;(rs||[]).forEach((r,i)=>data.push({...r,_id:i+1}));
+  /* v159: 뷰에 없는 형태·이미지는 원본 테이블에서 보충 */
+  try{
+   if(data.some(r=>r.shape==null||r.image_url==null)){
+    const meta=await MESDB.partMeta(curJobNo()||null);
+    data.forEach(r=>{const m=meta[String(r.job_no||'')+'|'+String(r.part_no||'')];
+     if(m){if(!r.shape)r.shape=m.shape;if(!r.image_url)r.image_url=m.image_url}});
+   }
+  }catch(e){}
   chk.clear();loaded=true;render();
   const v=view(),nm=v.filter(r=>r.order_type==='원재료').length,np=v.filter(r=>r.order_type==='구매품').length;
   const cond=[curJobNo()?`제번 ${curJobNo()}`:'전체 제번',selectedPn()?`품번 ${selectedPn()}`:'전체 품번',q_kind.value].join(' · ');
@@ -199,8 +208,8 @@ async function del_(){
 function csv(){
  const v=view();
  if(!v.length){msg('내보낼 행이 없습니다.');return}
- const h=['No','제번','품번','품명','발주구분','재질','규격','수량','등록자','등록일자'];
- const rows=v.map((r,i)=>[i+1,r.job_no,r.part_no,r.part_name,r.order_type,r.material,r.design_dimension||r.spec,r.qty,r.registered_by,r.registered_date]);
+ const h=['No','제번','품번','품명','발주구분','재질','형태','규격','수량','등록자','등록일자'];
+ const rows=v.map((r,i)=>[i+1,r.job_no,r.part_no,r.part_name,r.order_type,r.material,r.shape||'',r.design_dimension||r.spec,r.qty,r.registered_by,r.registered_date]);
  const t='\ufeff'+[h,...rows].map(a=>a.map(x=>'"'+String(x??'').replaceAll('"','""')+'"').join(',')).join('\n');
  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv;charset=utf-8'}));
  a.download=`partlist_status_${curJobNo()||'all'}.csv`;a.click();URL.revokeObjectURL(a.href);
@@ -209,8 +218,8 @@ function csv(){
 
 window.MES={search,setMessage:msg,reload:loadJob};render();
 </script>
-<script src="mes_db.js?v=114"></script>
-<script src="mes_ctx.js?v=114"></script>
+<script src="mes_db.js?v=159"></script>
+<script src="mes_ctx.js?v=159"></script>
 <script>/* v158: 제번/품번 드롭다운 — 맨 위 빈칸=전체 */
 (async()=>{await pnLoad();})();
 q_job.addEventListener('change',()=>{const j=curJobNo();if(j)pnSync(j)});

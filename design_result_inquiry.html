@@ -115,7 +115,7 @@ document.querySelectorAll('input[name="k"],input[name="src"]').forEach(x=>x.addE
  el.addEventListener('input',()=>{if(!el.value.trim())search()});
 });
 toggleSrc();
-window.MES={search,exportCsv:csv,setMessage:msg};render();</script><script src="mes_db.js?v=68"></script>
+window.MES={search,exportCsv:csv,setMessage:msg};render();</script><script src="mes_db.js?v=159"></script>
 <script>
 /* 제작계획의 설계구분(사내/외주) — design_source 가 비어 있는 옛 실적용 */
 (async function(){try{if(MESDB.ready)await MESDB.ready;if(!MESDB.online)return;
@@ -125,5 +125,5 @@ MESDB.master({page:"design_result_inquiry:data",table:"design_results",pk:"row_n
 /* 표가 다시 그려질 때마다 합계 갱신 */
 (function(){const tb=document.querySelector('tbody');if(!tb||typeof renderTotal!=='function')return;new MutationObserver(()=>renderTotal()).observe(tb,{childList:true});renderTotal()})();
 </script>
-<script src="mes_ctx.js?v=68"></script>
+<script src="mes_ctx.js?v=159"></script>
 </body></html>
