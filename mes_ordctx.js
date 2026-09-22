@@ -1,4 +1,4 @@
-/* mes_ordctx.js — v157
+/* mes_ordctx.js — v158  (v157 신규발주 차수 + v154 중량 수동입력 병합)
  * ─────────────────────────────────────────────────────────────────────────
  * 원재료 발주 · 구매품 발주 화면에서 「자재표 리스트」 한 줄만 가지고
  * 발주 → 입고 → 입고확정 까지 그 자리에서 끝낸다.
@@ -163,6 +163,13 @@ function ensureUI() {
  font:inherit;box-sizing:border-box;color:#22303a;background:#fff}
 #oxPop .g input.r{text-align:right}
 #oxPop .g .full{grid-column:2/5}
+/* v158: 중량(kg) 수동 입력 — 입력칸 + [자동] 되돌리기 버튼. 손으로 고친 칸은 노란 바탕 */
+#oxPop .g .wtbox{display:flex;gap:4px;align-items:center;min-width:0}
+#oxPop .g .wtbox input{flex:1 1 auto}
+#oxPop .g .wtbox button{flex:0 0 auto;height:25px;min-width:38px;padding:0 6px;border:1px solid #9ca9b5;
+ background:linear-gradient(#fff,#dfe6eb);font:inherit;white-space:nowrap;cursor:pointer}
+#oxPop .g .wtbox button:hover{background:#fff}
+#oxPop .g input.manual{background:#fffbe6;border-color:#d4ad3f;font-weight:700}
 #oxPop .note{font-size:11px;color:#6d7b88;margin-top:6px;line-height:1.45}
 #oxPop .info{display:grid;grid-template-columns:80px 1fr;gap:3px 8px}#oxPop .info b{color:#4d5c69;text-align:right}
 #oxPop table.ln{width:100%;border-collapse:collapse;margin-top:2px}
@@ -368,21 +375,40 @@ function formOrder(ev) {
     <label>발주일</label><input id="oxOdate" type="date" value="${T0()}">
     <label>입고요구일</label><input id="oxRdate" type="date" value="${_esc(rd)}">
     <label>단가</label><input id="oxPrice" class="r" placeholder="예: 45,000" inputmode="numeric">
-    ${CFG.useWeight ? '<label>중량(kg)</label><input id="oxWt" class="r" readonly>' : '<label></label><span></span>'}
+    ${CFG.useWeight
+      ? '<label>중량(kg)</label><span class="wtbox">' +
+        '<input id="oxWt" class="r" inputmode="decimal" title="설계치수·발주수량 기준으로 자동 계산됩니다. 실제 소재 중량이 다르면 직접 고쳐 넣으세요.">' +
+        '<button type="button" id="oxWtAuto" title="자동계산 값으로 되돌립니다">자동</button></span>'
+      : '<label></label><span></span>'}
     <label>발주금액</label><input id="oxAmt" class="r" readonly placeholder="단가 입력 시 자동">
     <label>재발주</label><select id="oxRe"><option value="">(정상 발주)</option><option>불량</option><option>실수</option><option>예비품</option><option>기타</option></select>
     <label>비고</label><input id="oxRemark" placeholder="선택">
    </div>
    ${(CTX && CTX.newCycle) ? `<div class="note" style="border-color:#e5ad62;background:#fff7ea;color:#8a4f08"><b>신규발주</b> — 기존 이력은 이전 차수로 그대로 남고, 이 발주부터 소요수량 전체를 기준으로 새 차수가 시작됩니다.</div>` : ''}
-   <div class="note" id="oxNote">업체를 고르면 단가변동등록에서 발주일 기준 단가를 자동 조회합니다. 이력이 없으면 직접 입력하세요.</div>`,
+   <div class="note" id="oxNote">업체를 고르면 단가변동등록에서 발주일 기준 단가를 자동 조회합니다. 이력이 없으면 직접 입력하세요.</div>
+   ${CFG.useWeight ? '<div class="note">중량(kg)은 설계치수로 자동 계산되지만 <b>직접 입력</b>할 수 있습니다. 손으로 넣은 중량은 노랗게 표시되며 발주금액(단가×중량)에 그대로 쓰입니다. [자동]을 누르면 계산값으로 돌아갑니다.</div>' : ''}`,
    [{ t: '▣ 즉시 발주', cls: 'go k-order', id: 'oxGo', fn: doOrder },
     { t: '닫기', fn: close }]);
   $('oxVendor').onchange = autoPrice;
   $('oxOdate').onchange  = autoPrice;
   $('oxQty').onchange    = calcAmt;
   $('oxPrice').onchange  = () => { $('oxPrice').dataset.auto = ''; calcAmt(); };
+  /* v158: 중량 수동 입력 — 한 번 고치면 수량을 바꿔도 덮어쓰지 않는다 ([자동]으로 해제) */
+  const w = $('oxWt');
+  if (w) {
+    w.oninput  = () => { w.dataset.manual = '1'; w.classList.add('manual'); };
+    w.onchange = () => { w.dataset.manual = '1'; const v = _n(w.value); w.value = v ? v.toFixed(2) : ''; calcAmt(); };
+    const ab = $('oxWtAuto');
+    if (ab) ab.onclick = () => { w.dataset.manual = ''; calcAmt(); w.focus(); };
+  }
   calcAmt();
   return false;
+}
+
+/* 설계치수(spec) × 수량 → 자동 중량(kg) */
+function autoKg(spec, qty) {
+  try { if (window.MESPRICE && MESPRICE.weightKg) return Number(MESPRICE.weightKg(spec, qty)) || 0; } catch (e) {}
+  return 0;
 }
 
 function calcAmt() {
@@ -393,8 +419,14 @@ function calcAmt() {
   let base = qty;
   if (CFG.useWeight) {
     let kg = 0;
-    try { if (window.MESPRICE && MESPRICE.weightKg) kg = Number(MESPRICE.weightKg(b.spec, qty)) || 0; } catch (e) {}
-    if (w) w.value = kg ? kg.toFixed(2) : '';
+    /* v158: 손으로 넣은 중량이 있으면 자동계산으로 덮어쓰지 않는다 */
+    if (w && w.dataset.manual === '1') {
+      kg = _n(w.value);
+      w.classList.add('manual');
+    } else {
+      kg = autoKg(b.spec, qty);
+      if (w) { w.value = kg ? kg.toFixed(2) : ''; w.classList.remove('manual'); }
+    }
     if (kg) base = kg;
   }
   if (a) a.value = price ? _won(Math.round(price * base)) : '';
@@ -456,6 +488,7 @@ async function doOrder() {
       part_no: b.part, part_name: b.name || null,
       material: b.mat || null, spec: b.spec || null,
       order_qty: qty,
+      order_weight: (CFG.useWeight ? _n(_v('oxWt')) : 0) || null,   /* v158: 자동계산이든 수동입력이든 그대로 저장 */
       unit_price  : price || null,
       quote_price : amt || null,
       confirm_price: amt || null,
@@ -488,22 +521,46 @@ function formReceive(ev, l) {
     <label>입고수량</label><input id="oxInQty" class="r" value="${rem}" inputmode="numeric">
     <label>입고일</label><input id="oxInDate" type="date" value="${T0()}">
     <label>입고단가</label><input id="oxInPrice" class="r" value="${_won(l.unit_price)}" inputmode="numeric">
+    ${CFG.useWeight
+      ? '<label>중량(kg)</label><span class="wtbox">' +
+        '<input id="oxInWt" class="r" inputmode="decimal" title="발주 중량을 입고수량에 맞춰 환산합니다. 실측 중량이 다르면 직접 고쳐 넣으세요.">' +
+        '<button type="button" id="oxInWtAuto" title="자동환산 값으로 되돌립니다">자동</button></span>'
+      : '<label></label><span></span>'}
     <label>입고금액</label><input id="oxInAmt" class="r" readonly>
     <label>비고</label><input id="oxInRemark" class="full" placeholder="선택" value="${_esc(cleanCycleRemark(l.remark))}">
    </div>
-   <div class="note"><b>입고 처리</b>는 「입고」까지만, <b>입고+확정</b>은 매입가 그대로(네고 0%) 입고확정까지 한 번에 끝냅니다. 네고가 필요하면 입고 처리 뒤 다시 우클릭하세요.</div>`,
+   <div class="note"><b>입고 처리</b>는 「입고」까지만, <b>입고+확정</b>은 매입가 그대로(네고 0%) 입고확정까지 한 번에 끝냅니다. 네고가 필요하면 입고 처리 뒤 다시 우클릭하세요.</div>
+   ${CFG.useWeight ? '<div class="note">중량(kg)은 발주 중량을 입고수량만큼 환산해 채웁니다. <b>실측 중량으로 직접 고칠 수 있고</b>, 고친 값이 입고금액(단가×중량)에 쓰입니다.</div>' : ''}`,
    [{ t: '▣ 입고 처리', cls: 'go k-in', id: 'oxGo', fn: () => doReceive(false) },
     { t: '▣ 입고+확정', cls: 'go', id: 'oxGo2', title: '입고 처리와 입고확정(매입가 그대로, 네고 0%)을 한 번에 끝냅니다', fn: () => doReceive(true) },
     { t: '＋ 추가 발주', cls: 'go k-order', title: '같은 품번을 다른 업체에 나눠 발주하거나 재발주합니다', fn: e => formOrder(e) },
     { t: '↻ 신규발주', cls: 'warn', title: '기존 이력을 남기고 새 발주차수를 시작합니다. 현재 차수가 미완료면 안내 후 실행되지 않습니다.', fn: e => startNewCycle(e) },
     { t: '✖ 발주취소', cls: 'warn', title: '이 발주 라인을 삭제합니다', fn: doOrderCancel },
     { t: '닫기', fn: close }]);
+  /* v158: 입고 중량 — 발주 중량(order_weight)을 입고수량에 맞춰 환산, 없으면 설계치수로 자동계산.
+           수동 입력한 값은 수량을 바꿔도 덮어쓰지 않는다 ([자동]으로 해제) */
+  const inKg = q => {
+    const ow = Number(l.order_weight) || 0;
+    if (ow && ord) return ow / ord * q;
+    return autoKg(CTX.b.spec, q);
+  };
+  const wi = $('oxInWt');
   const f = () => {
     const q = _n(_v('oxInQty')), p = _n(_v('oxInPrice'));
-    const w = CFG.useWeight ? (() => { try { return Number(MESPRICE.weightKg(CTX.b.spec, q)) || 0; } catch (e) { return 0; } })() : 0;
+    let w = 0;
+    if (CFG.useWeight) {
+      if (wi && wi.dataset.manual === '1') { w = _n(wi.value); wi.classList.add('manual'); }
+      else { w = inKg(q); if (wi) { wi.value = w ? w.toFixed(2) : ''; wi.classList.remove('manual'); } }
+    }
     $('oxInPrice').value = p ? _won(p) : '';
     $('oxInAmt').value = _won(Math.round(p * (w || q || 0)));
   };
+  if (wi) {
+    wi.oninput  = () => { wi.dataset.manual = '1'; wi.classList.add('manual'); };
+    wi.onchange = () => { wi.dataset.manual = '1'; const v = _n(wi.value); wi.value = v ? v.toFixed(2) : ''; f(); };
+    const ab = $('oxInWtAuto');
+    if (ab) ab.onclick = () => { wi.dataset.manual = ''; f(); wi.focus(); };
+  }
   $('oxInQty').onchange = f; $('oxInPrice').onchange = f; f();
   return false;
 }
@@ -523,6 +580,7 @@ async function doReceive(withConfirm) {
     const row = {
       line_id: Number(l.line_id), status: '입고',
       receipt_qty: q, receipt_date: _v('oxInDate') || T0(),
+      receipt_weight: (CFG.useWeight ? _n(_v('oxInWt')) : 0) || null,
       unit_price: price || null, receipt_amount: amt || null,
       remark: withCycleRemark((_v('oxInRemark') || '').trim(), cycleOf(l) || cycleIdFor(b.part)),
       updated_at: new Date().toISOString()
@@ -606,7 +664,7 @@ async function doReceiveCancel() {
   try {
     await MESDB.table('order_lines').upsert([{
       line_id: Number(l.line_id), status: '발주',
-      receipt_qty: 0, receipt_date: null, receipt_amount: null,
+      receipt_qty: 0, receipt_date: null, receipt_amount: null, receipt_weight: null,
       updated_at: new Date().toISOString()
     }], 'line_id');
     await after(`${b.part} 입고를 취소했습니다. (발주 상태로 복귀)`);
@@ -623,6 +681,7 @@ function formDone(ev, l) {
     <b>입고일</b><span>${_esc(_dt(l.receipt_date))}</span>
     <b>확정일</b><span>${_esc(_dt(l.confirm_date))}</span>
     <b>발주수량</b><span>${Number(l.order_qty) || 0}</span>
+    ${CFG.useWeight ? `<b>중량(kg)</b><span>발주 ${Number(l.order_weight) || 0} / 입고 ${Number(l.receipt_weight) || 0}</span>` : ''}
     <b>입고수량</b><span>${Number(l.receipt_qty) || 0}</span>
     <b>매입가</b><span>${_won(l.receipt_amount || l.quote_price)}원</span>
     <b>네고율</b><span>${Number(l.nego_rate) || 0}%</span>
