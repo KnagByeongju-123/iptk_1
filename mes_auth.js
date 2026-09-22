@@ -17,7 +17,9 @@ const AUTH={session:null,perms:null,role:null,name:null,
       /* v73: 영업관리 › 설계외주/조립외주 로 재편 (DB 권한행은 새 경로로 옮겼고, 남은 옛 행 호환용) */
       '조립외주':'SET발주','설계외주':'외주설계발주','사내조립':'조립'};
     const alias=m=>m.split('/').map(x=>ALIAS[x]||x).join('/');
-    const hit=(m)=>AUTH.perms.find(p=>p.menu_name===m)||AUTH.perms.find(p=>p.menu_name===alias(m));
+    /* v119: 메뉴 이동 별칭 — 경비등록·경비현황이 영업관리 → 원가관리로 옮겨졌다. 옛 경로 권한행 호환 */
+    const PATH_ALIAS={'원가관리/경비':'영업관리/경비','원가관리/경비/경비등록':'영업관리/경비/경비등록','원가관리/경비/경비현황':'영업관리/경비/경비현황'};
+    const hit=(m)=>AUTH.perms.find(p=>p.menu_name===m)||AUTH.perms.find(p=>p.menu_name===alias(m))||(PATH_ALIAS[m]?AUTH.perms.find(p=>p.menu_name===PATH_ALIAS[m]):null);
     /* 화면 권한 → 없으면 상위(중분류/모듈) 권한 상속 */
     const parts=(menu||'').split('/');
     for(let i=parts.length;i>=1;i--){

@@ -178,6 +178,7 @@ async function save(){
     order_qty:1,owner_name:r.writer||OWNER()||null,updated_at:new Date().toISOString()}));
   if(MESDB.ensureRefs)await MESDB.ensureRefs(payload);
   await MESDB.table('order_lines').upsert(payload);
+  try{await MESDB.syncPlanOut(job,'design')}catch(e){}   /* v119: 제작계획 설계외주 여부 기록 */
   const n=ORD.length;ORD.length=0;renderOrd();
   msg(`${job} 외주설계발주 ${n}건을 DB에 등록했습니다. 외주설계발주입고/현황에서 확인하세요.`);
  }catch(e){

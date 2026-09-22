@@ -189,6 +189,48 @@ async function rpc(fn,args){
 }
 window.MESDB={cfg:CFG,rest,table,bind,persist,reset,rpc,get online(){return online}};
 MESDB.auth=()=>{try{return window.MES_AUTH||window.parent.MES_AUTH||null}catch(e){return null}};
+/* v119: 제작계획(sales_plans)의 설계/조립 외주 여부를 발주 화면이 기록한다.
+   (회의록 2-2 — 제작계획등록에서 설계외주·조립외주 입력 항목 삭제)
+   kind: 'design' → order_lines(category=외주설계) 존재 여부, 'assembly' → set_order_lines 존재 여부.
+   계획 행이 없으면 아무 것도 하지 않는다. 실패해도 발주 처리를 막지 않는다. */
+/* ── v120 (회의록 1-1): 관리제번 / 공정 분리 ─────────────────────────────
+ * 제번(job_no) '26IPA001A' = 관리제번 '26IPA001' + 공정 'A'.
+ * 규칙: 마지막 한 글자가 대문자 A~Z 이고 그 앞이 숫자로 끝나면 공정으로 본다.
+ *       (J26137, PT005 처럼 숫자로 끝나면 공정 없음 → 관리제번 = 제번)
+ * DB 키(job_no)는 그대로 두고, 화면과 집계에서 이 두 값을 함께 쓴다.
+ * SQL 로 jobs / sale_orders 에 같은 규칙의 생성 컬럼(base_job, process_seq)을 두면 리포트에서도 쓸 수 있다. */
+const JOB_SEQ_RE=/^(.*\d)([A-Z])$/;
+MESDB.jobSplit=function(job){
+  const j=String(job||'').trim();const m=JOB_SEQ_RE.exec(j);
+  return m?{job:j,base:m[1],seq:m[2]}:{job:j,base:j,seq:''};
+};
+MESDB.jobJoin=function(base,seq){
+  base=String(base||'').trim().toUpperCase();seq=String(seq||'').trim().toUpperCase();
+  return base+(seq&&/^[A-Z]$/.test(seq)?seq:'');
+};
+/* 여러 행을 관리제번으로 묶는다. rows[].job_no 필요. 반환: [{base, jobs:[row...], seqs:['A','B']}] (관리제번 순) */
+MESDB.jobGroup=function(rows){
+  const mp=new Map();
+  (rows||[]).forEach(r=>{const s=MESDB.jobSplit(r.job_no);let g=mp.get(s.base);if(!g){g={base:s.base,jobs:[],seqs:[]};mp.set(s.base,g)}g.jobs.push(r);if(s.seq)g.seqs.push(s.seq)});
+  const out=[...mp.values()];out.forEach(g=>g.seqs.sort());
+  return out.sort((a,b)=>String(a.base).localeCompare(String(b.base)));
+};
+MESDB.syncPlanOut=async function(job,kind){
+  try{
+    job=String(job||'').trim();if(!job||!online)return;
+    const q=encodeURIComponent(job);
+    const pl=await rest(`sales_plans?select=row_no&job_no=eq.${q}&limit=1`);
+    if(!pl||!pl[0])return;
+    let rows=[],vendor=null;
+    if(kind==='design'){rows=await rest(`order_lines?select=vendor_name&category=eq.%EC%99%B8%EC%A3%BC%EC%84%A4%EA%B3%84&job_no=eq.${q}&order=line_id`);vendor=rows[0]&&rows[0].vendor_name||null}
+    else{rows=await rest(`set_order_lines?select=partner_vendor_name&job_no=eq.${q}&order=line_id`);vendor=rows[0]&&rows[0].partner_vendor_name||null}
+    const on=rows.length>0;
+    const body={row_no:Number(pl[0].row_no)};
+    body[kind+'_outsourced']=on;body[kind+'_vendor']=on?vendor:null;
+    await table('sales_plans').upsert(body,'row_no');
+    try{notify(['sales_plans'])}catch(e){}
+  }catch(e){try{ELOG.push({level:'WARN',message:'제작계획 외주여부 동기화 실패: '+String(e.message||e).slice(0,200),source:'syncPlanOut '+kind})}catch(_){}}
+};
 MESDB.pageMenu=()=>{try{const f=location.pathname.split('/').pop();return window.parent.MES_MENU_OF?.(f)||null}catch(e){return null}};
 MESDB.canSave=()=>{const a=MESDB.auth();if(!a)return true;const m=MESDB.pageMenu();return m?a.can(m,'save'):true};
 /* 저장 권한이 없으면 저장/삭제류 버튼 비활성

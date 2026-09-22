@@ -83,7 +83,9 @@ html[data-mw="xs"] .formgrid{grid-template-columns:84px minmax(0,1fr)}
 </style></head><body><div class="screen">
 <div class="title"><h1>수주등록</h1><small>영업관리 · 수주</small></div>
 <section class="formgrid">
- <div class="label">제 번</div><div class="span3"><input id="job_no" class="field"></div>
+ <div class="label" title="관리제번 + 공정 = 제번. 예) 26IPA001 + A → 26IPA001A (v120, 회의록 1-1)">관리제번</div><div><input id="base_job" class="field" placeholder="예) 26IPA001" style="text-transform:uppercase"></div>
+ <div class="label" title="공정 구분 A~Z. 공정이 하나뿐이면 비워 둡니다">공 정</div><div><select id="proc_seq" class="field"><option value=""></option></select></div>
+ <div class="label">제 번</div><div><input id="job_no" class="field" title="관리제번과 공정을 넣으면 자동으로 만들어집니다. 직접 고칠 수도 있습니다"></div>
  <div class="label">수주일</div><div><input id="order_date" type="date" class="field"></div>
  <div class="label">T/O 예정일</div><div><input id="s1p" type="date" class="field"></div>
 
@@ -107,6 +109,8 @@ html[data-mw="xs"] .formgrid{grid-template-columns:84px minmax(0,1fr)}
 
  <div class="label">견적가</div><div><input id="quo_price" class="field num"></div>
  <div class="label">수주가</div><div><input id="order_price" class="field num"></div>
+ <div class="label" title="가격 협상으로 조정된 금액 (감액 +, 증액 −). 원가관리의 실수주가 = 수주가 − 네고조정">네고조정</div><div><input id="nego_amount" class="field num" placeholder="0"></div>
+ <div class="label">네고사유</div><div><input id="nego_note" class="field"></div>
  <div class="label">기계사양</div><div class="lk"><input id="ms_code"><input id="ms_name" readonly><button onclick="openLook('mspec','ms_code','ms_name')">…</button></div>
  <div class="label">사용재료</div><div><input id="material_used" class="field"></div>
  <div class="label">T/O 완료일</div><div><input id="s1c" type="date" class="field"></div>
@@ -147,10 +151,10 @@ const MAP={job_no:'job_no',order_date:'order_date',s1p:'s1_planned_date',
  product_name:'product_name',model:'model',proc_cnt:'process_set_qty',quo_price:'quotation_price',
  ms_code:'machine_spec_code',ms_name:'machine_spec_name',material_used:'material_used',
  s1c:'s1_completed_date',dlvc:'delivery_completed_date',eco:'eco',remark:'remark',
- order_price:'order_price',comp_date:'completion_date'};
+ order_price:'order_price',comp_date:'completion_date',nego_amount:'nego_amount',nego_note:'nego_note'};
 function load(o){for(const[el,k]of Object.entries(MAP)){const n=document.getElementById(el);if(n)n.value=o[k]??''}}
 function clearForm(){for(const el of Object.keys(MAP)){const n=document.getElementById(el);if(n)n.value=''}document.getElementById('status').value='진행';otype.value='신작';dom.value='국내';ATT.length=0;renderAtt();msg('신규 입력 상태입니다.')}
-const NUMF=['quotation_price','order_price'];   /* v62: 공정(process_set_qty)은 '1/1' 형식 text — 숫자변환 제외 */
+const NUMF=['quotation_price','order_price','nego_amount'];   /* v119: 네고조정(회의록 6-1) */   /* v62: 공정(process_set_qty)은 '1/1' 형식 text — 숫자변환 제외 */
 const DATEF=['order_date','s1_planned_date','delivery_planned_date','s1_completed_date','delivery_completed_date','completion_date'];
 async function save(mode){
  const ACT=(typeof mode==='string'&&mode)?mode:'저장';
@@ -255,7 +259,7 @@ async function attDel(){const a=attSel();if(!a)return msg('삭제할 파일을 �
 async function loadJob(job,quiet){
  job=String(job||'').trim();
  if(!job){clearForm();job_no.focus();msg('새 수주정보를 입력한 뒤 [등록]하세요.');return false}
- if(!window.MESDB||!MESDB.online){job_no.value=job;msg('DB 미연결 — 기존 수주정보를 불러올 수 없습니다.');return false}
+ if(!window.MESDB||!MESDB.online){job_no.value=job;try{syncJobParts('job')}catch(e){}msg('DB 미연결 — 기존 수주정보를 불러올 수 없습니다.');return false}
  try{
   const rs=await MESDB.table('sale_orders').select(`select=*&job_no=eq.${encodeURIComponent(job)}&limit=1`);
   if(rs&&rs[0]){
@@ -264,13 +268,30 @@ async function loadJob(job,quiet){
    msg(`${job} 수주정보를 불러왔습니다. (첨부 ${ATT.length}건) 내용을 고친 뒤 [수정]을 누르세요.`);
    return true;
   }
-  if(!quiet){clearForm();job_no.value=job}
+  if(!quiet){clearForm();job_no.value=job;try{syncJobParts('job')}catch(e){}}
   msg(`${job} 은(는) 미등록 제번입니다. 입력 후 [등록]하세요.`);
  }catch(e){msg('불러오기 실패: '+String(e.message||e).slice(0,120))}
  return false;
 }
 /* 제번 입력 후 포커스 이탈 시 자동 조회 */
-job_no.addEventListener('change',()=>loadJob(job_no.value,true));
+/* v120 (회의록 1-1): 관리제번 + 공정 ↔ 제번 양방향 연동 */
+(function(){
+ const ps=document.getElementById('proc_seq');
+ 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;ps.appendChild(o)});
+ const split=j=>window.MESDB&&MESDB.jobSplit?MESDB.jobSplit(j):(m=>m?{base:m[1],seq:m[2]}:{base:String(j||''),seq:''})(/^(.*\d)([A-Z])$/.exec(String(j||'').trim()));
+ window.syncJobParts=function(from){
+  if(from==='job'){const p=split(job_no.value);base_job.value=p.base;ps.value=p.seq||''}
+  else{const b=base_job.value.trim().toUpperCase();base_job.value=b;job_no.value=b?(window.MESDB&&MESDB.jobJoin?MESDB.jobJoin(b,ps.value):b+(ps.value||'')):''}
+ };
+ base_job.addEventListener('input',()=>syncJobParts('parts'));
+ ps.addEventListener('change',()=>{syncJobParts('parts');loadJob(job_no.value,true)});
+ base_job.addEventListener('change',()=>loadJob(job_no.value,true));
+ job_no.addEventListener('input',()=>syncJobParts('job'));
+ const _load=window.load;window.load=function(o){const r=_load.apply(this,arguments);try{syncJobParts('job')}catch(e){}return r};
+ const _clear=window.clearForm;window.clearForm=function(){const r=_clear.apply(this,arguments);base_job.value='';ps.value='';return r};
+ if(window.MES){window.MES.load=window.load;window.MES.clearForm=window.clearForm}
+})();
+job_no.addEventListener('change',()=>{syncJobParts('job');loadJob(job_no.value,true)});
 
 /* 수주현황에서 [수정]/[등록]으로 넘어온 경우 부모가 남긴 인계값을 읽는다 */
 (function(){

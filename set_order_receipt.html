@@ -136,6 +136,7 @@ async function cancelOrder(){
  if(rate(o)>0)return msg('입고가 시작된 발주는 취소할 수 없습니다. 먼저 입고취소하세요.');
  if(!confirm(`${o.job_no} / ${o.partner_vendor_name} / ${o.set_seq}\n발주를 취소(삭제)하시겠습니까?`))return;
  try{await MESDB.table(TBL).delete({line_id:o.line_id})}catch(e){return msg('발주취소 실패: '+String(e.message||e).slice(0,130))}
+ try{await MESDB.syncPlanOut(o.job_no,'assembly')}catch(e){}   /* v119 */
  ORD=ORD.filter(x=>Number(x.line_id)!==Number(o.line_id));search();msg(`${o.job_no} / ${o.partner_vendor_name} 발주를 취소했습니다.`);
 }
 function exportCsv(){const out=[['제번','조수','공정명','협력업체','입고일','진척률','입고금액','검수자','비고'],...RCP.map(r=>[r.job_no,r.set_seq,r.process_name,r.partner_vendor_name,r.receipt_date,r.progress_rate,r.amount,r.inspector,r.remark||''])];const csv='\ufeff'+out.map(a=>a.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='set_order_receipts.csv';a.click();URL.revokeObjectURL(a.href)}

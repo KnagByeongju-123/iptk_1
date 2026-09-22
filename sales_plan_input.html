@@ -66,11 +66,11 @@ table{border-collapse:collapse;min-width:1040px;width:100%;table-layout:fixed}th
  <div class="lb">납기예정일</div><div><input id="delivery_planned_date" type="date" class="field"></div>
  <div></div><div></div><div></div><div></div>
 </div></div>
-<div class="blk"><div class="bt">기간</div><div class="gg" style="grid-template-columns:56px 132px 12px 132px 54px 118px 218px 48px minmax(160px,220px) 1fr">
+<div class="blk"><div class="bt">기간 <span style="font-weight:400;color:#7c8993;font-size:11px;margin-left:8px">설계외주·조립외주는 영업관리 › 설계외주 / 조립외주 발주 화면에서 등록합니다</span></div><div class="gg" style="grid-template-columns:56px 132px 12px 132px 54px 118px 218px 48px minmax(160px,220px) 1fr">
  <div></div><div class="hd">시작일</div><div></div><div class="hd">완료예정일</div><div class="hd">일수</div><div class="hd">구분</div><div class="hd">담당자</div><div class="hd" title="한 세트(조수 전체)를 통째로 맡기는 경우">세트</div><div class="hd">외주업체</div><div></div>
- <div class="lb">설 계</div><input id="design_start_date" type="date" class="field"><div class="c">~</div><input id="design_end_date" type="date" class="field"><input id="design_days" class="field c" placeholder="일수" title="소요일수 (완료예정일-시작일+1, 자동 계산)"><div class="chk src" title="사내 작업인지 외주(협력업체)인지 선택합니다."><label><input type="radio" name="design_src" value="사내" checked>사내</label><label><input type="radio" name="design_src" value="외주">외주</label></div><div class="chk"><span class="lb" style="width:52px">담당자</span><input id="design_manager" class="field cbo" list="dl_emp" autocomplete="off" style="width:160px" placeholder="입력 또는 선택"></div><div></div><input id="design_vendor" class="field cbo" list="dl_vd_design" autocomplete="off" placeholder="외주 선택 시" disabled><div></div>
+ <div class="lb">설 계</div><input id="design_start_date" type="date" class="field"><div class="c">~</div><input id="design_end_date" type="date" class="field"><input id="design_days" class="field c" placeholder="일수" title="소요일수 (완료예정일-시작일+1, 자동 계산)"><div class="c" style="color:#9aa5ad">-</div><div class="chk"><span class="lb" style="width:52px">담당자</span><input id="design_manager" class="field cbo" list="dl_emp" autocomplete="off" style="width:160px" placeholder="입력 또는 선택"></div><div></div><div></div><div></div>
  <div class="lb">가 공</div><input id="machining_start_date" type="date" class="field"><div class="c">~</div><input id="machining_end_date" type="date" class="field"><input id="machining_days" class="field c" placeholder="일수" title="소요일수 (자동 계산)"><div class="chk src" title="사내 작업인지 외주(협력업체)인지 선택합니다."><label><input type="radio" name="machining_src" value="사내" checked>사내</label><label><input type="radio" name="machining_src" value="외주">외주</label></div><div class="chk"><span class="lb" style="width:52px">담당자</span><input id="machining_manager" class="field cbo" list="dl_emp" autocomplete="off" style="width:160px" placeholder="입력 또는 선택"></div><div class="chk" style="justify-content:center"><input type="checkbox" id="machining_set_outsourced" title="세트(조수 전체) 외주"></div><input id="machining_vendor" class="field cbo" list="dl_vd_mach" autocomplete="off" placeholder="외주 선택 시" disabled><div></div>
- <div class="lb">조 립</div><input id="assembly_start_date" type="date" class="field"><div class="c">~</div><input id="assembly_end_date" type="date" class="field"><input id="assembly_days" class="field c" placeholder="일수" title="소요일수 (자동 계산)"><div class="chk src" title="사내 작업인지 외주(협력업체)인지 선택합니다."><label><input type="radio" name="assembly_src" value="사내" checked>사내</label><label><input type="radio" name="assembly_src" value="외주">외주</label></div><div class="chk"><span class="lb" style="width:52px">담당자</span><input id="assembly_manager" class="field cbo" list="dl_emp" autocomplete="off" style="width:160px" placeholder="입력 또는 선택"></div><div class="chk" style="justify-content:center"><input type="checkbox" id="assembly_set_outsourced" title="세트(조수 전체) 외주"></div><input id="assembly_vendor" class="field cbo" list="dl_vd_asm" autocomplete="off" placeholder="외주 선택 시" disabled><div></div>
+ <div class="lb">조 립</div><input id="assembly_start_date" type="date" class="field"><div class="c">~</div><input id="assembly_end_date" type="date" class="field"><input id="assembly_days" class="field c" placeholder="일수" title="소요일수 (자동 계산)"><div class="c" style="color:#9aa5ad">-</div><div class="chk"><span class="lb" style="width:52px">담당자</span><input id="assembly_manager" class="field cbo" list="dl_emp" autocomplete="off" style="width:160px" placeholder="입력 또는 선택"></div><div></div><div></div><div></div>
 </div></div>
 <div class="blk"><div class="bt">금액</div>
  <div class="gg g4">
@@ -126,7 +126,7 @@ function vendorGate(k){const out=isOut(k),v=document.getElementById(k+'_vendor')
  const box=v.__mescbBox;
  if(box){box.inp.disabled=!out;box.inp.placeholder=v.getAttribute('placeholder');if(!out)box.inp.value=''}
  else setTimeout(()=>{const b=v.__mescbBox;if(b){b.inp.disabled=!isOut(k);b.inp.placeholder=v.getAttribute('placeholder');if(!isOut(k))b.inp.value=''}},600);}
-['design','machining','assembly'].forEach(k=>document.querySelectorAll(`input[name="${k}_src"]`).forEach(r=>r.addEventListener('change',()=>vendorGate(k))));
+['machining'].forEach(k=>document.querySelectorAll(`input[name="${k}_src"]`).forEach(r=>r.addEventListener('change',()=>vendorGate(k))));
 /* 모든 입력칸이 input(+datalist) 이라 목록에 없는 값도 그대로 유지된다 */
 function setSel(id,v){const el=typeof id==='string'?document.getElementById(id):id;if(el)el.value=v==null?'':String(v)}
 function recalc(){
@@ -197,14 +197,13 @@ function calcDays(p){
 
 function load(o){
  for(const k of ['job_no','customer_name','item_name','mold_type_name','product_name','process_set_qty','order_date','model','s1_planned_date','delivery_planned_date','design_start_date','design_end_date','design_days','design_manager','machining_start_date','machining_end_date','machining_manager','assembly_start_date','assembly_end_date','assembly_manager','order_price','target_price',
-   'design_vendor','machining_vendor','assembly_vendor']){
+   'machining_vendor']){
   setSel(k,o[k]);
  }
- ['design','machining','assembly'].forEach(k=>{const c=document.getElementById(k+'_set_outsourced');if(c)c.checked=!!o[k+'_set_outsourced']});
- setOut('design',o.design_outsourced);setOut('machining',o.machining_outsourced);setOut('assembly',o.assembly_outsourced);
- /* 외주업체는 '외주'인 단계에만 채운다. 사내면 vendorGate 가 이미 비웠으므로 손대지 않는다 */
- ['design','machining','assembly'].forEach(k=>{const v=document.getElementById(k+'_vendor');
-  if(v)v.value=(isOut(k)&&o[k+'_vendor'])?o[k+'_vendor']:'';vendorGate(k)});
+ /* v119: 설계·조립 외주 항목은 화면에서 삭제 — 값은 외주설계발주·SET외주발주 화면이 sales_plans 에 기록한다 */
+ {const c=document.getElementById('machining_set_outsourced');if(c)c.checked=!!o.machining_set_outsourced}
+ setOut('machining',o.machining_outsourced);
+ {const v=document.getElementById('machining_vendor');if(v)v.value=(isOut('machining')&&o.machining_vendor)?o.machining_vendor:'';vendorGate('machining')}
  AK.forEach((k,i)=>{const n=document.getElementById('a'+(i+1));if(n)n.value=num(o[k])?fmt(num(o[k])):''});
  ['design','machining','assembly'].forEach(p=>{if(!document.getElementById(p+'_days').value)calcDays(p)});
  order_price.value=num(order_price.value)?fmt(num(order_price.value)):'';
@@ -224,7 +223,7 @@ const HK=['job_no','product_name','customer_name','process_set_qty','item_name',
  'mold_type_name','s1_planned_date','model','delivery_planned_date','design_start_date','design_end_date',
  'design_days','design_manager','machining_start_date','machining_end_date','machining_manager',
  'assembly_start_date','assembly_end_date','assembly_manager','order_price','target_price',
- 'design_vendor','machining_vendor','assembly_vendor'];
+ 'machining_vendor'];
 const DATEK=['order_date','s1_planned_date','delivery_planned_date','design_start_date','design_end_date',
  'machining_start_date','machining_end_date','assembly_start_date','assembly_end_date'];
 const NUMK=['process_set_qty','design_days','order_price','target_price'];
@@ -238,11 +237,10 @@ function collect(){
  HK.forEach(k=>{const n=document.getElementById(k);o[k]=n?(n.value||null):null});
  NUMK.forEach(k=>{o[k]=o[k]==null?null:(num(o[k])||null)});
  DATEK.forEach(k=>{if(o[k]==='')o[k]=null});
- o.design_outsourced=isOut('design');
+ /* v119: 설계·조립 외주 여부는 이 화면에서 보내지 않는다 (DB 값 유지). 가공만 입력 */
  o.machining_outsourced=isOut('machining');
- o.assembly_outsourced=isOut('assembly');
- ['design','machining','assembly'].forEach(k=>{{const c=document.getElementById(k+'_set_outsourced');o[k+'_set_outsourced']=!!(c&&c.checked)}   /* v116: 설계는 세트 체크 삭제 → 항상 false */
-  if(!o[k+'_outsourced'])o[k+'_vendor']=null});
+ {const c=document.getElementById('machining_set_outsourced');o.machining_set_outsourced=!!(c&&c.checked)}
+ if(!o.machining_outsourced)o.machining_vendor=null;
  let s=0;AK.forEach((k,i)=>s+=num(document.getElementById('a'+(i+1)).value));
  AK.forEach((k,i)=>{const a=num(document.getElementById('a'+(i+1)).value);
   o[k]=a||null;o[PCT[k]]=s?Math.round(a/s*1000)/10:0});
@@ -332,8 +330,8 @@ async function save(){
   catch(e){msg(`${o.job_no} 계획은 저장됐으나 제작계획현황 반영 실패: `+String(e.message||e).slice(0,100));return}
   /* v68: 설계=외주 + 외주업체 지정이면 외주설계 발주(order_lines)를 여기서 바로 만든다.
      설계관리의 외주설계발주등록 화면을 대신한다. 견적가 = 설계 사외 금액, 입고예정일 = 설계 종료일 */
+  /* v119: 외주설계 자동발주 제거 — 설계외주는 영업관리 › 설계외주 › 외주설계발주등록에서 직접 등록 */
   let odMsg='';
-  try{odMsg=await syncDesignOrder(o)}catch(e){odMsg=' / 외주설계 발주 반영 실패: '+String(e.message||e).slice(0,80)}
   try{MESDB.notify&&MESDB.notify(['sales_plans','sales_plan_status_rows','order_lines'])}catch(e){}
   msg(`${o.job_no} 제작계획을 저장했습니다. (목표원가 ${Number(o.target_price||0).toLocaleString()}원 / 이익률 ${o.profit_rate_pct ?? '-'}%)`+odMsg+(await adStore()));
  }catch(e){

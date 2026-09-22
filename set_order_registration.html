@@ -203,6 +203,7 @@ async function save(){
    set_seq:r.set_seq,process_name:r.process_name,status:'발주',
    order_date:r.order_date||today(),receipt_planned_date:r.receipt_planned_date||null,
    quote_price:r.quote_price,nego_price:r.nego_price,unit_price:r.nego_price,writer:r.writer||me()})));
+  try{await MESDB.syncPlanOut(sel.job_no,'assembly')}catch(e){}   /* v119: 제작계획 조립외주 여부 기록 */
   const cnt=REQ.length;REQ.length=0;
   await loadDets();
   msg(`${sel.job_no} SET외주 발주 ${cnt}건을 등록했습니다. (네고가 합계 ${sum.toLocaleString()}원)`);
@@ -227,6 +228,7 @@ async function cancelOrder(){
   try{await MESDB.table(TBL).delete({line_id:d.line_id})}
   catch(e){fail.push(d.partner_vendor_name+'('+String(e.message||e).slice(0,60)+')')}
  }
+ try{await MESDB.syncPlanOut(sel.job_no,'assembly')}catch(e){}   /* v119 */
  await loadDets();
  msg(fail.length?`일부 취소 실패: ${fail.join(', ')}`:`${sel.job_no} / ${names} 발주를 취소했습니다.`);
 }
