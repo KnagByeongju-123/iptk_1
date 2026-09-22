@@ -58,6 +58,7 @@ tbody tr.sel{background:#d6e7f8}
 <footer class="foot">
  <button class="btn" onclick="search()">⌕ 검색</button>
  <button class="btn" onclick="del_()">✕ 삭제</button>
+ <button class="btn" onclick="openDrawing()" title="체크한 품번의 도면을 엽니다 — SQ › 도면등록의 파일 위치(사내 서버 주소) (회의록 4-2)">📐 도면</button>
  <button class="btn" onclick="csv()">▤ EXCEL</button>
  <button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button>
  <span class="msg" id="message">조건을 선택하거나 제번·품번을 빈칸으로 두고 [조회]를 누르세요.</span><span class="right" id="countText"></span>
@@ -86,6 +87,8 @@ function jobsForPn(pn){
  if(!p)return null;
  return new Set(PNMAP.filter(x=>String(x.model||'').trim().toLowerCase()===p).map(x=>String(x.job||'').trim()));
 }
+/* v121 (회의록 4-2): 품번 → 도면 열기 */
+function openDrawing(){const ids=[...chk];if(ids.length!==1)return msg('도면을 볼 품번 행을 하나만 체크하세요.');const r=rowById(ids[0]);if(!r)return;MESDB.openDrawing(r.part_no,r.job_no)}
 function view(){
  const k=q_kind.value,j=curJobNo(),p=selectedPn(),pJobs=jobsForPn(p);
  const v=data.filter(r=>(k==='전체'||r.order_type===k)&&(!j||String(r.job_no||'')===j)&&(!p||(pJobs&&pJobs.has(String(r.job_no||'')))));

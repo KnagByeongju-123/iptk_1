@@ -47,13 +47,16 @@
       </div></div>
     <div class="box"><div class="box-title">설계/조립 실적등록</div>
       <div class="tablewrap"><table>
-        <colgroup><col style="width:34%"><col style="width:36%"><col style="width:30%"></colgroup>
-        <thead><tr><th>작업자</th><th>작업일자</th><th>작업시간(분)</th></tr></thead>
+        <colgroup><col style="width:22%"><col style="width:22%"><col style="width:14%"><col style="width:10%"><col style="width:14%"><col style="width:18%"></colgroup>
+        <thead><tr><th>작업자</th><th>작업일자</th><th>작업시간(분)</th><th>인원</th><th>단가(원/h)</th><th>조립비</th></tr></thead>
         <tbody id="resultBody"></tbody></table></div>
       <div class="entry">
         <span class="label">작업시간</span><input id="minutes" class="field" type="number" min="0" placeholder="분">
         <span class="label">작업일</span><input id="workDate" class="field" type="date">
         <span class="label">작업자</span><input id="worker" class="field" list="workerList" placeholder="사용자정보에서 선택" autocomplete="off"><datalist id="workerList"></datalist>
+        <span class="label" title="투입 인원수 (회의록 3-1)">인 원</span><input id="headcount" class="field" type="number" min="1" value="1" oninput="calcCost()">
+        <span class="label" title="기준정보 › 단가관리 › 작업단가 (코드 ASM). 필요하면 이 건만 고칠 수 있습니다">단 가</span><input id="rate" class="field" type="number" min="0" placeholder="원/h" oninput="calcCost()">
+        <span class="label" title="작업시간 × 인원 × 단가 (자동)">조립비</span><input id="laborCost" class="field" readonly style="background:#eef3f7;font-weight:700">
       </div>
       <div class="entrybtns">
         <button class="btn sm primary" onclick="addResult()">실적 등록</button>
@@ -84,7 +87,7 @@ function curJob(){
 function renderJobs(){jobBody.innerHTML=jobView.map((j,i)=>`<tr class="${i===jobIdx?'sel':''}" onclick="pickJob(${i})"><td>${j.job}</td><td>${j.item}</td><td class="c">${j.due}</td><td class="c">${j.s1}</td><td class="c">${j.cust}</td><td class="r">${j.insp??''}</td></tr>`).join('');countText.textContent=`제번 ${jobView.length}건`}
 function renderSteps(){if(!STEPS.length){procBody.innerHTML='<tr><td colspan="6" class="c" style="color:#8b98a4">세부공정이 없습니다. 아래에서 공정을 고르고 [＋ 세부공정 추가]를 누르세요.</td></tr>';return}
 procBody.innerHTML=STEPS.map((s,i)=>`<tr class="${i===stepIdx?'sel':''}" onclick="pickStep(${i})"><td class="c">${i===stepIdx?'▶':''}</td><td class="c">${s.done?'완료':''}</td><td class="c">${s.mp}</td><td>${s.mpName}</td><td class="r">${s.min??''}</td><td class="r">${s.rate==null?'':s.rate+'%'}</td></tr>`).join('')}
-function renderResults(){const list=RESULTS[key()]||[];resultBody.innerHTML=list.length?list.map((r,i)=>`<tr onclick="selResult(${i})" class="${r._sel?'sel':''}"><td>${r.worker}</td><td class="c">${r.date}</td><td class="r">${r.min}</td></tr>`).join(''):'<tr><td colspan="3" class="c" style="color:#8b98a4">실적 없음</td></tr>'}
+function renderResults(){const list=RESULTS[key()]||[];resultBody.innerHTML=list.length?list.map((r,i)=>`<tr onclick="selResult(${i})" class="${r._sel?'sel':''}"><td>${r.worker}</td><td class="c">${r.date}</td><td class="r">${r.min}</td><td class="r">${r.hc||1}</td><td class="r">${Number(r.rate||0).toLocaleString()}</td><td class="r"><b>${Number(r.cost||0).toLocaleString()}</b></td></tr>`).join(''):'<tr><td colspan="6" class="c" style="color:#8b98a4">실적 없음</td></tr>'}
 function pickJob(i){jobIdx=i;if(typeof loadSteps==='function')setTimeout(loadSteps,0);stepIdx=0;renderJobs();renderSteps();renderResults();msg(`${jobView[i].job} 세부공정을 조회했습니다.`)}
 function pickStep(i){stepIdx=i;renderSteps();renderResults();msg(`세부공정 ${STEPS[i].mp} (${STEPS[i].mpName}) 선택`)}
 function selResult(i){const list=RESULTS[key()]||[];list.forEach((r,k)=>r._sel=(k===i));renderResults()}
@@ -132,7 +135,7 @@ async function loadResults(){
     .select(`select=*&job_no=eq.${encodeURIComponent(j.job)}&work_type=eq.조립&order=row_no`);
   rs.forEach(r=>{const k=`${j.job}|${r.machining_process_code||''}`;
    (RESULTS[k]=RESULTS[k]||[]).push({id:r.row_no,worker:r.worker_name||'',
-     date:r.work_date||'',min:Number(r.work_minutes||0)})});
+     date:r.work_date||'',min:Number(r.work_minutes||0),hc:Number(r.headcount||1),rate:Number(r.hourly_rate||0),cost:Number(r.labor_cost||0)})});
   STEPS.forEach(s=>{const l=RESULTS[`${j.job}|${s.mp}`]||[];
    const m=l.reduce((a,r)=>a+(Number(r.min)||0),0);s.min=m||null;
    s.rate=s.done?100:(s.plan?Math.min(100,Math.round(m/s.plan*100)):(m?50:null))});
@@ -175,6 +178,7 @@ async function addResult(){
  const j=curJob();if(!j)return msg('제번을 선택하세요.');
  const s=STEPS[stepIdx];if(!s)return msg(STEPS.length?'세부공정을 선택하세요.':'세부공정이 없습니다. 공정을 고르고 [＋ 세부공정 추가]를 먼저 누르세요.');
  const m=Number(minutes.value);if(!m||m<=0)return msg('작업시간(분)을 입력하세요.');
+ const hc=Math.max(1,Number(headcount.value)||1),rt=Number(rate.value)||0;
  const wk=worker.value.trim();if(!wk)return msg('작업자를 선택하세요. (기준정보 › 사용자정보에 등록된 사용중 계정만 가능)');
  if(WORKERS.length&&!WORKERS.includes(wk))return msg(`'${wk}' 은(는) 사용자정보에 없는 작업자입니다. 목록에서 선택하거나 기준정보 › 사용자정보에 먼저 등록하세요.`);
  if(!online())return msg('DB 미연결 상태에서는 실적을 등록할 수 없습니다.');
@@ -183,12 +187,18 @@ async function addResult(){
   await MESDB.table('design_results').upsert({
    work_type:'조립',worker_name:wk,job_no:j.job,process_code:s.mp||null,
    machining_process_code:s.mp||null,machining_process_name:s.mpName||null,
-   work_date:workDate.value||new Date().toISOString().slice(0,10),work_minutes:m},'row_no');
+   work_date:workDate.value||new Date().toISOString().slice(0,10),work_minutes:m,
+   headcount:hc,hourly_rate:rt,labor_cost:Math.round(m/60*hc*rt)},'row_no');
   minutes.value='';await loadResults();
-  msg(`${wk} 실적 ${m}분을 등록했습니다. (조립실적현황/조회에 즉시 반영)`);
+  msg(`${wk} 실적 ${m}분 × ${hc}명 × ${rt.toLocaleString()}원/h = 조립비 ${Math.round(m/60*hc*rt).toLocaleString()}원을 등록했습니다.`);
  }catch(e){const t=String(e.message||e);
   msg(/무결성|foreign key/i.test(t)?'등록 실패: 등록되지 않은 제번입니다.':'등록 실패: '+t.slice(0,110))}
 }
+/* v121 (회의록 3-1): 조립비 = 작업시간(분)/60 × 인원 × 단가. 단가는 기준정보 작업단가(ASM)에서 */
+function calcCost(){const m=Number(minutes.value)||0,hc=Math.max(1,Number(headcount.value)||1),rt=Number(rate.value)||0;laborCost.value=m&&rt?Math.round(m/60*hc*rt).toLocaleString():''}
+minutes.addEventListener('input',calcCost);
+(async function(){for(let i=0;i<80&&!(window.MESDB&&MESDB.laborRate);i++)await new Promise(r=>setTimeout(r,50));
+ try{if(!rate.value)rate.value=await MESDB.laborRate('조립','ASM')}catch(e){}calcCost()})();
 async function delResult(){
  const k=key(),list=RESULTS[k]||[];const i=list.findIndex(r=>r._sel);
  if(i<0)return msg('삭제할 실적 행을 선택하세요.');

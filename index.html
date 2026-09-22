@@ -219,7 +219,7 @@ a.menu-off,a.menu-off:hover{color:#9aa5ae!important;opacity:.55;cursor:not-allow
 </div>
 
 <script>
-const APP_VER='116';
+const APP_VER='121';
 const APP={
   '영업관리':{
     secondary:[
@@ -261,7 +261,7 @@ const APP={
       ],
       /* v119: 소제목(가공·외주가공·현황) 없이 한 목록으로. 가공계획등록·공정이력카드는 비활성화(MENU_OFF) */
       '가공':[
-        {name:'가공',items:['가공계획등록','공정이력카드','외주가공 발주','외주가공 입고','외주가공 입고확정','외주가공 QR스캔','외주가공발주현황','외주가공 진척현황']}
+        {name:'가공',items:['가공계획등록','공정이력카드','사내가공 실적등록','외주가공 발주','외주가공 입고','외주가공 입고확정','외주가공 QR스캔','외주가공발주현황','외주가공 진척현황']}
       ]
     }
   },
@@ -282,7 +282,7 @@ const APP={
       {name:'매입매출현황',icon:'▥'}
     ],
     menus:{
-      '원가관리':[{name:'제조원가',items:['제조원가조회(실시간)']}],
+      '원가관리':[{name:'제조원가',items:['제조원가조회(실시간)','업체별 가공비 합계']}],
       /* v119(회의록 2-3): 경비등록·경비현황을 영업관리에서 원가관리로 이동 */
       '경비':[{name:'경비',items:['경비등록','경비현황']}],
       '매입매출현황':[{name:'매입매출현황',items:['매입현황','매출현황','재고조회']}]
@@ -345,12 +345,12 @@ const APP={
       ],
       '공통':[
         {name:'사용자',items:['사용자정보']},
-        {name:'공통',items:['공정관리','부품관리','자재등록','설비등록','업체관리','사업부정보','아이템 관리','경비사유','금형타입관리','금형코드 매칭','기계사양관리']},
+        {name:'공통',items:['공정관리','부품관리','자재등록','설비등록','업체관리','사업부정보','아이템 관리','공정카테고리','경비사유','금형타입관리','금형코드 매칭','기계사양관리']},
         {name:'검사',items:['검사구분','검사항목']},
         {name:'공지사항',items:['공지사항 등록']},
         {name:'시스템',items:['DB 동기화','에러로그']},
         {name:'인사',items:['부서정보','직급정보']},
-        {name:'단가관리',items:['자재단가변동등록','자재단가변동현황','공정단가변동등록','공정단가변동현황']}
+        {name:'단가관리',items:['자재단가변동등록','자재단가변동현황','공정단가변동등록','공정단가변동현황','작업단가']}
       ]
     }
   }
@@ -362,6 +362,7 @@ const pageRegistry={
 '가공 기준공정관리':{id:'machining_standard_process',file:'machining_standard_process.html',title:'가공 기준공정관리'},
 '작업지시 관리':{id:'work_order_input',file:'work_order_input.html',title:'작업지시 관리'},
 '공정이력카드':{id:'process_history_card',file:'process_history_card.html',title:'공정이력카드'},
+'사내가공 실적등록':{id:'machining_result_input',file:'machining_result_input.html',title:'사내가공 실적등록'},
 '구매품 입고확정':{id:'purchase_receipt_confirmation',file:'purchase_receipt_confirmation.html',title:'구매품 입고확정'},
 '업체관리':{id:'vendor_management',file:'vendor_management.html',title:'업체 관리'},
 '설비등록':{id:'equipment_registration',file:'equipment_registration.html',title:'설비등록'},
@@ -369,6 +370,8 @@ const pageRegistry={
 '부품관리':{id:'part_management',file:'part_management.html',title:'부품 관리'},
 '사업부정보':{id:'business_division_info',file:'business_division_info.html',title:'사업부 정보'},
 '아이템 관리':{id:'item_management',file:'item_management.html',title:'아이템 관리'},
+'공정카테고리':{id:'process_category_management',file:'process_category_management.html',title:'공정카테고리'},
+'작업단가':{id:'labor_rate_management',file:'labor_rate_management.html',title:'작업단가'},
 '경비사유':{id:'expense_reason_registration',file:'expense_reason_registration.html',title:'경비사유 등록'},
 '금형타입관리':{id:'mold_type_management',file:'mold_type_management.html',title:'금형타입 관리'},
 '기계사양관리':{id:'machine_spec_management',file:'machine_spec_management.html',title:'기계사양 관리'},
@@ -405,6 +408,7 @@ const pageRegistry={
 'PartList 현황':{id:'partlist_status',file:'partlist_status.html',title:'PartList 현황'},
 'SET외주제작등록':{id:'set_order_registration',file:'set_order_registration.html',title:'조립외주발주'},
 '가공계획등록':{id:'machining_plan_input',file:'machining_plan_input.html',title:'가공계획등록'},
+'업체별 가공비 합계':{id:'vendor_cost_summary',file:'vendor_cost_summary.html',title:'업체별 가공비 합계'},
 '매입현황':{id:'purchase_status',file:'purchase_status.html',title:'매입현황'},
 '조립실적조회':{id:'design_result_inquiry_assembly',file:'design_result_inquiry.html?mode=assembly',title:'조립실적조회'},
 '조립실적현황':{id:'design_result_status_assembly',file:'design_result_status.html?mode=assembly',title:'조립실적현황'},
@@ -475,7 +479,7 @@ const pageRegistry={
 '조직도':{id:'org_chart',file:'org_chart.html',title:'조직도'}
 };
 const MOD_ICON={'영업관리':'▣','설계관리':'✎','구매관리':'▤','조립관리':'⚙','원가관리':'◴','조직도':'⛶','SQ':'◈','기준정보':'▦','사용메뉴얼':'📖'};
-const MOD_DESC={'영업관리':'수주 · 제작계획 · 설계외주 · 조립외주','설계관리':'사내설계 · PARTLIST','구매관리':'원재료 · 구매품 · 가공/외주가공','조립관리':'사내조립 · 검사','원가관리':'제조원가 · 경비 · 매입/매출 · 재고','SQ':'품질목표 · 심사 · 부적합 · 4M · 계측기 · 문서/도면 · 추적성','기준정보':'공정 · 부품 · 자재 · 설비 · 업체 · 사용자 · 단가','사용메뉴얼':'시스템 사용 안내'};
+const MOD_DESC={'영업관리':'수주 · 제작계획 · 설계외주 · 조립외주','설계관리':'사내설계 · PARTLIST','구매관리':'원재료 · 구매품 · 사내가공 실적 · 외주가공','조립관리':'사내조립 · 검사','원가관리':'제조원가 · 업체별 가공비 · 경비 · 매입/매출 · 재고','SQ':'품질목표 · 심사 · 부적합 · 4M · 계측기 · 문서/도면 · 추적성','기준정보':'공정 · 부품 · 자재 · 설비 · 업체 · 사용자 · 단가','사용메뉴얼':'시스템 사용 안내'};
 const HOME={id:'home',title:'홈',file:null,home:true};
 
 let activeModule='', activeId='', prevId='';

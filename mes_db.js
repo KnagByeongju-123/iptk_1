@@ -215,6 +215,44 @@ MESDB.jobGroup=function(rows){
   const out=[...mp.values()];out.forEach(g=>g.seqs.sort());
   return out.sort((a,b)=>String(a.base).localeCompare(String(b.base)));
 };
+/* ── v121 공통 마스터 헬퍼 (회의록 1-4 · 3-1 · 3-2 · 4-2) ───────────────────
+ * procCategories(): 공정카테고리 목록 [{code,name}] — process_categories 테이블, 없으면 기본 목록
+ * laborRate(type,key): 작업단가(원/h) — labor_rates 테이블, 없으면 30,000
+ * openDrawing(part_no, job_no): drawings 에서 품번의 도면을 찾아 file_url 을 연다 */
+const DEF_CATS=[['BLK','블랭킹'],['DRW','드로잉'],['TRM','트리밍'],['PRC','피어싱'],['BND','벤딩'],['FRM','포밍'],['FLG','플랜징'],['CAM','캠'],['CMP','복합']];
+let _cats=null,_rates=null;
+MESDB.procCategories=async function(){
+  if(_cats)return _cats;
+  try{if(online){const rs=await rest('process_categories?select=category_code,category_name,sort_order&order=sort_order,category_code');
+    if(rs&&rs.length){_cats=rs.map(r=>({code:r.category_code,name:r.category_name}));return _cats}}}catch(e){}
+  _cats=DEF_CATS.map(([code,name])=>({code,name}));return _cats;
+};
+MESDB.laborRate=async function(type,key){
+  try{if(_rates==null&&online){const rs=await rest('labor_rates?select=rate_code,rate_type,rate_per_hour');_rates=rs||[]}}catch(e){_rates=[]}
+  const rs=_rates||[];
+  const k=key?rs.find(r=>r.rate_code===key):null;
+  if(k&&Number(k.rate_per_hour)>0)return Number(k.rate_per_hour);
+  const c=rs.find(r=>r.rate_code===(type==='조립'?'ASM':'MCH'))||rs.find(r=>r.rate_type===type);
+  return c&&Number(c.rate_per_hour)>0?Number(c.rate_per_hour):30000;
+};
+MESDB.laborRateList=async function(type){await MESDB.laborRate(type);return (_rates||[]).filter(r=>!type||r.rate_type===type)};
+try{if(typeof onChange==='function'){onChange(['process_categories'],()=>{_cats=null});onChange(['labor_rates'],()=>{_rates=null})}}catch(e){}
+MESDB.openDrawing=async function(part,job){
+  part=String(part||'').trim();if(!part)return false;
+  if(!online){alert('DB 미연결 상태에서는 도면을 찾을 수 없습니다.');return false}
+  let rs=[];
+  try{rs=await rest(`drawings?select=drawing_no,drawing_name,file_url,current_rev,job_no,drawing_status&part_no=eq.${encodeURIComponent(part)}&order=rev_date.desc.nullslast`)}catch(e){}
+  rs=(rs||[]).filter(r=>r.drawing_status!=='폐기');
+  let r=job?rs.find(x=>x.job_no===job):null;if(!r)r=rs[0];
+  if(!r){alert(`품번 ${part} 의 도면이 등록되어 있지 않습니다.\nSQ › 문서/도면 › 도면등록에서 품번과 파일 위치(사내 서버 주소)를 등록하세요.`);return false}
+  const u=String(r.file_url||'').trim();
+  if(!u){alert(`도면 ${r.drawing_no} 에 파일 위치가 비어 있습니다. 도면등록에서 사내 서버 주소를 넣어 주세요.`);return false}
+  if(/^https?:\/\//i.test(u)){window.open(u,'_blank');return true}
+  /* 사내 서버 경로(\\server\... 또는 file://) 는 웹 화면에서 직접 열 수 없다 → 경로를 복사해 준다 */
+  try{await navigator.clipboard.writeText(u)}catch(e){}
+  alert(`도면 ${r.drawing_no} (${r.drawing_name||''}) Rev.${r.current_rev||'-'}\n\n사내 서버 경로를 복사했습니다. 탐색기 주소창에 붙여넣기(Ctrl+V) 하세요.\n${u}\n\n(웹 화면에서 바로 열려면 도면 파일을 사내 웹 공유(http://…)로 두고 그 주소를 등록합니다)`);
+  return true;
+};
 MESDB.syncPlanOut=async function(job,kind){
   try{
     job=String(job||'').trim();if(!job||!online)return;
