@@ -22,6 +22,15 @@ button,input,select{font:inherit;color:inherit}button{cursor:pointer}
 .seg{display:flex;background:#e9eef4;border-radius:9px;padding:3px;gap:2px}
 .seg button{border:0;background:transparent;border-radius:7px;padding:6px 14px;font-weight:700;color:var(--ink2)}
 .seg button.on{background:#fff;color:var(--blued);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.cbo{height:33px;width:150px;border:1px solid var(--line);border-radius:8px;background:#fff;padding:0 8px;outline:0;font:inherit;color:inherit}
+.cbo:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(47,117,181,.14)}
+@media(max-width:820px){.cbo{width:120px}}
+/* v141: mes_ctx 콤보 래퍼(.mescb)가 인라인 폭이 없으면 100% 로 늘어나 한 줄을 다 차지하던 문제 — 폭 고정 + 툴바 높이에 맞춤 */
+.top .mescb{width:170px!important;flex:0 0 auto}
+.top .mescb-in{height:33px;border-radius:8px;border-color:var(--line);padding-left:10px}
+.top .mescb-in:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(47,117,181,.14)}
+.top .mescb-ar{height:31px;line-height:31px;right:4px}
+@media(max-width:820px){.top .mescb{width:130px!important}}
 .srch{position:relative;flex:1;min-width:140px;max-width:300px}
 .srch input{width:100%;height:33px;border:1px solid var(--line);border-radius:8px;background:#fff;padding:0 10px 0 30px;outline:0}
 .srch input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(47,117,181,.14)}
@@ -57,6 +66,9 @@ button,input,select{font:inherit;color:inherit}button{cursor:pointer}
 .pcard.late{border-left:4px solid var(--late)}
 .phead{display:flex;align-items:center;gap:11px;padding:10px 14px;cursor:pointer;flex-wrap:wrap}
 .phead:hover{background:#f6f9fc}
+.phead .delp{margin-left:6px;border:1px solid #d9a3a3;background:#fff;color:#a8403c;border-radius:6px;padding:3px 9px;font-size:12px;cursor:pointer;white-space:nowrap}
+.phead .delp:hover{background:#fdf0f0}
+.phead .delp[disabled]{opacity:.4;cursor:default}
 .phead .pn{font-weight:800;font-size:14px;min-width:110px}
 .phead .pc{color:var(--ink3);font-size:12px}
 .stpro{display:flex;align-items:center;gap:7px;margin-left:auto}
@@ -136,7 +148,9 @@ button,input,select{font:inherit;color:inherit}button{cursor:pointer}
   <button data-v="pipe" class="on" onclick="setView('pipe')">부품별 공정</button>
   <button data-v="vendor" onclick="setView('vendor')">업체 보드</button>
  </div>
- <div class="srch"><input id="q" placeholder="제번 · 품번 · 업체 · 공정 검색" oninput="apply()"></div>
+ <input id="fJob" class="cbo" style="width:170px" list="jobDL" autocomplete="off" placeholder="제번 입력/선택" oninput="apply()" onchange="jobPick()"><datalist id="jobDL"></datalist>
+ <input id="fPn" class="cbo" style="width:170px" list="pnDL" autocomplete="off" placeholder="품번 입력/선택" oninput="apply()" onchange="pnPick()"><datalist id="pnDL"></datalist>
+ <div class="srch"><input id="q" placeholder="부품코드 · 업체 · 공정 검색" oninput="apply()"></div>
  <button class="tbtn red" id="bLate" onclick="toggleLate()">⚠ 지연만</button>
  <button class="tbtn" id="bPlan" onclick="togglePlan()" title="가공계획에는 있으나 아직 발주하지 않은 공정이 남은 부품만 봅니다">⬚ 미발주만</button>
  <button class="tbtn" id="bOpen" onclick="toggleOpen()">진행중만</button>
@@ -194,6 +208,41 @@ async function waitDB(){
 let PLAN=[];
 const stepCode=x=>String((x&&typeof x==='object')?(x.process_code||x.code||''):(x??'')).trim();
 const PROCN={};
+/* ── v125: 부품별 외주가공 진행삭제 — 그 부품의 발주·입고·확정 기록을 모두 지운다 ──
+   가공계획(부품·공정)은 남으므로, 지운 뒤 처음부터 다시 발주할 수 있다. */
+async function delPart(job,part){
+ if(!(window.MESDB&&MESDB.online))return setMsg('DB 미연결 — 진행삭제를 사용할 수 없습니다.');
+ const p=(parts||[]).find(x=>x.job===job&&x.part===part);
+ if(!p)return;
+ const ls=p.steps.filter(l=>!l.plan&&l.line_id);
+ if(!ls.length)return setMsg(`${part} 은(는) 아직 발주된 기록이 없습니다.`);
+ const cnt={};ls.forEach(l=>{const k=l.status||'발주';cnt[k]=(cnt[k]||0)+1});
+ const detail=Object.entries(cnt).map(([k,v])=>`${k} ${v}건`).join(' · ');
+ const done=ls.filter(l=>/입고/.test(l.status||'')).length;
+ if(!confirm(`[${job}] ${part} 의 외주가공 진행을 모두 삭제합니다.\n\n`
+   +`삭제 대상 : ${ls.length}건 (${detail})\n`
+   +(done?`입고·확정된 ${done}건도 함께 지워집니다.\n`:'')
+   +`\n되돌릴 수 없습니다. 계속할까요?`))return;
+ setMsg(`${part} 진행삭제 중…`);
+ let ok=0,ng=0,last='';
+ for(const l of ls){
+  try{await MESDB.table('order_lines').delete({line_id:l.line_id});ok++}
+  catch(e){ng++;last=String(e.message||e)}
+ }
+ /* 이력도 함께 정리 — 물류이동(outsourcing_moves)은 발주라인 삭제 시 DB가 같이 지우지만(CASCADE),
+    남는 것이 없도록 제번·부품 기준으로 한 번 더 쓸어낸다. 공정이력카드도 같이 지운다. */
+ for(const t of ['outsourcing_moves','process_history_cards']){
+  try{await MESDB.table(t).delete({job_no:job,part_no:part})}catch(e){}
+ }
+ try{MESDB.notify&&MESDB.notify(['order_lines','outsourcing_moves','process_history_cards'])}catch(e){}
+ try{MESDB.dropCache&&MESDB.dropCache('order_lines')}catch(e){}
+ await load(true);
+ setMsg(ng?`${part} 진행삭제 — 성공 ${ok}건 · 실패 ${ng}건: ${last.slice(0,90)}`
+          :`${job} · ${part} 의 외주가공 진행 ${ok}건을 삭제했습니다. 다시 발주할 수 있습니다.`);
+}
+function setMsg(t){try{const el=document.getElementById('sum');if(el)el.insertAdjacentHTML('afterbegin',
+ `<span class="pill" style="background:#fff4e5;border-color:#e6c69a">${String(t).replace(/</g,'')}</span>`)}catch(e){}
+ try{console.log('[외주가공 진척현황]',t)}catch(e){}}
 async function load(manual){
  await waitDB();
  if(!online()){setLive(false);if(!lines.length)lines=[...SAMPLE];booting=false;build();apply();return}
@@ -208,7 +257,8 @@ async function load(manual){
    try{(await MESDB.table('processes').select('select=process_code,process_name'))
      .forEach(p=>{const c=String(p.process_code||'').trim();if(c)PROCN[c.toUpperCase()]=p.process_name||''})}catch(e){}
   }
-  setLive(true);build();apply();
+  setLive(true);build();fillDLs();apply();
+  pnLoad();                 /* v133: 제번별 품번(제품) 지도 — 콤보 목록에 쓴다 */
  }catch(e){setLive(false);if(!lines.length)lines=[...SAMPLE];booting=false;build();apply()}
 }
 const pName=c=>PROCN[String(c||'').trim().toUpperCase()]||String(c||'');
@@ -267,10 +317,42 @@ function build(){
 }
 const isLate=l=>stOf(l.status)!=='done'&&l.required_date&&String(l.required_date).slice(0,10)<today;
 
+/* ── v133: 제번·품번(수주등록의 품번) 검색 — 드롭다운 + 직접입력 ───────── */
+const PNMAP=new Map();                 /* 제번 → 품번(제품) */
+const PN=j=>PNMAP.get(j)||'';
+function fillDLs(){
+ const jd=document.getElementById('jobDL'),pd=document.getElementById('pnDL');
+ const jobs=[...new Set(parts.map(p=>p.job).filter(Boolean))].sort();
+ if(jd)jd.innerHTML=jobs.map(j=>`<option value="${String(j).replace(/"/g,'')}">${String(PN(j)).replace(/</g,'')}</option>`).join('');
+ if(pd){const seen=new Set(),out=[];
+  jobs.forEach(j=>{const m=PN(j);if(!m||seen.has(m))return;seen.add(m);out.push({m,job:j})});
+  out.sort((a,b)=>a.m.localeCompare(b.m));
+  pd.innerHTML=out.map(o=>`<option value="${o.m.replace(/"/g,'')}">${String(o.job).replace(/</g,'')}</option>`).join('')}
+}
+async function pnLoad(){
+ try{
+  if(!(window.MESDB&&MESDB.online))return;
+  const rs=await MESDB.table('job_pool').select('select=job_no,model');
+  PNMAP.clear();(rs||[]).forEach(r=>{const m=String(r.model||'').trim();if(m)PNMAP.set(r.job_no,m)});
+  fillDLs();apply();
+ }catch(e){}
+}
+/* 제번을 고르면 품번 칸을, 품번을 고르면 제번 칸을 채운다 */
+function jobPick(){const m=PN(String(document.getElementById('fJob').value||'').trim());if(m)document.getElementById('fPn').value=m;apply()}
+function pnPick(){
+ const v=String(document.getElementById('fPn').value||'').trim().toLowerCase();
+ if(v){const jobs=[...PNMAP.entries()].filter(([,m])=>m.toLowerCase()===v).map(([j])=>j);
+  if(jobs.length===1)document.getElementById('fJob').value=jobs[0];else if(jobs.length>1)document.getElementById('fJob').value=''}
+ apply();
+}
 /* ═══ 필터 ═══ */
 function apply(){
  const q=document.getElementById('q').value.trim().toLowerCase();
+ const fj=(document.getElementById('fJob')?.value||'').trim().toLowerCase();
+ const fp=(document.getElementById('fPn')?.value||'').trim().toLowerCase();
  view=parts.filter(p=>{
+  if(fj&&!String(p.job||'').toLowerCase().includes(fj))return false;
+  if(fp&&!String(PN(p.job)||'').toLowerCase().includes(fp))return false;
   if(onlyOpen&&p.allDone)return false;
   if(fLate&&!p.late)return false;
   if(fPlan&&!p.planN)return false;              /* 미발주 공정이 남은 부품만 */
@@ -360,6 +442,9 @@ function renderPipe(){
      ${p.planN?`<span class="dchip mut" title="가공계획에는 있으나 아직 발주하지 않은 공정">미발주 ${p.planN}</span>`:''}
      <span class="stpro"><span class="sb">${segs}</span><span class="tx num">${p.doneN}/${p.steps.length}</span>
       ${p.allDone?'<span class="dchip ok">완료</span>':p.due?`<span class="dchip ${String(p.due)<today?'bad':'mut'}">납기 ${d5(p.due)}</span>`:''}</span>
+     <button class="delp" title="이 부품의 외주가공 발주·입고 기록을 모두 지웁니다"
+       onclick="event.stopPropagation();delPart('${esc(p.job)}','${esc(p.part)}')"
+       ${p.steps.some(l=>!l.plan&&l.line_id)?'':'disabled'}>✕ 진행삭제</button>
     </div>
     <div class="chain">${p.steps.map((l,i)=>stepBox(l,i,p)).join('')}</div>
     ${open.has(key)?pdet(p):''}

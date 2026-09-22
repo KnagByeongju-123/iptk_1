@@ -37,13 +37,14 @@ tbody tr:nth-child(even) td{background:#fafcfd}tbody tr:hover td{background:#edf
 <div class="title"><h1>PartList 등록(원재료)</h1><small>설계관리 · PARTLIST</small></div>
 
 <section class="filt">
- <span class="lb">제 번</span><input id="q_job" class="field" style="width:190px">
- <span class="hint">제번 선택 → 엑셀 <b>품번·품명·재질·규격·두께·수량</b> 복사(<b>Ctrl+C</b>) → <b>Ctrl+V</b> → 리스트에 추가 → 체크 → <b>[▤ 등록]</b></span>
+ <span class="lb">제 번</span><input id="q_job" class="field" style="width:190px" autocomplete="off">
+ <span class="lb">품 번</span><input id="q_pn" class="field" style="width:170px" placeholder="품번 입력/선택" list="pnDL" autocomplete="off"><datalist id="pnDL"></datalist>
+ <span class="hint">제번 선택 → 엑셀 <b>금형번호·품명·재질·규격·두께·수량</b> 복사(<b>Ctrl+C</b>) → <b>Ctrl+V</b> → 리스트에 추가 → 체크 → <b>[▤ 등록]</b></span>
 </section>
 
 <div class="gridbox"><table style="min-width:980px"><thead><tr>
  <th style="width:36px"><input type="checkbox" id="chkAll" onclick="chkAllRows(this.checked)" title="전체 선택"></th>
- <th style="width:50px">No</th><th style="width:130px">품번</th><th style="width:220px">품명</th><th style="width:100px">재질</th>
+ <th style="width:50px">No</th><th style="width:130px">금형번호</th><th style="width:220px">품명</th><th style="width:100px">재질</th>
  <th style="width:190px">규격</th><th style="width:80px">두께</th><th style="width:70px">수량</th>
  <th style="width:90px">등록자</th><th>등록일자</th>
 </tr></thead><tbody id="body"></tbody></table></div>
@@ -64,7 +65,7 @@ tbody tr:nth-child(even) td{background:#fafcfd}tbody tr:hover td{background:#edf
  <div class="xhead"><span>엑셀 불러오기 - 제번 <b id="xJob"></b></span><button onclick="xlsClose()">×</button></div>
  <div class="xbody">
   <div style="padding:7px 9px;background:#e9f1f8;border:1px solid #bfd2e2;margin-bottom:6px;line-height:1.7">
-   <b>① 엑셀 열 순서</b> : <b style="color:#2f75b5">품번 → 품명 → 재질 → 규격 → 두께 → 수량</b> <span style="color:#5a6a78">(품명이 두 칸이어도 한 칸으로 합쳐 읽습니다)</span>
+   <b>① 엑셀 열 순서</b> : <b style="color:#2f75b5">금형번호 → 품명 → 재질 → 규격 → 두께 → 수량</b> <span style="color:#5a6a78">(품명이 두 칸이어도 한 칸으로 합쳐 읽습니다)</span>
    <span style="color:#5a6a78">(제목행은 있어도 되고 없어도 됩니다)</span><br>
    <b>② </b>엑셀에서 범위를 복사(Ctrl+C) → 아래 칸에 붙여넣기(Ctrl+V)<br>
    <b>③ </b><b>[⬇ 리스트에 추가]</b> → 화면 리스트에서 등록할 행 체크 → <b>[▤ 등록]</b> → 등록자·등록일자 입력
@@ -88,7 +89,7 @@ tbody tr:nth-child(even) td{background:#fafcfd}tbody tr:hover td{background:#edf
 <div class="xmask" id="mMask" onmousedown="mMask._d=(event.target===mMask)" onclick="if(event.target===mMask&&mMask._d)manClose()"><div class="xdlg" style="width:min(580px,94vw)">
  <div class="xhead"><span>수동등록 - 원재료 · 제번 <b id="mJob"></b></span><button onclick="manClose()">&times;</button></div>
  <div class="xbody" style="padding:12px">
-  <div class="xrow"><span class="lb" style="width:44px">품번</span><input id="mPn" class="field" style="flex:1 1 150px" placeholder="필수" onkeydown="if(event.key==='Enter')mName.focus()"><span class="lb" style="width:44px">품명</span><input id="mName" class="field" style="flex:1 1 150px"></div>
+  <div class="xrow"><span class="lb" style="width:44px">금형번호</span><input id="mPn" class="field" style="flex:1 1 150px" placeholder="필수" onkeydown="if(event.key==='Enter')mName.focus()"><span class="lb" style="width:44px">품명</span><input id="mName" class="field" style="flex:1 1 150px"></div>
   <div class="xrow"><span class="lb" style="width:44px">재질</span><input id="mMat" class="field" style="flex:1 1 150px" placeholder="예) SKD11"><span class="lb" style="width:44px">규격</span><input id="mSpec" class="field" style="flex:1 1 150px" placeholder="예) 250*180 · Ø50*120"></div>
   <div class="xrow"><span class="lb" style="width:44px">두께</span><input id="mThk" class="field" style="width:110px"><span class="lb" style="width:44px">수량</span><input id="mQty" class="field" style="width:110px" value="1" onkeydown="if(event.key==='Enter')manAdd()"></div>
   <div style="padding:6px 8px;background:#eef4f9;border:1px solid #cfdce6;color:#4a5a68;line-height:1.7">추가한 행은 리스트에 <b>미등록</b>으로 올라갑니다. 체크 후 <b>[▤ 등록]</b>을 눌러야 저장됩니다. 창을 열어둔 채 계속 입력할 수 있습니다.</div>
@@ -127,7 +128,7 @@ const today=()=>{const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOff
 const fmt=v=>v==null||v===''?'':v;
 const XNUM=v=>{const s=String(v??'').replace(/[^0-9.-]/g,'');if(s==='')return null;const x=Number(s);return Number.isNaN(x)?null:x};
 /* v88: 화면에서 공정(조)는 쓰지 않는다. DB 키(job_no+process_code+part_no)는 유지하므로
-   신규 행은 기본 조('1')로, 기존 품번은 원래 조 그대로 저장한다. */
+   신규 행은 기본 조('1')로, 기존 금형번호은 원래 조 그대로 저장한다. */
 const DEF_JO='1';
 const JO=v=>window.MESJO?MESJO.norm(v):String(v??'').trim();
 const joSort=(a,b)=>(Number(JO(a))||99)-(Number(JO(b))||99)||String(a).localeCompare(String(b));
@@ -207,7 +208,7 @@ async function saveChecked(){
  if(!online()){msg('DB 미연결 상태에서는 등록할 수 없습니다.');return}
  const sel=[...chk].map(rowById).filter(Boolean);
  const nNew=sel.filter(r=>r._new).length,nOld=sel.length-nNew;
- /* 같은 품번은 1건으로 (미등록 행이 뒤에 있으므로 미등록 값이 우선) */
+ /* 같은 금형번호는 1건으로 (미등록 행이 뒤에 있으므로 미등록 값이 우선) */
  const mp=new Map();
  for(const r of sel){
   const jo=r._new?joOf(r.part_no):r.process_code;
@@ -288,7 +289,7 @@ async function bulkRun(){
  * 제목행이 있으면 제목 이름으로 열을 찾고, 없으면 위 순서대로 읽는다.
  * 같은 제번+품번은 수정(upsert). 등록자·등록일자는 등록창에서 입력. */
 const COLS=[
- {k:'part_no',  t:'품번',re:/품\s*번|부품\s*번호|품목\s*번호|part\s*(no|number|code)|^\s*p\/?no\s*$|item\s*no/i},
+ {k:'part_no',  t:'금형번호',re:/금\s*형\s*번\s*호|품\s*번|부품\s*번호|품목\s*번호|part\s*(no|number|code)|^\s*p\/?no\s*$|item\s*no/i},
  {k:'part_name',t:'품명',re:/품\s*명|부품\s*명|품목\s*명|part\s*name|^\s*name\s*$|description|desc\b/i},
  {k:'material', t:'재질',re:/재\s*질|소\s*재|material|^\s*mat'?l?\s*$/i},
  {k:'spec',     t:'규격',re:/규\s*격|설계\s*치수|치\s*수|사\s*양|spec|size|dimension/i},
@@ -399,16 +400,16 @@ function xlsPreview(){
  const miss=COLS.filter(x=>idx[x.k]==null).map(x=>x.t);
  xMap.innerHTML=(head>=0
   ?`<span style="color:#1d6b3a">✔ ${head+1}행을 제목행으로 인식 · 등록 대상 <b>${rows.length}</b>행</span>`
-  :`<span style="color:#1d6b3a">✔ 제목행 없음 → 품번·품명·재질·규격·두께·수량 순서로 읽음 · 등록 대상 <b>${rows.length}</b>행</span>`)
+  :`<span style="color:#1d6b3a">✔ 제목행 없음 → 금형번호·품명·재질·규격·두께·수량 순서로 읽음 · 등록 대상 <b>${rows.length}</b>행</span>`)
   +(()=>{const ex=new Set(data.map(x=>x.part_no)),u=[...new Set(rows.map(r=>r.part_no))];
     const up=u.filter(k=>ex.has(k)).length;return ` <span style="color:#456">(신규 ${u.length-up} · 수정 ${up})</span>`})()
-  +(skipEx||skipNo?` <span style="color:#8a6d1d">(제외: 예시행 ${skipEx} · 품번 빈 행 ${skipNo})</span>`:'')
+  +(skipEx||skipNo?` <span style="color:#8a6d1d">(제외: 예시행 ${skipEx} · 금형번호 빈 행 ${skipNo})</span>`:'')
   +(miss.length?`<br><span style="color:#b04a4a">⚠ 제목행에서 찾지 못한 열: ${miss.join(', ')} — 빈 값으로 등록됩니다</span>`:'');
  const cnt={};rows.forEach(r=>cnt[r.part_no]=(cnt[r.part_no]||0)+1);
  const exist=new Set(data.map(x=>x.part_no));
  const show=rows.slice(0,300);
- xPrev.innerHTML=rows.length?`<table style="min-width:620px"><thead><tr><th style="width:44px">No</th><th style="width:120px">품번</th><th style="width:180px">품명</th><th style="width:90px">재질</th><th style="width:150px">규격</th><th style="width:60px">두께</th><th style="width:56px">수량</th></tr></thead><tbody>${
-  show.map((r,i)=>{const dup=cnt[r.part_no]>1;return `<tr class="${dup?'bad':''}" title="${dup?'중복 품번 — 마지막 행으로 합쳐집니다':exist.has(r.part_no)?'기존 품번 — 수정됩니다':''}"><td class="c">${i+1}</td><td>${esc(r.part_no)}</td><td>${esc(r.part_name)}</td><td class="c">${esc(r.material||'')}</td><td>${esc(r.spec||'')}</td><td class="num">${fmt(r.thickness_dia)}</td><td class="num">${fmt(r.qty)}</td></tr>`}).join('')
+ xPrev.innerHTML=rows.length?`<table style="min-width:620px"><thead><tr><th style="width:44px">No</th><th style="width:120px">금형번호</th><th style="width:180px">품명</th><th style="width:90px">재질</th><th style="width:150px">규격</th><th style="width:60px">두께</th><th style="width:56px">수량</th></tr></thead><tbody>${
+  show.map((r,i)=>{const dup=cnt[r.part_no]>1;return `<tr class="${dup?'bad':''}" title="${dup?'중복 금형번호 — 마지막 행으로 합쳐집니다':exist.has(r.part_no)?'기존 금형번호 — 수정됩니다':''}"><td class="c">${i+1}</td><td>${esc(r.part_no)}</td><td>${esc(r.part_name)}</td><td class="c">${esc(r.material||'')}</td><td>${esc(r.spec||'')}</td><td class="num">${fmt(r.thickness_dia)}</td><td class="num">${fmt(r.qty)}</td></tr>`}).join('')
  }</tbody></table>${rows.length>show.length?`<div class="c" style="padding:4px;color:#687784">… 외 ${rows.length-show.length}행</div>`:''}`:'';
 }
 /* v91: 붙여넣은 행 → 리스트에 '미등록'으로 추가 (체크된 상태) */
@@ -416,7 +417,7 @@ function xlsAdd(){
  if(!curJobNo())return alert('제번을 먼저 선택하세요.');
  const {g,rows}=xlsRows();
  if(!g.length){alert('붙여넣은 내용이 없습니다.');xText.focus();return}
- if(!rows.length){alert('추가할 행이 없습니다. 첫 열이 품번인지 확인하세요.');return}
+ if(!rows.length){alert('추가할 행이 없습니다. 첫 열이 금형번호인지 확인하세요.');return}
  let rep=0;
  for(const r of rows){
   const i=pend.findIndex(x=>x.part_no===r.part_no);
@@ -426,7 +427,7 @@ function xlsAdd(){
  }
  xlsClose();render();
  const ex=new Set(data.map(x=>x.part_no)),up=rows.filter(r=>ex.has(r.part_no)).length;
- msg(`${rows.length}행을 리스트에 추가했습니다`+(up?` (기존 품번 ${up}건은 등록 시 수정)`:'')
+ msg(`${rows.length}행을 리스트에 추가했습니다`+(up?` (기존 금형번호 ${up}건은 등록 시 수정)`:'')
   +`. 등록할 행을 체크하고 [▤ 등록]을 누르세요.`);
 }
 async function xlsApply(){
@@ -435,16 +436,16 @@ async function xlsApply(){
  if(!online())return alert('DB 미연결 상태에서는 등록할 수 없습니다.');
  const {g,rows,skipNo}=xlsRows();
  if(!g.length){alert('붙여넣은 내용이 없습니다.');xText.focus();return}
- if(!rows.length){alert('등록할 행이 없습니다. 첫 열이 품번인지 확인하세요.');return}
+ if(!rows.length){alert('등록할 행이 없습니다. 첫 열이 금형번호인지 확인하세요.');return}
  const by=(xBy.value||'').trim(),dt=xDate.value;
  if(!by){alert('등록자를 입력하세요.');xBy.focus();return}
  if(!dt){alert('등록일자를 입력하세요.');xDate.focus();return}
- /* 같은 품번은 마지막 행으로 합친다 */
+ /* 같은 금형번호는 마지막 행으로 합친다 */
  const mp=new Map(),dups=[];
  for(const r of rows){if(mp.has(r.part_no))dups.push(r.part_no);
   mp.set(r.part_no,{job_no:job,process_code:joOf(r.part_no),...r,registered_by:by,registered_date:dt})}
  const fin=[...mp.values()];
- if(dups.length&&!confirm(`품번이 중복된 행이 ${dups.length}개 있습니다.\n중복 품번: ${[...new Set(dups)].slice(0,10).join(', ')}\n\n같은 품번은 마지막 행 기준 1건으로 합쳐 ${fin.length}건을 등록합니다.\n계속할까요?`))return;
+ if(dups.length&&!confirm(`금형번호가 중복된 행이 ${dups.length}개 있습니다.\n중복 금형번호: ${[...new Set(dups)].slice(0,10).join(', ')}\n\n같은 금형번호는 마지막 행 기준 1건으로 합쳐 ${fin.length}건을 등록합니다.\n계속할까요?`))return;
  try{
   if(MESDB.ensureRefs)await MESDB.ensureRefs(fin.map(r=>({part_no:r.part_no,part_name:r.part_name,material:r.material})));
   await MESDB.table('partlist_materials').upsert(fin,'job_no,process_code,part_no');
@@ -453,7 +454,7 @@ async function xlsApply(){
   notify();
   xMask.classList.remove('on');await loadJob(job);
   msg(`${job} 원재료 PartList ${fin.length}건 등록 · 등록자 ${by} · ${dt}`
-   +(dups.length?` (중복 ${dups.length}행 병합)`:'')+(skipNo?` (품번 빈 행 ${skipNo} 제외)`:''));
+   +(dups.length?` (중복 ${dups.length}행 병합)`:'')+(skipNo?` (금형번호 빈 행 ${skipNo} 제외)`:''));
  }catch(e){const m=String(e.message||e);
   alert('등록 실패: '+(/무결성|foreign key/i.test(m)?'등록되지 않은 제번입니다. 수주등록을 먼저 하세요.':m.slice(0,160)))}
 }
@@ -469,7 +470,7 @@ function manAdd(){
  const job=curJobNo();
  if(!job)return alert('제번을 먼저 선택하세요.');
  const pn=(mPn.value||'').trim();
- if(!pn){alert('품번을 입력하세요.');mPn.focus();return}
+ if(!pn){alert('금형번호를 입력하세요.');mPn.focus();return}
  const sp=(mSpec.value||'').trim();
  const r={part_no:pn,part_name:(mName.value||'').trim(),material:(mMat.value||'').trim()||null,
   spec:sp||null,...dims(sp,XNUM(mThk.value)),qty:XNUM(mQty.value)};
@@ -479,10 +480,48 @@ function manAdd(){
  render();
  [mPn,mName,mMat,mSpec,mThk].forEach(el=>el.value='');mQty.value='1';mPn.focus();
  const ex=data.some(x=>x.part_no===pn);
- msg(`${pn} 을(를) 리스트에 추가했습니다`+(rep?' (미등록 행 교체)':'')+(ex?' (기존 품번 — 등록 시 수정)':'')
+ msg(`${pn} 을(를) 리스트에 추가했습니다`+(rep?' (미등록 행 교체)':'')+(ex?' (기존 금형번호 — 등록 시 수정)':'')
   +'. 체크 후 [▤ 등록]을 누르세요.');
 }
 
+
+/* ── v119: 품번(제품 품번)으로도 제번을 찾는다 — job_pool 의 job_no ↔ model ───── */
+const PNMAP=[];
+function pnFillDL(){
+ const dl=document.getElementById('pnDL');if(!dl)return;
+ const seen=new Set(),out=[];
+ PNMAP.forEach(x=>{if(seen.has(x.model))return;seen.add(x.model);out.push(x)});
+ out.sort((a,b)=>a.model.localeCompare(b.model));
+ dl.innerHTML=out.map(o=>`<option value="${o.model.replace(/"/g,'')}">${String(o.job).replace(/</g,'')}</option>`).join('');
+}
+async function pnLoad(){
+ try{
+  for(let i=0;i<60&&!window.MESDB;i++)await new Promise(r=>setTimeout(r,50));
+  if(window.MESDB&&MESDB.ready){try{await MESDB.ready}catch(e){}}
+  for(let i=0;i<20&&!(window.MESDB&&MESDB.online);i++)await new Promise(r=>setTimeout(r,150));
+  if(!(window.MESDB&&MESDB.online))return;
+  const rs=await MESDB.table('job_pool').select('select=job_no,model&order=row_no');
+  PNMAP.length=0;
+  (rs||[]).forEach(r=>{const m=String(r.model||'').trim();if(m)PNMAP.push({model:m,job:r.job_no})});
+  pnFillDL();
+ }catch(e){}
+}
+/* 품번을 고르거나 입력하면 → 그 제번으로 자재표를 연다 */
+function pnPick(){
+ const v=String(q_pn.value||'').trim();
+ if(!v)return;
+ const low=v.toLowerCase();
+ let list=PNMAP.filter(x=>x.model.toLowerCase()===low);
+ if(!list.length)list=PNMAP.filter(x=>x.model.toLowerCase().includes(low));
+ if(!list.length){msg(`품번 ${v} 로 등록된 제번이 없습니다. 수주등록의 품번을 확인하세요.`);return}
+ const jobs=[...new Set(list.map(x=>x.job))];
+ if(jobs.length>1){msg(`품번 ${v} 에 제번이 ${jobs.length}건 있습니다 — ${jobs.slice(0,6).join(', ')}${jobs.length>6?' …':''} · 제번 칸에서 고르세요.`);return}
+ q_job.value=jobs[0];
+ if(typeof loadJob==='function')loadJob(jobs[0]);
+ msg(`품번 ${list[0].model} → 제번 ${jobs[0]} 를 열었습니다.`);
+}
+/* 제번을 고르면 → 품번 칸을 같이 채운다 */
+function pnSync(job){const x=PNMAP.find(y=>y.job===job);q_pn.value=x?x.model:''}
 function search(){const j=curJobNo();if(j&&online())return loadJob(j);render()}
 window.MES={search,save,saveChecked,setMessage:msg,reload:loadJob,manOpen};render();
 (async()=>{await waitDB();const j=curJobNo();if(j)loadJob(j)})();
@@ -495,7 +534,9 @@ window.MES={search,save,saveChecked,setMessage:msg,reload:loadJob,manOpen};rende
 <script src="mes_ctx.js?v=92"></script>
 <script src="mes_jobpick.js?v=92"></script>
 <script>/* 제번 직접 타이핑 → 등록된 수주 목록에서 선택 */
-MESJOB.attach("q_job",{onPick:j=>{if(typeof loadJob==="function")loadJob(j)}});</script>
+try{MESJOB.attach("q_job",{onPick:j=>{if(typeof loadJob==="function")loadJob(j);try{pnSync(j)}catch(e){}}})}catch(e){}
+try{pnLoad();q_pn.addEventListener("change",()=>{try{pnPick()}catch(e){}});
+ q_pn.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();try{pnPick()}catch(_){}}});}catch(e){}</script>
 <script>
 function sampleFill(){
   if(window.MESDEMO)return MESDEMO.run('partlist_material_input',{});

@@ -31,6 +31,29 @@
 
 const MES_VER='v75';window.MES_VER=MES_VER;
 const CFG={url:'https://ipggvrzxfcryzryileuv.supabase.co',key:'sb_publishable_CHO-dAOU00HNwno52255mg_H3C1_vew'};
+/* v117: DB 에 아직 없는 컬럼 하나 때문에 저장 전체가 실패하지 않게 한다.
+   PostgREST 가 PGRST204(해당 컬럼 없음)로 거절하면 그 컬럼만 빼고 다시 보낸다.
+   (예: 새 Supabase 로 옮길 때 order_lines.reorder_reason 가 빠진 경우)
+   빠진 컬럼은 배지와 에러로그에 남기므로, DB 에 컬럼을 추가하면 원래대로 저장된다. */
+const MISSINGCOL=new Set();
+async function sendRows(name,path,rows,headers){
+  let a=rows;
+  for(let i=0;i<6;i++){
+    try{return await rest(path,{method:'POST',headers,body:JSON.stringify(a)})}
+    catch(e){
+      const m=String(e.message||e);
+      const col=(m.match(/Could not find the '([^']+)' column/)||[])[1];
+      if(!col)throw e;
+      const k=name+'.'+col;
+      if(!MISSINGCOL.has(k)){MISSINGCOL.add(k);
+        try{badge(`DB 에 ${name}.${col} 컬럼이 없어 그 값은 빼고 저장합니다`,'#f57c00')}catch(_){}
+        ELOG.push({level:'WARN',message:`컬럼 없음: ${name}.${col} — 이 값을 빼고 저장했습니다`,source:'POST '+name,detail:m.slice(0,1000)});}
+      a=a.map(r=>{const o={...r};delete o[col];return o});
+      if(!a.length||!Object.keys(a[0]).length)throw e;
+    }
+  }
+  throw new Error('저장 실패: 없는 컬럼이 계속 나옵니다. 기준정보 › 에러로그를 확인하세요.');
+}
 function tok(){try{return (window.MES_AUTH||window.parent.MES_AUTH)?.token||null}catch(e){return null}}
 const H=()=>({'apikey':CFG.key,'Authorization':'Bearer '+(tok()||CFG.key),'Content-Type':'application/json'});
 /* ── v47: 에러로그 ──────────────────────────────────────────────
@@ -122,7 +145,7 @@ const table=name=>({
   select:(q='select=*',o)=>{if(o&&o.fresh)xdrop(name);return rest(`${name}?${q}`)},
   upsert:(rows,onConflict)=>{const a=Array.isArray(rows)?rows:[rows];const keys=[];for(const r of a)for(const k in r)if(!keys.includes(k))keys.push(k);
     const norm=a.map(r=>{const o={};for(const k of keys)o[k]=(r[k]===undefined?null:r[k]);return o});
-    return autoNotify(name,rest(`${name}${onConflict?'?on_conflict='+onConflict:''}`,{method:'POST',headers:{'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(norm)}))},
+    return autoNotify(name,sendRows(name,`${name}${onConflict?'?on_conflict='+onConflict:''}`,norm,{'Prefer':'resolution=merge-duplicates,return=minimal'}))},
   delete:(match)=>autoNotify(name,rest(`${name}?`+Object.entries(match).map(([k,v])=>`${k}=eq.${encodeURIComponent(v)}`).join('&'),{method:'DELETE',headers:{'Prefer':'return=minimal'}})),
   /* v39: identity 채번 컬럼을 DB에 맡기고 생성된 행을 돌려받는다.
      (화면에서 max+1 로 직접 채번하면 동시 저장 시 PK 가 충돌한다) */

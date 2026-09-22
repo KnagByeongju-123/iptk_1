@@ -8,6 +8,7 @@ button,input,select{font:inherit;color:inherit}.screen{height:100%;display:flex;
 .entrybox,.gridbox{margin:0 14px;border:1px solid var(--line);overflow:auto;background:#fff}.entrybox{height:190px}.gridbox{flex:1;min-height:0}
 .searchline{height:39px;margin:0 14px;display:flex;align-items:center;gap:5px;border-left:1px solid var(--line);border-right:1px solid var(--line);padding:4px 8px;background:#f6f8fa}.searchline input{width:min(430px,48vw);height:27px;border:1px solid #aeb9c3;padding:0 7px}
 .btn{height:29px;min-width:62px;border:1px solid #9ba8b4;background:linear-gradient(#fff,#dfe6eb);cursor:pointer}.btn:hover{background:#fff}
+.btn.danger{border-color:#c08a86;color:#a8403c;background:linear-gradient(#fff,#f7e7e6)}.btn.danger:hover{background:#fff}
 table{border-collapse:collapse;min-width:1040px;width:100%;table-layout:fixed}th,td{height:27px;border-right:1px solid var(--line2);border-bottom:1px solid var(--line2);padding:0 7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}th{position:sticky;top:0;z-index:2;text-align:center;background:linear-gradient(var(--head1),var(--head2));color:#405266}tbody tr:nth-child(even) td{background:#fafcfd}tbody tr:hover td{background:#edf6fd}tbody tr.sel td{background:#2d75b7;color:#fff}.c{text-align:center}.num{text-align:right}.toolbar{height:40px;display:flex;align-items:center;gap:5px;padding:4px 14px;background:#f5f7f8;border-bottom:1px solid var(--line2)}
 .foot{height:42px;display:flex;align-items:center;padding:5px 14px;border-top:1px solid var(--line);background:#eef2f5;gap:5px}.msg{margin-left:8px;color:#687784}.right{margin-left:auto;color:#7c8993}
 .split{flex:1;min-height:0;display:grid;grid-template-rows:1fr 1fr;gap:10px;padding:0 14px 8px}.split .gridbox{margin:0}
@@ -22,28 +23,51 @@ table{border-collapse:collapse;min-width:1040px;width:100%;table-layout:fixed}th
 @media(max-width:1400px){.formrow{grid-template-columns:78px minmax(0,1fr) 78px minmax(0,1fr)}}
 @media(max-width:880px){.formrow{grid-template-columns:78px minmax(0,1fr)}}
 .formrow>*{min-width:0}
+.sortable{cursor:pointer;user-select:none}.sortable:hover{background:#dbe8f3}
+.sar{display:inline-block;margin-left:4px;color:#7b8a99;font-size:10px}
+.sar.on{color:#2f75b5;font-weight:700}
+/* v134: 필터는 줄바꿈 되는 가로배치 — 라벨이 잘리지 않는다 */
+.formrow{display:flex!important;flex-wrap:wrap;gap:6px 14px;align-items:center}
+.formrow .fgrp{display:flex;align-items:center;gap:5px}
+.formrow .label{font-weight:700;white-space:nowrap;overflow:visible;text-overflow:clip;text-align:left;min-width:0}
+.formrow .tilde{color:#7b8a99;padding:0 1px}
+.cbx{width:14px;height:14px;vertical-align:-2px}
 </style></head><body><div class="screen">
 <div class="title"><h1>제조원가 조회</h1><small>1공장 · 기준 2026-08-22</small></div>
 <section class="form">
- <div class="formrow"><div class="label">수주유형</div><select id="otype" class="field"><option selected>전체</option><option>신작</option><option>개조</option><option>수리</option><option>유상사급</option></select><div class="label">제번</div><input id="jobq" class="field"><div class="label">모델</div><input id="modelq" class="field"><div class="label">품명</div><input id="itemq" class="field"></div>
- <div class="formrow"><div class="label">수주일</div><input type="date" class="field"><div class="label">T/O 완료일</div><input type="date" class="field"><div class="label">완료일</div><input type="date" class="field"><div class="label">도번</div><input id="drawq" class="field"></div>
+ <div class="formrow">
+  <span class="fgrp"><span class="label">수주유형</span>
+   <select id="otype" class="field" style="width:120px"><option selected>전체</option><option>신작</option><option>개조</option><option>수리</option><option>유상사급</option></select></span>
+  <span class="fgrp"><span class="label">제번</span>
+   <input id="jobq" class="field" style="width:170px" placeholder="제번 입력/선택" list="jobDL" autocomplete="off" onchange="jobPick()"><datalist id="jobDL"></datalist></span>
+  <span class="fgrp"><span class="label">품번</span>
+   <input id="modelq" class="field" style="width:180px" placeholder="품번 입력/선택" list="pnDL" autocomplete="off" onchange="pnPick()"><datalist id="pnDL"></datalist></span>
+  <span class="fgrp"><span class="label">품명</span><input id="itemq" class="field" style="width:140px"></span>
+  <span class="fgrp"><span class="label">도번</span><input id="drawq" class="field" style="width:140px"></span>
+ </div>
+ <div class="formrow">
+  <span class="fgrp"><span class="label">정산완료일</span>
+   <input type="date" id="cd1" class="field" style="width:148px"><span class="tilde">~</span><input type="date" id="cd2" class="field" style="width:148px"></span>
+  <span class="fgrp"><span class="label" title="그 제번으로 나간 외주가공 발주 중 가장 빠른 발주일">외주가공 발주일</span>
+   <input type="date" id="od1" class="field" style="width:148px"><span class="tilde">~</span><input type="date" id="od2" class="field" style="width:148px"></span>
+ </div>
 </section>
 <div class="split">
  <div class="gridbox"><table style="min-width:1320px">
-  <thead><tr><th style="width:70px">수주유형</th><th style="width:92px" title="정산까지 끝나 제번을 종결한 날">정산완료일</th><th style="width:78px">제번</th><th style="width:90px">모델</th><th style="width:180px">품명</th><th style="width:110px">도번</th><th style="width:52px">조수</th><th style="width:72px">개발유형</th><th style="width:112px">수주가</th><th style="width:112px">목표가</th><th style="width:78px">목표가대비</th><th style="width:106px">SET외주</th><th style="width:100px">경비</th><th style="width:112px">제조원가</th><th style="width:112px">이윤</th><th style="width:68px">이익률</th></tr></thead>
+  <thead><tr><th style="width:34px" title="전체 선택 / 해제"><input type="checkbox" class="cbx" id="chkAll" onclick="checkAll(this.checked)"></th><th style="width:70px">수주유형</th><th style="width:96px" title="그 제번으로 나간 외주가공 발주 중 가장 빠른 발주일 — 눌러서 정렬" class="sortable" onclick="sortBy('mac_order_date')">외주가공 발주일<span class="sar" data-k="mac_order_date"></span></th><th style="width:96px" title="정산까지 끝나 제번을 종결한 날 — 눌러서 정렬" class="sortable" onclick="sortBy('completion_date')">정산완료일<span class="sar" data-k="completion_date"></span></th><th style="width:78px">제번</th><th style="width:94px" title="눌러서 정렬" class="sortable" onclick="sortBy('model')">품번<span class="sar" data-k="model"></span></th><th style="width:180px">품명</th><th style="width:110px">도번</th><th style="width:52px">조수</th><th style="width:72px">개발유형</th><th style="width:112px">수주가</th><th style="width:112px">목표가</th><th style="width:78px">목표가대비</th><th style="width:106px">SET외주</th><th style="width:100px">경비</th><th style="width:112px">제조원가</th><th style="width:112px">이윤</th><th style="width:68px">이익률</th></tr></thead>
   <tbody id="obody"></tbody>
-  <tfoot><tr class="gtot"><td colspan="16" class="c" id="totline">조회 0건</td></tr></tfoot>
+  <tfoot><tr class="gtot"><td colspan="18" class="c" id="totline">조회 0건</td></tr></tfoot>
  </table></div>
  <div class="gridbox"><table style="min-width:1560px">
   <thead>
    <tr class="grp"><th colspan="7">기본정보</th><th colspan="6">설계비</th><th colspan="6">재료비</th></tr>
-   <tr><th style="width:78px">제번</th><th style="width:90px">모델</th><th style="width:150px">품명</th><th style="width:120px">도번</th><th style="width:52px">공정</th><th style="width:110px">제조원가</th><th style="width:78px">제조원가율</th><th style="width:100px">소계</th><th style="width:56px">(%)</th><th style="width:100px">사내</th><th style="width:56px">(%)</th><th style="width:90px">사외</th><th style="width:56px">(%)</th><th style="width:100px">소계</th><th style="width:56px">(%)</th><th style="width:100px">원재료</th><th style="width:56px">(%)</th><th style="width:100px">구매품</th><th style="width:56px">(%)</th></tr>
+   <tr><th style="width:78px">제번</th><th style="width:90px">품번</th><th style="width:150px">품명</th><th style="width:120px">도번</th><th style="width:52px">공정</th><th style="width:110px">제조원가</th><th style="width:78px">제조원가율</th><th style="width:100px">소계</th><th style="width:56px">(%)</th><th style="width:100px">사내</th><th style="width:56px">(%)</th><th style="width:90px">사외</th><th style="width:56px">(%)</th><th style="width:100px">소계</th><th style="width:56px">(%)</th><th style="width:100px">원재료</th><th style="width:56px">(%)</th><th style="width:100px">구매품</th><th style="width:56px">(%)</th></tr>
   </thead>
   <tbody id="dbody"></tbody>
   <tfoot id="dfoot"></tfoot>
  </table></div>
 </div>
-<footer class="foot"><button class="btn" onclick="search()">⌕ 검색</button><button class="btn" onclick="exportCsv()">▤ EXCEL</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">제번을 선택하면 공정별 원가가 표시됩니다.</span><span class="right" id="countText"></span></footer>
+<footer class="foot"><button class="btn" onclick="search()">⌕ 검색</button><button class="btn" onclick="editChecked()" title="체크한 제번을 수주등록 화면에서 엽니다">✎ 수정</button><button class="btn danger" onclick="delChecked()" title="체크한 제번의 모든 기록을 삭제합니다">✕ 삭제</button><button class="btn" onclick="exportCsv()">▤ EXCEL</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">제번을 선택하면 공정별 원가가 표시됩니다.</span><span class="right" id="countText"></span></footer>
 </div><script>
 const orders=[];
 const details=[];
@@ -58,10 +82,11 @@ function renderTotal(){
   const src=(typeof view!=='undefined'&&view)||[];
   const sum=k=>src.reduce((a,r)=>a+(Number(r[k])||0),0);
   const el=document.getElementById('totline'); if(!el)return;
-  el.textContent = src.length ? `조회 ${src.length}건 · ` + ['수주가 '+money(sum('order_price')),'목표가 '+money(sum('target_price')),'제조원가 '+money(sum('manufacturing_cost')),'이윤 '+money(sum('profit'))].join(' / ') : '조회된 자료가 없습니다.';
+  const nsel=(typeof CHK!=='undefined'&&CHK.size)?` · 선택 ${CHK.size}건`:'';
+  el.textContent = src.length ? `조회 ${src.length}건${nsel} · ` + ['수주가 '+money(sum('order_price')),'목표가 '+money(sum('target_price')),'제조원가 '+money(sum('manufacturing_cost')),'이윤 '+money(sum('profit'))].join(' / ') : '조회된 자료가 없습니다.';
 }
 function render(){
- obody.innerHTML=view.map((r,i)=>`<tr onclick="pick(${i},this)"><td class="c">${esc(r.order_type)}</td><td class="c">${esc(r.completion_date||'')}</td><td>${esc(r.job_no)}</td><td>${esc(r.model||'')}</td><td>${esc(r.item_name)}</td><td>${dwv(r)}</td><td class="c">${r.set_qty??''}</td><td class="c">${esc(r.development_type||'')}</td><td class="num">${n(r.order_price)}</td><td class="num">${n(r.target_price)}</td><td class="num">${p(r.target_ratio_pct)}</td><td class="num">${n(r.set_outsourcing_cost)}</td><td class="num">${n(r.expense_cost)}</td><td class="num">${n(r.manufacturing_cost)}</td><td class="num">${n(r.profit)}</td><td class="num">${p(r.profit_rate_pct)}</td></tr>`).join('');
+ obody.innerHTML=view.map((r,i)=>`<tr onclick="pick(${i},this)"><td class="c"><input type="checkbox" class="cbx" data-job="${esc(r.job_no)}" ${CHK.has(r.job_no)?'checked':''} onclick="event.stopPropagation();toggleChk('${esc(r.job_no)}',this.checked)"></td><td class="c">${esc(r.order_type)}</td><td class="c">${esc(r.mac_order_date||'')}</td><td class="c">${esc(r.completion_date||'')}</td><td>${esc(r.job_no)}</td><td>${esc(r.model||'')}</td><td>${esc(r.item_name)}</td><td>${dwv(r)}</td><td class="c">${r.set_qty??''}</td><td class="c">${esc(r.development_type||'')}</td><td class="num">${n(r.order_price)}</td><td class="num">${n(r.target_price)}</td><td class="num">${p(r.target_ratio_pct)}</td><td class="num">${n(r.set_outsourcing_cost)}</td><td class="num">${n(r.expense_cost)}</td><td class="num">${n(r.manufacturing_cost)}</td><td class="num">${n(r.profit)}</td><td class="num">${p(r.profit_rate_pct)}</td></tr>`).join('');
  countText.textContent=view.length+'건';
 }
 /* v62: 공정별 원가 내역을 실데이터에서 집계 (예전엔 사진 스냅샷 details 고정 → 실제 제번은 항상 빈 내역)
@@ -103,14 +128,103 @@ async function pick(i,tr){
  dfoot.innerHTML=rows.length?`<tr class="gtot"><td colspan="5" class="c">합계</td><td class="num">${n(sum('manufacturing_cost'))}</td><td></td><td class="num">${n(sum('design_cost_subtotal'))}</td><td></td><td class="num">${n(sum('design_cost_internal'))}</td><td></td><td class="num">${n(sum('design_cost_external'))}</td><td></td><td class="num">${n(sum('material_cost_subtotal'))}</td><td></td><td class="num">${n(sum('raw_material_cost'))}</td><td></td><td class="num">${n(sum('purchase_item_cost'))}</td><td></td></tr>`:'';
  message.textContent=`${r.job_no} / ${r.item_name} · 공정 ${rows.length}건`;
 }
+/* ── v134: 행 선택 + [수정](수주등록 열기) + [삭제](제번 통째 삭제) ───────── */
+const CHK=new Set();
+function toggleChk(job,on){on?CHK.add(job):CHK.delete(job);syncChkAll();renderTotal()}
+function checkAll(on){
+ view.forEach(r=>{on?CHK.add(r.job_no):CHK.delete(r.job_no)});
+ document.querySelectorAll('#obody input[type=checkbox][data-job]').forEach(cb=>{cb.checked=on});
+ syncChkAll();renderTotal()}
+function syncChkAll(){const el=document.getElementById('chkAll');if(!el)return;
+ const on=view.length>0&&view.every(r=>CHK.has(r.job_no));
+ el.checked=on;el.indeterminate=!on&&view.some(r=>CHK.has(r.job_no))}
+function checkedJobs(){return view.filter(r=>CHK.has(r.job_no)).map(r=>r.job_no)}
+/* [✎ 수정] — 체크한 제번을 수주등록 화면에서 연다 */
+function editChecked(){
+ const js=checkedJobs();
+ if(!js.length)return message.textContent='수정할 제번을 체크하세요.';
+ if(js.length>1)return message.textContent=`수정은 한 번에 한 제번만 됩니다. 지금 ${js.length}건이 체크돼 있습니다.`;
+ const job=js[0];
+ try{
+  const P=window.parent;
+  if(P&&P.openByName){
+   P.openByName('수주등록');
+   let n=0;
+   const tick=setInterval(()=>{
+    n++;
+    try{
+     const fr=P.document.getElementById('view_sale_order_input');
+     const w=fr&&fr.contentWindow;
+     if(w&&w.MES&&w.MES.loadJob){clearInterval(tick);w.MES.loadJob(job);return}
+     if(w&&w.document&&w.document.getElementById('job_no')){clearInterval(tick);w.document.getElementById('job_no').value=job}
+    }catch(e){}
+    if(n>20)clearInterval(tick);
+   },200);
+   message.textContent=`수주등록 화면에서 ${job} 을(를) 엽니다.`;return;
+  }
+ }catch(e){}
+ message.textContent=`수주등록 화면을 열어 제번 ${job} 을(를) 조회하세요.`;
+}
+/* [✕ 삭제] — 체크한 제번을 통째로 삭제 (수주·계획·PartList·발주·입고·실적 전부) */
+async function delChecked(){
+ const js=checkedJobs();
+ if(!js.length)return message.textContent='삭제할 제번을 체크하세요.';
+ if(!_online())return message.textContent='DB 미연결 상태에서는 삭제할 수 없습니다.';
+ const head=js.slice(0,10).map(j=>' · '+j).join('\n');
+ if(!confirm(`아래 제번을 통째로 삭제합니다. (${js.length}건)\n\n${head}${js.length>10?'\n … 외 '+(js.length-10)+'건':''}\n\n`
+  +`수주정보·제작계획·PartList·발주/입고·실적·경비까지 그 제번의 모든 기록이 지워집니다.\n되돌릴 수 없습니다. 계속할까요?`))return;
+ const typed=prompt(`확인을 위해 삭제할 제번 수(${js.length})를 입력하세요.`);
+ if(typed===null||String(typed).trim()!==String(js.length)){message.textContent='입력이 달라 삭제를 취소했습니다. (아무것도 지워지지 않았습니다)';return}
+ let ok=0,ng=0,last='';
+ for(const job of js){
+  message.textContent=`삭제 중… ${ok+ng+1}/${js.length} — ${job}`;
+  try{await MESDB.rpc('mes_reset_job_progress',{p_job:job});ok++;CHK.delete(job)}
+  catch(e){ng++;last=String(e.message||e)}
+ }
+ try{MESDB.notify&&MESDB.notify(['jobs','sale_orders','sale_order_status_rows','order_lines'])}catch(e){}
+ try{MESDB.dropCache&&MESDB.dropCache('manufacturing_cost_view')}catch(e){}
+ await loadLive();
+ message.textContent=ng?`삭제 — 성공 ${ok}건 · 실패 ${ng}건: ${/PGRST202|404|Could not find the function/i.test(last)?'DB 에 mes_reset_job_progress 함수가 없습니다.':last.slice(0,110)}`
+   :`제번 ${ok}건을 삭제했습니다.`;
+}
+/* ── v126: 제번·품번 드롭다운(타이핑 병행), 날짜 범위 필터, 열 정렬 ───────── */
+function fillDLs(){
+ const jd=document.getElementById('jobDL'),pd=document.getElementById('pnDL');
+ if(jd)jd.innerHTML=orders.map(r=>`<option value="${String(r.job_no||'').replace(/"/g,'')}">${String(r.model||'').replace(/</g,'')}</option>`).join('');
+ if(pd){const seen=new Set(),out=[];
+  orders.forEach(r=>{const m=String(r.model||'').trim();if(!m||seen.has(m))return;seen.add(m);out.push({m,job:r.job_no})});
+  out.sort((a,b)=>a.m.localeCompare(b.m));
+  pd.innerHTML=out.map(o=>`<option value="${o.m.replace(/"/g,'')}">${String(o.job).replace(/</g,'')}</option>`).join('')}
+}
+function jobPick(){const v=String(jobq.value||'').trim();const r=orders.find(x=>String(x.job_no)===v);if(r)modelq.value=String(r.model||'');search()}
+function pnPick(){const v=String(modelq.value||'').trim().toLowerCase();
+ if(v){const jobs=[...new Set(orders.filter(x=>String(x.model||'').toLowerCase()===v).map(x=>x.job_no))];
+  if(jobs.length===1)jobq.value=jobs[0];else if(jobs.length>1)jobq.value=''}
+ search()}
+/* 열 정렬 — 같은 열을 다시 누르면 내림차순 */
+let sortKey='',sortDir=1;
+function sortBy(k){if(sortKey===k)sortDir=-sortDir;else{sortKey=k;sortDir=1}applySort();render();renderTotal();markSort()}
+function applySort(){
+ if(!sortKey)return;
+ const kv=r=>{const v=r[sortKey];return v==null?'':String(v)};
+ view.sort((a,b)=>{const x=kv(a),y=kv(b);
+  if(x===y)return String(a.job_no||'').localeCompare(String(b.job_no||''));
+  if(x==='')return 1;if(y==='')return -1;                 /* 빈 값은 항상 뒤로 */
+  return x<y?-sortDir:sortDir});
+}
+function markSort(){document.querySelectorAll('.sar').forEach(el=>{
+ const on=el.dataset.k===sortKey;el.className='sar'+(on?' on':'');el.textContent=on?(sortDir>0?'▲':'▼'):'⇅'})}
+const inRange=(v,a,b)=>{if(!a&&!b)return true;if(!v)return false;const s=String(v).slice(0,10);return (!a||s>=a)&&(!b||s<=b)};
 function search(){
  const t=otype.value,j=jobq.value.trim().toUpperCase(),m=modelq.value.trim().toLowerCase(),it=itemq.value.trim().toLowerCase(),d=drawq.value.trim().toLowerCase();
- view=orders.filter(r=>(t==='전체'||r.order_type===t)&&(!j||r.job_no.toUpperCase().includes(j))&&(!m||String(r.model??'').toLowerCase().includes(m))&&(!it||r.item_name.toLowerCase().includes(it))&&(!d||String(r.drawing_no??'').toLowerCase().includes(d)));
- dbody.innerHTML='';dfoot.innerHTML='';render();renderTotal();message.textContent=`조회결과 ${view.length}건입니다.`;
+ view=orders.filter(r=>(t==='전체'||r.order_type===t)&&(!j||r.job_no.toUpperCase().includes(j))&&(!m||String(r.model??'').toLowerCase().includes(m))&&(!it||r.item_name.toLowerCase().includes(it))&&(!d||String(r.drawing_no??'').toLowerCase().includes(d))
+   &&inRange(r.completion_date,cd1.value,cd2.value)&&inRange(r.mac_order_date,od1.value,od2.value));
+ applySort();markSort();
+ dbody.innerHTML='';dfoot.innerHTML='';render();syncChkAll();renderTotal();message.textContent=`조회결과 ${view.length}건입니다.`;
 }
 function exportCsv(){
- const h=['수주유형','정산완료일','제번','모델','품명','도번','조수','개발유형','수주가','목표가','목표가대비','SET외주','경비','제조원가','이윤','이익률'];
- const rows=view.map(r=>[r.order_type,r.completion_date,r.job_no,r.model,r.item_name,r.drawing_no,r.set_qty,r.development_type,r.order_price,r.target_price,r.target_ratio_pct,r.set_outsourcing_cost,r.expense_cost,r.manufacturing_cost,r.profit,r.profit_rate_pct]);
+ const h=['수주유형','외주가공 발주일','정산완료일','제번','품번','품명','도번','조수','개발유형','수주가','목표가','목표가대비','SET외주','경비','제조원가','이윤','이익률'];
+ const rows=view.map(r=>[r.order_type,r.mac_order_date,r.completion_date,r.job_no,r.model,r.item_name,r.drawing_no,r.set_qty,r.development_type,r.order_price,r.target_price,r.target_ratio_pct,r.set_outsourcing_cost,r.expense_cost,r.manufacturing_cost,r.profit,r.profit_rate_pct]);
  const csv='\ufeff'+[h,...rows].map(a=>a.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\n');
  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='manufacturing_cost_orders.csv';a.click();
 }
@@ -125,6 +239,15 @@ async function loadLive(){
   const rs=await MESDB.table('manufacturing_cost_view').select('select=*');
   orders.length=0;
   rs.forEach(r=>orders.push(r));
+  /* v126: 제번별 외주가공 최초 발주일 — order_lines(category=외주가공) 에서 가장 빠른 발주일 */
+  try{
+   const ol=await MESDB.table('order_lines').select('select=job_no,order_date&category=eq.외주가공');
+   const mp=new Map();
+   (ol||[]).forEach(l=>{const d=l.order_date?String(l.order_date).slice(0,10):'';if(!d)return;
+     const c=mp.get(l.job_no);if(!c||d<c)mp.set(l.job_no,d)});
+   orders.forEach(r=>{r.mac_order_date=mp.get(r.job_no)||''});
+  }catch(e){orders.forEach(r=>{r.mac_order_date=r.mac_order_date||''})}
+  fillDLs();
   if(typeof view!=='undefined'&&Array.isArray(view))view=[...orders];
   (window.MES&&window.MES.search||window.search||window.render||function(){})();
   const m=document.getElementById('message');

@@ -9,7 +9,7 @@
 *{box-sizing:border-box}html,body{height:100%;margin:0}body{font-family:"Malgun Gothic","맑은 고딕",Arial,sans-serif;font-size:12px;color:var(--ink);background:#fff;overflow:hidden}button,input,select{font:inherit;color:inherit}
 .screen{height:100%;display:flex;flex-direction:column;background:#fff}.title{height:48px;padding:10px 14px 5px;border-bottom:2px solid #3977ad}.title h1{margin:0;font-size:22px;font-weight:500;color:#4b5b69}.title h1:before{content:'◯';margin-right:6px;color:#8795a1}.title small{font-size:11px;color:#9aa5ae;margin-left:12px}
 .filters{padding:7px 14px 8px;border-bottom:1px solid var(--line2);background:#fafbfc}.row{display:grid;grid-template-columns:90px minmax(160px,1fr) 70px 140px 70px minmax(150px,1fr) 70px 100px;gap:5px;align-items:center}.row+.row{margin-top:5px}.label{font-weight:700}.field{height:27px;border:1px solid #b7c2cb;background:#fff;padding:0 7px;outline:none}.field:focus{border-color:#4e88bb}.gridbox{flex:1;min-height:0;margin:0 14px;border:1px solid var(--line);display:flex;flex-direction:column;background:white}.grid-title{height:28px;display:flex;align-items:center;justify-content:center;background:linear-gradient(#deebf5,#caddea);border-bottom:1px solid var(--line);font-weight:700;color:#536677}.tablewrap{flex:1;min-height:0;overflow:auto}table{border-collapse:collapse;min-width:1320px;width:100%;table-layout:fixed}th,td{height:26px;padding:0 6px;border-right:1px solid var(--line2);border-bottom:1px solid var(--line2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}th{position:sticky;top:0;z-index:2;text-align:center;background:linear-gradient(#dbe9f4,#c7d9e8);color:#405266;font-weight:700}tbody tr:nth-child(even) td{background:#fafcfd}tbody tr:hover td{background:#edf6fd}tbody tr.sel td{background:#2e78bd;color:#fff}.c{text-align:center}.r{text-align:right}.check{width:42px}.no{width:52px}.job{width:105px}.item{width:145px}.proc{width:58px}.procname{width:90px}.part{width:100px}.partname{width:145px}.mat{width:70px}.vendor{width:95px}.date{width:92px}.price{width:95px}.rate{width:76px}.status{width:80px}
-.filterbar{height:29px;margin:0 14px;display:flex;align-items:center;border:1px solid var(--line);border-top:0;background:#f6f8fa;padding:0 7px;color:#657482;gap:8px}.filterbar .x{color:#768591}.summary{height:51px;margin:0 14px;border:1px solid var(--line);border-top:0;background:#eef3f6;display:flex;align-items:center;gap:7px;padding:6px}.summary label{font-weight:700}.summary input,.summary select{height:28px;border:1px solid #aeb9c3;background:#fff;padding:0 6px}.summary .money{width:150px;text-align:right}.summary .rateinput{width:85px;text-align:right}.summary .dateinput{width:125px}.btn{height:29px;min-width:72px;border:1px solid #9ca9b5;background:linear-gradient(#fff,#dfe6eb)}.btn:hover{background:#fff}.btn.primary{background:linear-gradient(#f9ffff,#d2e7f6);color:#1e5e91}.btn.confirm{background:linear-gradient(#fff3f7,#f3c3d5);color:#a8235a;border-color:#d38aa6;font-weight:700}.btn.confirm:hover{background:linear-gradient(#fff,#f7d3e0)}.spacer{flex:1}.foot{height:43px;display:flex;align-items:center;padding:5px 14px;border-top:1px solid var(--line);background:#eef2f5;gap:5px}.msg{margin-left:10px;color:#687784}.foot .right{margin-left:auto;color:#7c8993}
+.filterbar{height:29px;margin:0 14px;display:flex;align-items:center;border:1px solid var(--line);border-top:0;background:#f6f8fa;padding:0 7px;color:#657482;gap:8px}.filterbar .x{color:#768591}.summary{height:51px;margin:0 14px;border:1px solid var(--line);border-top:0;background:#eef3f6;display:flex;align-items:center;gap:7px;padding:6px}.summary label{font-weight:700}.summary input,.summary select{height:28px;border:1px solid #aeb9c3;background:#fff;padding:0 6px}.summary .money{width:150px;text-align:right}.summary .rateinput{width:85px;text-align:right}.summary .dateinput{width:125px}.btn{height:29px;min-width:72px;border:1px solid #9ca9b5;background:linear-gradient(#fff,#dfe6eb)}.btn.warn{color:#a63a2f}.btn:hover{background:#fff}.btn.primary{background:linear-gradient(#f9ffff,#d2e7f6);color:#1e5e91}.btn.confirm{background:linear-gradient(#fff3f7,#f3c3d5);color:#a8235a;border-color:#d38aa6;font-weight:700}.btn.confirm:hover{background:linear-gradient(#fff,#f7d3e0)}.spacer{flex:1}.foot{height:43px;display:flex;align-items:center;padding:5px 14px;border-top:1px solid var(--line);background:#eef2f5;gap:5px}.msg{margin-left:10px;color:#687784}.foot .right{margin-left:auto;color:#7c8993}
 @media(max-width:900px){.row{grid-template-columns:80px 1fr 70px 1fr}.row .wide-hide{display:none}.summary{overflow:auto}.title h1{font-size:19px}}
 .title{display:flex;align-items:center;gap:14px}.opts{display:flex;gap:14px;align-items:center;color:#41505c;font-size:13px}.opts label{display:flex;align-items:center;gap:4px;cursor:pointer}
 </style>
@@ -43,7 +43,7 @@
     <label>입고확정일</label><input id="confirmDate" class="dateinput" type="date"><button class="btn confirm" onclick="confirmSelected()">▣ 입고확정</button>
     <div class="spacer"></div><span id="selectedText">선택 0건</span>
   </div>
-  <footer class="foot"><button class="btn" onclick="search()">⌕ 검색</button><button class="btn" onclick="save()">▣ 저장</button><button class="btn" onclick="cancelConfirm()">✖ 확정취소</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">입고 확정 대기 데이터를 조회했습니다.</span><span class="right" id="countText"></span></footer>
+  <footer class="foot"><button class="btn" onclick="search()">⌕ 검색</button><button class="btn" onclick="save()">▣ 저장</button><button class="btn warn" onclick="cancelConfirm()" title="확정된 건은 위쪽 [완료]로 조회한 뒤 고르세요">✖ 입고확정취소</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">입고 확정 대기 데이터를 조회했습니다.</span><span class="right" id="countText"></span></footer>
 </div>
 <script>
 const rows=[];
@@ -75,7 +75,25 @@ async function confirmSelected(){const s=selectedRows();if(!s.length)return msg(
  /* v116: 입고확정 완료 팝업을 직접 띄운다 (상태줄 감시에만 의존하지 않음) */
  try{(window.MESPOP||window.parent?.MESPOP)?.ok(okm+'\n'+[...new Set(s.map(r=>r.part).filter(Boolean))].slice(0,8).join(', '),'입고확정 완료')}catch(e){}
  msg(okm+` (DB 저장 완료${doneMode()==='완료'?'':' - 미완료 목록에서 제외'})`)}
-function cancelConfirm(){const s=selectedRows();if(!s.length)return msg('확정취소할 행을 선택하세요.');s.forEach(r=>{r.confirm='';r.status='입고';r.fix=''});dirty=true;render();msg(`${s.length}건의 입고확정을 취소했습니다. (입고 상태로 복귀)`)}
+/* v136: 입고확정취소 — 고르고 누르면 바로 DB 에 반영한다 ([저장]을 따로 누르지 않아도 된다).
+   확정된 건은 「완료」로 조회하면 목록에 나온다. */
+async function cancelConfirm(){
+ const s=selectedRows();
+ if(!s.length)return msg('확정취소할 행을 선택하세요. (확정된 건은 위쪽 [완료]로 조회하면 나옵니다)');
+ const t=s.filter(r=>r.status==='확정'||r.confirm);
+ if(!t.length)return msg('선택한 행 중 입고확정된 건이 없습니다. [완료]로 조회해 확정된 행을 고르세요.');
+ const list=[...new Set(t.map(r=>`${r.job} ${r.part||''}`))].slice(0,8).join('\n · ');
+ if(!confirm(`입고확정 ${t.length}건을 취소합니다.\n\n · ${list}${t.length>8?'\n … 외 '+(t.length-8)+'건':''}\n\n`
+   +`입고확정일과 확정가가 지워지고 「입고」 상태로 돌아갑니다. 계속할까요?`))return;
+ t.forEach(r=>{r.confirm='';r.status='입고';r.fix=''});dirty=true;
+ if(!window.MESDB||!MESDB.online){render();return msg(`${t.length}건의 입고확정을 취소했습니다. (DB 미연결 - 로컬, [저장]으로 반영)`)}
+ msg('확정취소 반영 중…');
+ try{await MESDB.syncLines()}catch(e){}
+ let rl=0;try{rl=MESDB.reloadLines?await MESDB.reloadLines():0}catch(e){rl=-1}
+ if(rl===-1){render();return msg('확정취소 저장 실패: DB 반영이 되지 않았습니다. [저장]을 다시 눌러주세요.')}
+ dirty=false;search();
+ msg(`입고확정 ${t.length}건을 취소했습니다. (「입고」 상태로 복귀 · DB 저장 완료)`);
+}
 async function save(){const done=rows.filter(r=>r.status==='확정').length;
  if(!done&&dirty&&window.MESDB&&MESDB.online){try{await MESDB.syncLines();dirty=false;return msg('입고확정 취소 내용을 DB에 반영했습니다.')}catch(e){return msg('저장 실패: '+String(e.message||e).slice(0,140))}}
  if(!done){alert('확정 처리된 행이 없습니다.\n\n행을 선택하고 확정 처리한 뒤 [저장]을 눌러주세요.');return msg('저장할 확정 내역이 없습니다.')}if(!window.MESDB||!MESDB.online)return msg('구매품 입고확정 변경사항을 저장했습니다. (DB 미연결 - 로컬)');try{rows.forEach(r=>{if(r.status==='확정')r.fix=finalPrice(r)});await MESDB.syncLines();dirty=false;const n=rows.filter(r=>r.status==='확정').length;msg(`구매품 입고확정을 DB에 저장했습니다. 확정 ${n}건`)}catch(e){msg('저장 실패: '+e.message.slice(0,140))}}

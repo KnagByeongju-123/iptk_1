@@ -91,7 +91,7 @@ th.sortable.on .ar{color:#1d5da3}
 #pbody tr.unsaved .us{font-size:10px;color:#c0392b;border:1px solid #e3b4ae;border-radius:8px;padding:0 5px;margin-left:4px;vertical-align:1px}
 </style></head><script>/* v116: 기준공정ID 는 DB에 숫자로 두고 화면에만 두 자리(05)로 표시 */
 function P2(v){if(v===''||v==null)return '';const n=Number(v);return isNaN(n)?String(v):String(n).padStart(2,'0')}</script>
-<body><div class="screen"><div class="title"><h1>가공계획등록</h1><small>구매관리 · 가공</small></div><section class="filt"><div class="f2"><div class="lb">제 번</div><div><input id="q_job" class="field"></div><div class="lb">품 명</div><div><input id="q_item" class="field"></div></div><div class="guide"><span class="gt">사용순서</span><span class="st"><b>1</b>제번·조 선택</span><span class="ar">▸</span><span class="st"><b>2</b>공정 수정 시 [공정저장]</span><span class="ar">▸</span><span class="st"><b>3</b>번호를 부품으로 드래그해 적용</span><span class="ar">▸</span><span class="st"><b>4</b>[저장]</span><span class="warn">※ 체크 없으면 전체 저장</span></div></section><div class="panes" style="grid-template-rows:1fr 1.2fr"><div class="panes" style="grid-template-columns:470px 1fr;grid-template-rows:1fr;padding:0;gap:8px"><div class="pane"><div class="ph">제번 리스트</div><div class="pb"><table style="min-width:0"><thead><tr><th style="width:46px">NO</th><th style="width:130px">제번</th><th style="width:64px">공정(조)수</th><th style="width:40px">조</th><th style="width:104px">가공완료일</th><th>T/O 예정일</th></tr></thead><tbody id="hbody"></tbody></table></div></div><div class="pane"><div class="ph"><div class="phbar"><span>가공 공정 리스트</span><button class="btn" onclick="routeAdd()" title="기준공정 열을 추가합니다">+ 기준공정</button><button class="btn" onclick="routeSave()" title="변경된 기준공정을 저장합니다">▤ 공정저장</button><button class="btn" onclick="routeDel()" title="선택한 기준공정을 삭제합니다">✕ 공정삭제</button><span class="sp" id="routeMsg">공정 수정 후 [▤ 공정저장] · 번호(열 머리)를 부품 리스트로 끌어 적용 · 번호 클릭=삭제 대상 선택</span></div></div><div class="pb"><table id="rtable" style="min-width:0"><thead id="rhead"></thead><tbody id="rbody"></tbody></table></div></div></div><div class="pane"><div class="ph">부품 리스트</div><div class="pb"><table id="ptable"><thead><tr><th><input type="checkbox" id="pchkAll" onclick="pchkAllToggle(this)" title="전체선택 / 전체해제"></th><th class="sortable" id="thPno" onclick="psort('part_no')">부품코드<span class="ar">⇅</span></th><th class="sortable" id="thPnm" onclick="psort('part_name')">부품명<span class="ar">⇅</span></th><th title="PartList 수량 — 외주가공 발주 기본 수량으로 쓰입니다">수량</th><th>기준공정</th><th>공정1</th><th>공정2</th><th>공정3</th><th>공정4</th><th>공정5</th><th>공정6</th><th>공정7</th><th>공정8</th><th>공정9</th><th>공정10</th><th>공정11</th><th>공정12</th></tr></thead><tbody id="pbody"></tbody></table></div></div></div> <footer class="foot"><button class="btn" onclick="search()">⌕ 검색</button><button class="btn" onclick="save()">▤ 저장</button><button class="btn" onclick="del_()">✕ 삭제</button><button class="btn" onclick="pr()">▤ PRINT</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">제번을 선택하면 부품별 가공공정이 표시됩니다.</span><span class="right" id="countText"></span></footer></div><script>const heads=[];const routes=[];const parts=[];const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+<body><div class="screen"><div class="title"><h1>가공계획등록</h1><small>구매관리 · 가공</small></div><section class="filt"><div class="f2"><div class="lb">제 번</div><div><input id="q_job" class="field"></div><div class="lb">품 번</div><div><input id="q_item" class="field"></div></div><div class="guide"><span class="gt">사용순서</span><span class="st"><b>1</b>제번·조 선택</span><span class="ar">▸</span><span class="st"><b>2</b>공정 수정 시 [공정저장]</span><span class="ar">▸</span><span class="st"><b>3</b>번호를 부품으로 드래그해 적용</span><span class="ar">▸</span><span class="st"><b>4</b>[저장]</span><span class="warn">※ 체크 없으면 전체 저장</span></div></section><div class="panes" style="grid-template-rows:1fr 1.2fr"><div class="panes" style="grid-template-columns:470px 1fr;grid-template-rows:1fr;padding:0;gap:8px"><div class="pane"><div class="ph">제번 리스트</div><div class="pb"><table style="min-width:0"><thead><tr><th style="width:46px">NO</th><th style="width:130px">제번</th><th style="width:64px">공정(조)수</th><th style="width:40px">조</th><th style="width:104px">가공완료일</th><th>T/O 예정일</th></tr></thead><tbody id="hbody"></tbody></table></div></div><div class="pane"><div class="ph"><div class="phbar"><span>가공 공정 리스트</span><button class="btn" onclick="routeAdd()" title="기준공정 열을 추가합니다">+ 기준공정</button><button class="btn" onclick="routeSave()" title="변경된 기준공정을 저장합니다">▤ 공정저장</button><button class="btn" onclick="routeDel()" title="선택한 기준공정을 삭제합니다">✕ 공정삭제</button><span class="sp" id="routeMsg">공정 수정 후 [▤ 공정저장] · 번호(열 머리)를 부품 리스트로 끌어 적용 · 번호 클릭=삭제 대상 선택</span></div></div><div class="pb"><table id="rtable" style="min-width:0"><thead id="rhead"></thead><tbody id="rbody"></tbody></table></div></div></div><div class="pane"><div class="ph">부품 리스트</div><div class="pb"><table id="ptable"><thead><tr><th><input type="checkbox" id="pchkAll" onclick="pchkAllToggle(this)" title="전체선택 / 전체해제"></th><th class="sortable" id="thPno" onclick="psort('part_no')">부품코드<span class="ar">⇅</span></th><th class="sortable" id="thPnm" onclick="psort('part_name')">부품명<span class="ar">⇅</span></th><th title="PartList 수량 — 외주가공 발주 기본 수량으로 쓰입니다">수량</th><th>기준공정</th><th>공정1</th><th>공정2</th><th>공정3</th><th>공정4</th><th>공정5</th><th>공정6</th><th>공정7</th><th>공정8</th><th>공정9</th><th>공정10</th><th>공정11</th><th>공정12</th></tr></thead><tbody id="pbody"></tbody></table></div></div></div> <footer class="foot"><button class="btn" onclick="search()">⌕ 검색</button><button class="btn" onclick="save()">▤ 저장</button><button class="btn" onclick="del_()">✕ 삭제</button><button class="btn" onclick="pr()">▤ PRINT</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">제번을 선택하면 부품별 가공공정이 표시됩니다.</span><span class="right" id="countText"></span></footer></div><script>const heads=[];const routes=[];const parts=[];const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const n=v=>v==null?'':Number(v).toLocaleString();const p=v=>v==null?'':Number(v).toFixed(2)+'%';
 const msg=t=>message.textContent=t;
 let view=[...heads];
@@ -180,9 +180,9 @@ function pick(i,tr){const r=view[i];if(!r)return;selIdx=i;
  const rs=parts.filter(p=>p.job_no===r.job_no);
  prender();
  msg(`${r.job_no} / ${r.jo}조 (${r.jo}/${r.set_qty}) · 부품 ${rs.length}건`);}
-function search(){const j=q_job.value.trim().toLowerCase(),it=q_item.value.trim().toLowerCase();
+function search(){const j=q_job.value.trim().toLowerCase(),pn=q_item.value.trim().toLowerCase();
  view=heads.filter(r=>(!j||String(r.job_no||'').toLowerCase().includes(j))
-   &&(!it||String(r.item_name||'').toLowerCase().includes(it)));
+   &&(!pn||String(r.model||'').toLowerCase().includes(pn)));
  selIdx=-1;render();
  if(view.length===1)pick(0);
  msg(`조회결과 ${view.length}건입니다.`);}
@@ -196,21 +196,32 @@ function makeDL(id,opts){
 }
 let _pickerBound=false;
 function buildPickers(){
- makeDL('dl_job',[...new Map(heads.map(r=>[r.job_no,{v:r.job_no,s:(r.item_name||'')+' · '+r.set_qty+'조'}])).values()]);
+ makeDL('dl_job',[...new Map(heads.map(r=>[r.job_no,{v:r.job_no,s:(r.model||r.item_name||'')+' · '+r.set_qty+'조'}])).values()]);
  q_job.setAttribute('list','dl_job');q_job.setAttribute('autocomplete','off');
  q_job.placeholder=heads.length?`제번 입력/선택 (${heads.length}건)`:'제번 입력';
  q_job.title='등록된 제번 목록입니다. 글자를 입력하면 걸러집니다.';
- const items=[...new Set(heads.map(r=>r.item_name).filter(Boolean))];
- makeDL('dl_item',items.map(v=>({v})));
+ /* v121: 품명(항상 '자동차')→ 품번(수주등록의 품번). 목록에는 제번을 함께 보여준다 */
+ const pns=[...new Map(heads.filter(r=>r.model).map(r=>[r.model,{v:r.model,s:r.job_no}])).values()]
+   .sort((a,b)=>String(a.v).localeCompare(String(b.v)));
+ makeDL('dl_item',pns);
  q_item.setAttribute('list','dl_item');q_item.setAttribute('autocomplete','off');
- q_item.placeholder=items.length?`품명 입력/선택 (${items.length}건)`:'품명 입력';
- q_item.title='등록된 품명 목록입니다. 글자를 입력하면 걸러집니다.';
+ q_item.placeholder=pns.length?`품번 입력/선택 (${pns.length}건)`:'품번 입력';
+ q_item.title='수주등록의 품번 목록입니다. 글자를 입력하면 걸러집니다.';
  if(!_pickerBound){
   _pickerBound=true;
   q_job.addEventListener('change',()=>{const v=(q_job.value||'').trim();
+    const h=heads.find(r=>r.job_no===v);if(h)q_item.value=h.model||'';
     search();                                   /* 1건이면 search() 안에서 이미 선택됨 */
     if(view.length!==1){const k=view.findIndex(r=>r.job_no===v);if(k>=0)pick(k)}});
-  q_item.addEventListener('change',()=>search());
+  /* 품번을 고르면 그 제번을 제번칸에 넣고 선택한다 */
+  q_item.addEventListener('change',()=>{
+    const v=(q_item.value||'').trim().toLowerCase();
+    if(v){const hit=heads.filter(r=>String(r.model||'').toLowerCase()===v);
+      const jobs=[...new Set(hit.map(r=>r.job_no))];
+      if(jobs.length===1)q_job.value=jobs[0];
+      else if(jobs.length>1)q_job.value='';}
+    search();
+    if(view.length&&selIdx<0)pick(0);});
   [q_job,q_item].forEach(el=>el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();el.blur();search()}}));
  }
  try{window.MESCOMBO&&MESCOMBO.scan()}catch(e){}   /* 공용 콤보 UI 로 승격 */
@@ -350,7 +361,7 @@ async function loadHeads(){
   heads.length=0;let no=0;
   pool.forEach(r=>{const q=Math.max(1,Math.trunc(Number(r.set_qty))||1);
    for(let k=1;k<=q;k++){const jo=String(k);const p=pm.get(r.job_no+'|'+jo)||{};
-    heads.push({row_no:++no,job_no:r.job_no,item_name:r.item_name||'',
+    heads.push({row_no:++no,job_no:r.job_no,item_name:r.item_name||'',model:r.model||'',
       set_qty:q,jo,process_code:jo,plan_row:p.row_no??null,
       machining_completion_date:p.machining_completion_date||r.completion_date||'',
       s1_date:p.s1_date||r.s1_date||''})}});

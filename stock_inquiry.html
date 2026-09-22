@@ -25,7 +25,7 @@ tfoot th{position:sticky;bottom:0;background:linear-gradient(#e6eef5,#d3e0ea)}
     <span class="label">제번</span><input id="jobQ" class="field" style="width:170px">
     <span class="label">품명</span><input id="itemQ" class="field" style="width:190px">
     <span class="label">고객사</span><input id="custQ" class="field" style="width:190px">
-    <span class="label">구분</span><select id="typeQ" class="field"><option value="">전체</option><option>신작</option><option>개조</option><option>수리</option><option>유상사급</option></select>
+    <span class="label">구분</span><select id="typeQ" class="field" style="width:110px;max-width:110px"><option value="">전체</option><option>신작</option><option>개조</option><option>수리</option><option>유상사급</option></select>
     <button class="btn" onclick="search()">⌕ 조회</button>
   </section>
   <div class="gridbox"><div class="tablewrap"><table>
@@ -58,7 +58,9 @@ async function loadLive(){
  try{
   const rs=await MESDB.table('stock_inquiry_view').select('select=*');
   rows.length=0;
-  rs.forEach(r=>rows.push(r));
+  /* v140: stock_inquiry_view 컬럼명 → 화면 필드명 매핑 (전부 undefined 로 보이던 문제) */
+  rs.forEach(r=>rows.push({job:r.job_no||r.job||'',type:r.order_type||r.type||'',item:r.item_name||r.item||'',odate:r.order_date||r.odate||'',
+   cust:r.customer_name||r.cust||'',dev:r.develop_type||r.development_type||r.dev||'',amount:Number(r.order_amount??r.amount??0),buy:Number(r.purchase_amount??r.buy??0)}));
   if(typeof view!=='undefined'&&Array.isArray(view))view=[...rows];
   (window.MES&&window.MES.search||window.search||window.render||function(){})();
   const m=document.getElementById('message');
@@ -68,8 +70,8 @@ async function loadLive(){
 }
 window.MES={search,exportCsv,setMessage:msg};loadLive();
 </script>
-<script src="mes_db.js?v=67"></script>
+<script src="mes_db.js?v=140"></script>
 
-<script src="mes_ctx.js?v=67"></script>
+<script src="mes_ctx.js?v=140"></script>
 </body>
 </html>

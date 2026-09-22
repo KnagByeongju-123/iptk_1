@@ -44,7 +44,7 @@ tfoot th{position:sticky;bottom:0;background:linear-gradient(#e6eef5,#d3e0ea)}
     <span class="label">입고확정일</span><input id="confirmDate" class="dateinput" type="date"><button class="btn confirm" onclick="confirmSelected()">▣ 입고확정</button>
     <div class="spacer"></div><span id="selectedText">선택 0건</span>
   </div>
-  <footer class="foot"><button class="btn" onclick="search()">⌕ 검색</button><button class="btn" onclick="save()">▣ 저장</button><button class="btn warn" onclick="cancelConfirm()">✖ 확정취소</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">입고 확정 대기 자료를 조회했습니다.</span><span class="right" id="countText"></span></footer>
+  <footer class="foot"><button class="btn" onclick="search()">⌕ 검색</button><button class="btn" onclick="save()">▣ 저장</button><button class="btn warn" onclick="cancelConfirm()" title="확정된 건은 위쪽 [완료]로 조회한 뒤 고르세요">✖ 입고확정취소</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">입고 확정 대기 자료를 조회했습니다.</span><span class="right" id="countText"></span></footer>
 </div>
 <script>
 const rows=[];
@@ -84,7 +84,25 @@ async function confirmSelected(){const s=selected();if(!s.length)return msg('입
  /* v116: 입고확정 완료 팝업을 직접 띄운다 (상태줄 감시에만 의존하지 않음) */
  try{(window.MESPOP||window.parent?.MESPOP)?.ok(okm+'\n'+[...new Set(s.map(r=>r.part).filter(Boolean))].slice(0,8).join(', '),'입고확정 완료')}catch(e){}
  msg(okm+` (DB 저장 완료${doneMode()==='완료'?'':' - 미완료 목록에서 제외'})`)}
-function cancelConfirm(){const s=selected();if(!s.length)return msg('확정취소할 행을 선택하세요.');s.forEach(r=>{r.cdate='';r.status='입고';r.fix=''});dirty=true;search();msg(`${s.length}건의 입고확정을 취소했습니다. (입고 상태로 복귀)`)}
+/* v135: 입고확정취소 — 고르고 누르면 바로 DB 에 반영한다 ([저장]을 따로 누르지 않아도 된다).
+   확정된 건은 「완료」로 조회하면 목록에 나온다. */
+async function cancelConfirm(){
+ const s=selected();
+ if(!s.length)return msg('확정취소할 행을 선택하세요. (확정된 건은 위쪽 [완료]로 조회하면 나옵니다)');
+ const t=s.filter(r=>r.status==='확정'||r.cdate);
+ if(!t.length)return msg('선택한 행 중 입고확정된 건이 없습니다. [완료]로 조회해 확정된 행을 고르세요.');
+ const list=[...new Set(t.map(r=>`${r.job} ${r.part||''}`))].slice(0,8).join('\n · ');
+ if(!confirm(`입고확정 ${t.length}건을 취소합니다.\n\n · ${list}${t.length>8?'\n … 외 '+(t.length-8)+'건':''}\n\n`
+   +`입고확정일과 확정가가 지워지고 「입고」 상태로 돌아갑니다. 계속할까요?`))return;
+ t.forEach(r=>{r.cdate='';r.status='입고';r.fix=''});dirty=true;
+ if(!window.MESDB||!MESDB.online){render();return msg(`${t.length}건의 입고확정을 취소했습니다. (DB 미연결 - 로컬, [저장]으로 반영)`)}
+ msg('확정취소 반영 중…');
+ try{await MESDB.syncLines()}catch(e){}
+ let rl=0;try{rl=MESDB.reloadLines?await MESDB.reloadLines():0}catch(e){rl=-1}
+ if(rl===-1){render();return msg('확정취소 저장 실패: DB 반영이 되지 않았습니다. [저장]을 다시 눌러주세요.')}
+ dirty=false;search();
+ msg(`입고확정 ${t.length}건을 취소했습니다. (「입고」 상태로 복귀 · DB 저장 완료)`);
+}
 async function save(){const done=rows.filter(r=>r.status==='확정').length;
  if(!done&&dirty&&window.MESDB&&MESDB.online){try{await MESDB.syncLines();dirty=false;return msg('입고확정 취소 내용을 DB에 반영했습니다. (해당 라인은 입고 상태로 복귀)')}catch(e){return msg('저장 실패: '+String(e.message||e).slice(0,140))}}
  if(!done){alert('확정 처리된 행이 없습니다.\n\n행을 선택하고 확정 처리한 뒤 [저장]을 눌러주세요.');return msg('저장할 확정 내역이 없습니다.')}if(!window.MESDB||!MESDB.online)return msg('원재료 입고확정 변경사항을 저장했습니다. (DB 미연결 - 로컬)');try{rows.forEach(r=>{if(r.status==='확정')r.fix=fix(r)});await MESDB.syncLines();dirty=false;const n=rows.filter(r=>r.status==='확정').length;msg(`원재료 입고확정을 DB에 저장했습니다. 확정 ${n}건`)}catch(e){msg('저장 실패: '+e.message.slice(0,140))}}
