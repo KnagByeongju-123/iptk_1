@@ -44,7 +44,7 @@ tbody tr:nth-child(even) td{background:#fafcfd}tbody tr:hover td{background:#edf
 
 <div class="gridbox"><table style="min-width:980px"><thead><tr>
  <th style="width:36px"><input type="checkbox" id="chkAll" onclick="chkAllRows(this.checked)" title="전체 선택"></th>
- <th style="width:50px">No</th><th style="width:130px">금형번호</th><th style="width:220px">품명</th><th style="width:100px">재질</th>
+ <th style="width:50px">No</th><th style="width:40px" title="부품 이미지 — 행을 체크하고 [📷 이미지]">📷</th><th style="width:130px">금형번호</th><th style="width:220px">품명</th><th style="width:100px">재질</th><th style="width:64px" title="사각·환봉·파이프 — 중량 계산식이 달라집니다">형태</th>
  <th style="width:190px">규격</th><th style="width:80px">두께</th><th style="width:70px">수량</th>
  <th style="width:90px">등록자</th><th>등록일자</th>
 </tr></thead><tbody id="body"></tbody></table></div>
@@ -54,6 +54,8 @@ tbody tr:nth-child(even) td{background:#fafcfd}tbody tr:hover td{background:#edf
  <button class="btn" onclick="del_()">✕ 삭제</button>
  <button class="btn red" onclick="bulkOpen()" title="제번 단위로 PartList 전체를 삭제합니다">⌧ 일괄삭제</button>
  <button class="btn" onclick="manOpen()" title="엑셀 없이 한 행씩 직접 입력합니다">＋ 수동등록</button>
+ <button class="btn" onclick="imgPick()" title="체크한 부품의 사진·3D 그림을 올립니다 (사내가공 실적등록·작업표지에 함께 나옵니다)">📷 이미지</button>
+ <input type="file" id="imgFile" accept="image/*" style="display:none" onchange="imgUp(this.files[0])">
  <button class="btn" onclick="xls()">▤ 엑셀불러오기</button>
  <button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button>
  <span class="msg" id="message">제번을 선택하면 등록된 원재료 PartList가 표시됩니다.</span><span class="right" id="countText"></span>
@@ -90,7 +92,7 @@ tbody tr:nth-child(even) td{background:#fafcfd}tbody tr:hover td{background:#edf
  <div class="xhead"><span>수동등록 - 원재료 · 제번 <b id="mJob"></b></span><button onclick="manClose()">&times;</button></div>
  <div class="xbody" style="padding:12px">
   <div class="xrow"><span class="lb" style="width:44px">금형번호</span><input id="mPn" class="field" style="flex:1 1 150px" placeholder="필수" onkeydown="if(event.key==='Enter')mName.focus()"><span class="lb" style="width:44px">품명</span><input id="mName" class="field" style="flex:1 1 150px"></div>
-  <div class="xrow"><span class="lb" style="width:44px">재질</span><input id="mMat" class="field" style="flex:1 1 150px" placeholder="예) SKD11"><span class="lb" style="width:44px">규격</span><input id="mSpec" class="field" style="flex:1 1 150px" placeholder="예) 250*180 · Ø50*120"></div>
+  <div class="xrow"><span class="lb" style="width:44px">재질</span><input id="mMat" class="field" style="flex:1 1 150px" placeholder="예) SKD11"><span class="lb" style="width:44px">형태</span><select id="mShape" class="field" style="width:110px" title="환봉·파이프는 중량 계산식이 다릅니다"><option value=""></option><option>사각</option><option>환봉</option><option>파이프</option><option>판재</option><option>기타</option></select><span class="lb" style="width:44px">규격</span><input id="mSpec" class="field" style="flex:1 1 150px" placeholder="예) 250*180 · Ø50*120"></div>
   <div class="xrow"><span class="lb" style="width:44px">두께</span><input id="mThk" class="field" style="width:110px"><span class="lb" style="width:44px">수량</span><input id="mQty" class="field" style="width:110px" value="1" onkeydown="if(event.key==='Enter')manAdd()"></div>
   <div style="padding:6px 8px;background:#eef4f9;border:1px solid #cfdce6;color:#4a5a68;line-height:1.7">추가한 행은 리스트에 <b>미등록</b>으로 올라갑니다. 체크 후 <b>[▤ 등록]</b>을 눌러야 저장됩니다. 창을 열어둔 채 계속 입력할 수 있습니다.</div>
   <div style="display:flex;justify-content:center;gap:8px;margin-top:10px"><button class="btn pri" onclick="manAdd()">⬇ 리스트에 추가</button><button class="btn" onclick="manClose()">⊠ 닫기</button></div>
@@ -155,8 +157,8 @@ const view=()=>[...data,...pend];
 const rowById=id=>view().find(x=>x.row_no===id);
 function render(){
  const v=view();
- body.innerHTML=v.length?v.map((r,i)=>`<tr class="${r._new?'new':''}" onclick="rowClick(${r.row_no},event)"><td class="c"><input type="checkbox" data-row="${r.row_no}" ${chk.has(r.row_no)?'checked':''} onclick="toggleChk(${r.row_no},this.checked)"></td><td class="c">${i+1}</td><td>${esc(r.part_no)}</td><td>${esc(r.part_name)}</td><td class="c">${esc(r.material||'')}</td><td>${esc(SPECOF(r))}</td><td class="num">${fmt(r.thickness_dia)}</td><td class="num">${fmt(r.qty)}</td><td class="c">${r._new?'<span class="tag">미등록</span>':esc(r.registered_by||'')}</td><td class="c">${r._new?'':esc(r.registered_date||'')}</td></tr>`).join('')
-  :'<tr><td colspan="10" class="c" style="height:120px;color:#8a97a2">등록된 품목이 없습니다. 엑셀에서 복사(Ctrl+C) 후 이 화면에서 붙여넣기(Ctrl+V) 하세요.</td></tr>';
+ body.innerHTML=v.length?v.map((r,i)=>`<tr class="${r._new?'new':''}" onclick="rowClick(${r.row_no},event)"><td class="c"><input type="checkbox" data-row="${r.row_no}" ${chk.has(r.row_no)?'checked':''} onclick="toggleChk(${r.row_no},this.checked)"></td><td class="c">${i+1}</td><td class="c">${r.image_url?MESDB.imgBox(r.image_url,22):''}</td><td>${esc(r.part_no)}</td><td>${esc(r.part_name)}</td><td class="c">${esc(r.material||'')}</td><td class="c">${esc(r.shape||'')}</td><td>${esc(SPECOF(r))}</td><td class="num">${fmt(r.thickness_dia)}</td><td class="num">${fmt(r.qty)}</td><td class="c">${r._new?'<span class="tag">미등록</span>':esc(r.registered_by||'')}</td><td class="c">${r._new?'':esc(r.registered_date||'')}</td></tr>`).join('')
+  :'<tr><td colspan="12" class="c" style="height:120px;color:#8a97a2">등록된 품목이 없습니다. 엑셀에서 복사(Ctrl+C) 후 이 화면에서 붙여넣기(Ctrl+V) 하세요.</td></tr>';
  chkAll.checked=v.length>0&&v.every(r=>chk.has(r.row_no));
  countText.textContent=`${v.length}건`+(pend.length?` (미등록 ${pend.length})`:'')+(chk.size?` · 선택 ${chk.size}`:'');
 }
@@ -213,7 +215,7 @@ async function saveChecked(){
  for(const r of sel){
   const jo=r._new?joOf(r.part_no):r.process_code;
   mp.set(jo+'|'+r.part_no,{job_no:job,process_code:jo,part_no:r.part_no,part_name:r.part_name||'',
-   material:r.material||null,spec:r.spec||null,thickness_dia:r.thickness_dia??null,length:r.length??null,width:r.width??null,
+   material:r.material||null,shape:r.shape||null,image_url:r.image_url||null,spec:r.spec||null,thickness_dia:r.thickness_dia??null,length:r.length??null,width:r.width??null,
    qty:r.qty??null,registered_by:by,registered_date:dt});
  }
  const fin=[...mp.values()];
@@ -292,6 +294,7 @@ const COLS=[
  {k:'part_no',  t:'금형번호',re:/금\s*형\s*번\s*호|품\s*번|부품\s*번호|품목\s*번호|part\s*(no|number|code)|^\s*p\/?no\s*$|item\s*no/i},
  {k:'part_name',t:'품명',re:/품\s*명|부품\s*명|품목\s*명|part\s*name|^\s*name\s*$|description|desc\b/i},
  {k:'material', t:'재질',re:/재\s*질|소\s*재|material|^\s*mat'?l?\s*$/i},
+ {k:'shape',    t:'형태',re:/형\s*태|모\s*양|shape|^\s*type\s*$/i},
  {k:'spec',     t:'규격',re:/규\s*격|설계\s*치수|치\s*수|사\s*양|spec|size|dimension/i},
  {k:'thickness_dia',t:'두께',re:/두\s*께|직\s*경|Ø|\u00d8|thick|^\s*thk\s*$|^\s*t\s*$/i},
  {k:'qty',      t:'수량',re:/수\s*량|q'?\s*ty|quantity|^\s*ea\s*$|^\s*pcs\s*$/i}];
@@ -389,7 +392,7 @@ function xlsRows(){
   if(/^예\s*\)/.test(pn)){skipEx++;continue}
   if(!pn){skipNo++;continue}
   const sp=get(r,'spec');
-  rows.push({part_no:pn,part_name:get(r,'part_name'),material:get(r,'material')||null,
+  rows.push({part_no:pn,part_name:get(r,'part_name'),material:get(r,'material')||null,shape:get(r,'shape')||null,
    spec:sp||null,...dims(sp,XNUM(get(r,'thickness_dia'))),qty:XNUM(get(r,'qty'))});
  }
  return {g,idx,head,rows,skipEx,skipNo};
@@ -459,6 +462,24 @@ async function xlsApply(){
   alert('등록 실패: '+(/무결성|foreign key/i.test(m)?'등록되지 않은 제번입니다. 수주등록을 먼저 하세요.':m.slice(0,160)))}
 }
 
+/* v159: 부품 이미지 — 체크한 1행에 사진을 올린다. 등록된 행은 바로 DB 에 반영, 미등록 행은 [▤ 등록] 때 함께 저장 */
+function imgSel(){const ids=[...chk];if(ids.length!==1){msg('이미지를 올릴 행을 하나만 체크하세요.');return null}
+ const r=rowById(ids[0]);if(!r)return null;return r}
+function imgPick(){const r=imgSel();if(!r)return;
+ if(r.image_url&&!confirm(`${r.part_no} 에 이미 이미지가 있습니다. 새 이미지로 바꿀까요?\n(취소하면 그대로 둡니다)`))return;
+ imgFile.value='';imgFile.click()}
+async function imgUp(f){
+ const r=imgSel();if(!r||!f)return;
+ const job=curJobNo();if(!job)return msg('제번을 먼저 선택하세요.');
+ msg('이미지 올리는 중…');
+ try{
+  const url=await MESDB.imgUpload(f,job,r.part_no);
+  r.image_url=url;
+  if(!r._new&&online()){await MESDB.table('partlist_materials').upsert({row_no:Number(r.row_no),image_url:url},'row_no');notify()}
+  render();
+  msg(`${r.part_no} 이미지를 등록했습니다.`+(r._new?' (미등록 행 — [▤ 등록] 때 함께 저장됩니다)':''));
+ }catch(e){msg('이미지 등록 실패: '+String(e.message||e).slice(0,140))}
+}
 /* v117: 수동등록 — 엑셀 없이 한 행씩 리스트에 올린다 (추가 후 체크 → [▤ 등록]) */
 function manOpen(){
  const job=curJobNo();
@@ -472,7 +493,8 @@ function manAdd(){
  const pn=(mPn.value||'').trim();
  if(!pn){alert('금형번호를 입력하세요.');mPn.focus();return}
  const sp=(mSpec.value||'').trim();
- const r={part_no:pn,part_name:(mName.value||'').trim(),material:(mMat.value||'').trim()||null,
+ const sh=(mShape.value||'').trim()||null;
+ const r={part_no:pn,part_name:(mName.value||'').trim(),material:(mMat.value||'').trim()||null,shape:sh,
   spec:sp||null,...dims(sp,XNUM(mThk.value)),qty:XNUM(mQty.value)};
  let rep=false;const i=pend.findIndex(x=>x.part_no===pn);
  if(i>=0){chk.delete(pend[i].row_no);pend.splice(i,1);rep=true}
@@ -526,12 +548,12 @@ function search(){const j=curJobNo();if(j&&online())return loadJob(j);render()}
 window.MES={search,save,saveChecked,setMessage:msg,reload:loadJob,manOpen};render();
 (async()=>{await waitDB();const j=curJobNo();if(j)loadJob(j)})();
 </script>
-<script src="mes_sample.js?v=92"></script><script src="mes_scene.js?v=92"></script><script src="mes_demo.js?v=92"></script><script src="mes_db.js?v=92"></script>
+<script src="mes_sample.js?v=92"></script><script src="mes_scene.js?v=92"></script><script src="mes_demo.js?v=92"></script><script src="mes_db.js?v=159"></script>
 <script>
 /* v86: MESDB.master 자동동기화 제거 — partlist_materials 전체 스냅샷과 화면(선택 제번) 차이를
    '삭제'로 판단해 다른 제번의 PartList 를 지우던 문제. 저장·삭제는 위 함수가 직접 처리한다. */
 </script>
-<script src="mes_ctx.js?v=92"></script>
+<script src="mes_ctx.js?v=159"></script>
 <script src="mes_jobpick.js?v=92"></script>
 <script>/* 제번 직접 타이핑 → 등록된 수주 목록에서 선택 */
 try{MESJOB.attach("q_job",{onPick:j=>{if(typeof loadJob==="function")loadJob(j);try{pnSync(j)}catch(e){}}})}catch(e){}

@@ -200,6 +200,57 @@ MESDB.auth=()=>{try{return window.MES_AUTH||window.parent.MES_AUTH||null}catch(e
  * DB 키(job_no)는 그대로 두고, 화면과 집계에서 이 두 값을 함께 쓴다.
  * SQL 로 jobs / sale_orders 에 같은 규칙의 생성 컬럼(base_job, process_seq)을 두면 리포트에서도 쓸 수 있다. */
 const JOB_SEQ_RE=/^(.*\d)([A-Z])$/;
+/* ── v159 부품 이미지 (회의록 외 · 제품관리 시트의 3D 그림) ─────────────────
+ * Supabase Storage 버킷 mes-attach 에 parts/<제번>/<품번>_<시각>.<확장자> 로 올린다.
+ * partlist_materials / partlist_purchases 의 image_url 컬럼에 공개 URL 을 저장한다.
+ *   MESDB.imgUpload(file, job, part)  → 공개 URL
+ *   MESDB.partImages(job)             → {품번: URL}
+ *   MESDB.imgBox(url, size)           → 썸네일 HTML (클릭하면 새 창) */
+const IMG_BUCKET='mes-attach';
+function sbToken(){try{return (window.MES_AUTH||window.parent.MES_AUTH)?.token||null}catch(e){return null}}
+MESDB.imgUrl=p=>CFG.url+'/storage/v1/object/public/'+IMG_BUCKET+'/'+String(p).split('/').map(encodeURIComponent).join('/');
+MESDB.imgUpload=async function(file,job,part){
+  if(!file)throw new Error('파일이 없습니다.');
+  if(!/^image\//.test(file.type||''))throw new Error('이미지 파일만 올릴 수 있습니다.');
+  if(file.size>8*1024*1024)throw new Error('이미지가 너무 큽니다 (8MB 이하).');
+  const ext=(file.name.split('.').pop()||'png').toLowerCase().replace(/[^a-z0-9]/g,'');
+  const safe=String(part||'part').replace(/[^\w.\-가-힣]/g,'_');
+  const path='parts/'+String(job||'공통').replace(/[^\w.\-가-힣]/g,'_')+'/'+safe+'_'+Date.now()+'.'+ext;
+  const tok=sbToken();
+  const r=await fetch(CFG.url+'/storage/v1/object/'+IMG_BUCKET+'/'+path.split('/').map(encodeURIComponent).join('/'),
+    {method:'POST',headers:{'apikey':CFG.key,'Authorization':'Bearer '+(tok||CFG.key),
+      'Content-Type':file.type||'application/octet-stream','x-upsert':'true'},body:file});
+  if(!r.ok){const t=await r.text();throw new Error((tok?'':'로그인 후 이미지를 올릴 수 있습니다. ')+t.slice(0,120))}
+  return MESDB.imgUrl(path);
+};
+MESDB.partImages=async function(job){
+  const out={};if(!job||!online)return out;
+  const q=`select=part_no,image_url&job_no=eq.${encodeURIComponent(job)}`;
+  for(const t of ['partlist_materials','partlist_purchases']){
+    try{(await rest(t+'?'+q)||[]).forEach(r=>{if(r.image_url)out[r.part_no]=r.image_url})}catch(e){}
+  }
+  return out;
+};
+/* v159: 부품 메타(이미지·형태) — 키는 "제번|품번". job 생략 시 전체 */
+MESDB.partMeta=async function(job){
+  const out={};if(!online)return out;
+  const f=job?`&job_no=eq.${encodeURIComponent(job)}`:'';
+  const src=[['partlist_materials','select=job_no,part_no,image_url,shape'],
+             ['partlist_purchases','select=job_no,part_no,image_url']];
+  for(const [t,sel] of src){
+    try{(await rest(t+'?'+sel+f)||[]).forEach(r=>{
+      if(!r.image_url&&!r.shape)return;
+      out[String(r.job_no||'')+'|'+String(r.part_no||'')]={image_url:r.image_url||'',shape:r.shape||''};
+    })}catch(e){}
+  }
+  return out;
+};
+MESDB.imgBox=function(url,size){
+  if(!url)return '';
+  const s=size||28;
+  return `<img src="${String(url).replace(/"/g,'&quot;')}" style="width:${s}px;height:${s}px;object-fit:cover;border:1px solid #c5d0d8;border-radius:3px;cursor:zoom-in;vertical-align:middle" `+
+   `onclick="event.stopPropagation();window.open(this.src,'_blank')" title="클릭하면 큰 그림으로 봅니다">`;
+};
 MESDB.jobSplit=function(job){
   const j=String(job||'').trim();const m=JOB_SEQ_RE.exec(j);
   return m?{job:j,base:m[1],seq:m[2]}:{job:j,base:j,seq:''};

@@ -13,7 +13,7 @@
  *  await MESPRICE.material(code, vendor, {size, asOf}) → {price,row,matched,effective_date} | null
  *  await MESPRICE.process(code, vendor, {asOf})        → 동일
  *  await MESPRICE.materialPrice(...) / processPrice(...) → 단가(숫자) 또는 0
- *  MESPRICE.weightKg(spec, qty)                        → 중량(kg), spec "30*400*300"
+ *  MESPRICE.weightKg(spec, qty, shape)                 → 중량(kg). 사각 "30*400*300" · 환봉 "Ø50*120"
  */
 (function(){
 if(window.MESPRICE)return;
@@ -102,10 +102,37 @@ async function materialPrice(c,v,o){var r=await material(c,v,o);return r?r.price
 async function processPrice(c,v,o){var r=await process(c,v,o);return r?r.price:0}
 
 /* 설계치수 "두께*가로*세로"(mm) → 강재 중량(kg). 비중 7.85 기준 */
-function weightKg(spec,qty){
-  var d=String(spec||'').split(/[*xX\u00d7]/).map(num).filter(function(n){return n>0});
-  if(d.length<3)return 0;
-  var kg=d[0]*d[1]*d[2]/1000000*7.85;
+/* v159: 형태(shape) 반영 — 환봉·파이프는 사각(두께×가로×세로)과 계산식이 다르다.
+   weightKg(spec, qty, shape)
+     사각(기본) : 세 치수의 곱 × 비중            "30*400*300"
+     환봉/원형  : π/4 × 지름² × 길이 × 비중       "Ø50*120" 또는 형태='환봉' + "50*120"
+     파이프     : π/4 × (외경² − 내경²) × 길이    "Ø50*40*120" (외경*내경*길이)
+   비중은 7.85(강) 기준. 형태가 비어 있으면 규격에 Ø·φ 가 있을 때만 환봉으로 본다. */
+var DENS=7.85;
+function isRound(spec,shape){
+  var sh=String(shape||'');
+  if(/환봉|원형|둥근|ROUND|BAR|Ø|\u00d8|φ/i.test(sh))return true;
+  if(/파이프|PIPE|튜브|TUBE/i.test(sh))return true;
+  return /[Øø\u00d8φΦ]|dia/i.test(String(spec||''));
+}
+function isPipe(spec,shape){return /파이프|PIPE|튜브|TUBE/i.test(String(shape||''))}
+function dims(spec){   /* "Ø50*120" · "30*400*300" · "T30 x W200 x L300" → [50,120] … */
+  return String(spec||'').split(/[*xX\u00d7]/)
+    .map(function(t){return num(String(t).replace(/[^0-9.]/g,''))})
+    .filter(function(n){return n>0});
+}
+function weightKg(spec,qty,shape){
+  var d=dims(spec);
+  if(!d.length)return 0;
+  var kg=0;
+  if(isPipe(spec,shape)&&d.length>=3){          /* 외경 · 내경 · 길이 */
+    kg=Math.PI/4*(d[0]*d[0]-d[1]*d[1])*d[2]/1000000*DENS;
+  }else if(isRound(spec,shape)&&d.length>=2){   /* 지름 · 길이 */
+    kg=Math.PI/4*d[0]*d[0]*d[1]/1000000*DENS;
+  }else{
+    if(d.length<3)return 0;                     /* 사각은 세 치수가 다 있어야 한다 */
+    kg=d[0]*d[1]*d[2]/1000000*DENS;
+  }
   return Math.round(kg*(num(qty)||1)*100)/100;
 }
 function invalidate(){MP=null;PP=null}
