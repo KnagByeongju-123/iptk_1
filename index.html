@@ -261,10 +261,9 @@ const APP={
       '구매품':[
         {name:'구매품',items:['구매품 발주','구매품 입고','구매품 입고확정','구매품 발주현황']}
       ],
+      /* v119: 소제목(가공·외주가공·현황) 없이 한 목록으로. 가공계획등록·공정이력카드는 비활성화(MENU_OFF) */
       '가공':[
-        {name:'가공',items:['가공계획등록','공정이력카드']},
-        {name:'외주가공',items:['외주가공 발주','외주가공 입고','외주가공 입고확정','외주가공 QR스캔']},
-        {name:'현황',items:['외주가공발주현황','외주가공 진척현황']}
+        {name:'가공',items:['가공계획등록','공정이력카드','외주가공 발주','외주가공 입고','외주가공 입고확정','외주가공 QR스캔','외주가공발주현황','외주가공 진척현황']}
       ]
     }
   },
@@ -501,12 +500,16 @@ window.MES_MENU_OF=function(file){
 };
 /* 메뉴명 → {mod,sec,group} */
 function locate(name){
-  for(const mod of MODULES)for(const [sec,gs] of Object.entries(APP[mod]?.menus||{}))for(const g of gs)if(g.items.includes(name))return{mod,sec,group:g.name};
+  for(const mod of MODULES)for(const [sec,gs] of Object.entries(APP[mod]?.menus||{}))for(const g of gs)if(g.items.includes(name)&&!menuOff(name,mod))return{mod,sec,group:g.name};
   return null;
 }
 /* v116: 메뉴 비활성화 — 목록에는 흐리게 남기고 열리지 않게 한다 (외주가공은 QR스캔·외주가공 발주 화면에서 입고/입고확정 처리) */
-const MENU_OFF=new Set(['외주가공 입고','외주가공 입고확정']);
-function flatMenu(){const out=[];for(const mod of visibleModules())for(const sec of (APP[mod]?.secondary||[]))for(const g of groupsOf(mod,sec.name))for(const n of g.items)if(!MENU_OFF.has(n))out.push({name:n,mod,sec:sec.name,group:g.name});return out}
+/* v119: 원재료·구매품 입고/입고확정은 발주 화면 우클릭(진행 칸)에서 처리 → 메뉴 비활성화. 가공계획등록·공정이력카드도 비활성화 */
+const MENU_OFF=new Set(['외주가공 입고','외주가공 입고확정','원재료 입고','원재료 입고확정','구매품 입고','구매품 입고확정','가공계획등록']);
+/* 특정 모듈 안에서만 끄는 메뉴 (기준정보 › 작업지시의 공정이력카드는 그대로 쓴다) */
+const MENU_OFF_IN={'공정이력카드':'구매관리'};
+const menuOff=(n,mod)=>MENU_OFF.has(n)||(mod!=null&&MENU_OFF_IN[n]===mod);
+function flatMenu(){const out=[];for(const mod of visibleModules())for(const sec of (APP[mod]?.secondary||[]))for(const g of groupsOf(mod,sec.name))for(const n of g.items)if(!menuOff(n,mod))out.push({name:n,mod,sec:sec.name,group:g.name});return out}
 
 /* ---------- 상단 모듈 메뉴 (메가) ---------- */
 function buildTop(){
@@ -519,7 +522,7 @@ function buildTop(){
       const gs=groupsOf(mod,sec.name);if(!gs.length)return;any=true;
       const col=el('div','col',`<h4>${sec.icon||''} ${esc(sec.name)}</h4>`);
       gs.forEach(g=>{if(gs.length>1||g.name!==sec.name)col.appendChild(el('h5','',esc(g.name)));
-        g.items.forEach(n=>col.appendChild(menuLink(n)))});
+        g.items.forEach(n=>col.appendChild(menuLink(n,mod)))});
       mega.appendChild(col);
     });
     if(any){li.appendChild(mega);li.onmouseenter=()=>placeMega(li,mega);li.onmouseleave=()=>li.classList.remove('pin')}
@@ -547,8 +550,8 @@ const MENU_LABEL={
   '경비등록':'경비등록','경비현황':'경비현황',
   /* v116: 메뉴 키(권한·즐겨찾기 기준)는 그대로 두고 표시 이름만 변경 */
   '원재료 발주현황':'원재료 발주입고현황','구매품 발주현황':'구매품 발주입고현황'};
-function menuLink(n){
-  if(MENU_OFF.has(n)){const a=el('a','menu-off',`<span title="사용하지 않는 메뉴입니다">${esc(MENU_LABEL[n]||n)}</span>`);a.href='#';a.onclick=e=>{e.preventDefault();e.stopPropagation()};return a}
+function menuLink(n,mod){
+  if(menuOff(n,mod)){const a=el('a','menu-off',`<span title="사용하지 않는 메뉴입니다">${esc(MENU_LABEL[n]||n)}</span>`);a.href='#';a.onclick=e=>{e.preventDefault();e.stopPropagation()};return a}
   const p=pageRegistry[n];const on=p&&p.id===activeId;
   const a=el('a',on?'active':'',`<span title="${esc(n)}">${esc(MENU_LABEL[n]||n)}</span><span class="star ${favs.includes(n)?'on':''}" title="즐겨찾기">★</span>`);
   a.href='#';a.dataset.name=n;a.onclick=e=>{e.preventDefault();openByName(n);document.querySelectorAll('.top-menu>li.pin').forEach(x=>x.classList.remove('pin'))};
@@ -673,7 +676,7 @@ function renderStage(){
 /* ---------- 홈 ---------- */
 function homeHTML(){
   const mods=visibleModules().filter(m=>m!=='사용메뉴얼');
-  const quick=['금형진척현황','수주등록','수주현황','제작계획등록','설계계획등록','가공계획등록','구매품 발주','조립실적등록'];
+  const quick=['금형진척현황','수주등록','수주현황','제작계획등록','설계계획등록','외주가공 발주','구매품 발주','조립실적등록'];
   return `<div class="home">
   <div class="card" style="grid-column:span 8"><h3>업무 모듈 <span>상단 메뉴에 마우스를 올리면 세부 메뉴가 열립니다</span></h3>
    <div class="modcard">${mods.map(m=>`<button onclick="pinModule('${m}')"><b>${MOD_ICON[m]||'▪'} ${esc(m)}</b><small>${esc(MOD_DESC[m]||'')}</small></button>`).join('')}</div></div>
