@@ -235,8 +235,31 @@ async function savePlan() {
     /* 가공계획 머리(machining_plans)가 없으면 만든다 — 가공계획등록 화면과 같은 규칙 */
     const ex = await MESDB.table('machining_plans').select(`select=row_no&job_no=eq.${encodeURIComponent(job.job)}&process_code=eq.${encodeURIComponent(jo)}&limit=1`).catch(() => []);
     if (!ex || !ex.length) await MESDB.table('machining_plans').insertOne({ job_no: job.job, process_code: jo });
-    if (r.row_no != null) await MESDB.table('machining_plan_parts').upsert([{ row_no: Number(r.row_no), ...base }], 'row_no');
+    /* v161: row_no 를 모르면 (제번+공정+품번)으로 기존 행을 먼저 찾는다.
+       그냥 insert 하면 유니크 제약에 걸려 저장이 조용히 실패하던 문제. */
+    let rowNo = (r.row_no != null) ? Number(r.row_no) : null;
+    if (rowNo == null) {
+      const hit = await MESDB.table('machining_plan_parts').select(
+        `select=row_no&job_no=eq.${encodeURIComponent(job.job)}&process_code=eq.${encodeURIComponent(jo)}`
+        + `&part_no=eq.${encodeURIComponent(r.part)}&limit=1`, { fresh: true }).catch(() => []);
+      if (hit && hit.length) rowNo = Number(hit[0].row_no);
+    }
+    if (rowNo != null) await MESDB.table('machining_plan_parts').upsert([{ row_no: rowNo, ...base }], 'row_no');
     else await MESDB.table('machining_plan_parts').upsert([base]);
+    /* v161: 정말 저장됐는지(특히 사내 체크) 다시 읽어 확인한다 */
+    let back = [];
+    try {
+      back = await MESDB.table('machining_plan_parts').select(
+        `select=row_no,steps,inhouse&job_no=eq.${encodeURIComponent(job.job)}&process_code=eq.${encodeURIComponent(jo)}`
+        + `&part_no=eq.${encodeURIComponent(r.part)}&limit=1`, { fresh: true });
+    } catch (e) {}
+    const saved = back && back[0];
+    const wantHouse = base.inhouse.some(Boolean);
+    if (!saved) { say('가공계획이 저장되지 않았습니다. 잠시 후 다시 시도하거나 기준정보 › 에러로그를 확인하세요.'); return; }
+    if (wantHouse && !(Array.isArray(saved.inhouse) && saved.inhouse.some(Boolean))) {
+      say('공정은 저장됐지만 사내 체크가 저장되지 않았습니다 — DB(machining_plan_parts)에 inhouse 컬럼이 없습니다. 관리자에게 sql_v161_inhouse.sql 실행을 요청하세요.');
+      try { (window.MESPOP || window.parent?.MESPOP)?.warn?.('사내 체크가 DB 에 저장되지 않았습니다 (inhouse 컬럼 없음)', '가공계획 적용'); } catch (e) {}
+    }
     try { MESDB.dropCache && ['machining_plan_parts', 'machining_plans'].forEach(t => MESDB.dropCache(t)); } catch (e) {}
     try { MESDB.notify && MESDB.notify(['machining_plan_parts', 'machining_plans']); } catch (e) {}
     ctxClose();
