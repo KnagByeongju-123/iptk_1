@@ -369,14 +369,25 @@ MESDB.procCategories=async function(){
     if(rs&&rs.length){_cats=rs.map(r=>({code:r.category_code,name:r.category_name}));return _cats}}}catch(e){}
   _cats=DEF_CATS.map(([code,name])=>({code,name}));return _cats;
 };
-MESDB.laborRate=async function(type,key){
+/* v165: 단가는 기준정보 › 단가관리 › 작업단가(labor_rates) 에서 가져온다.
+   key 는 하나 또는 여러 개(예: [설비코드, 공정코드])를 줄 수 있고 앞의 것부터 찾는다.
+   어디서 온 단가인지 알아야 하는 화면은 laborRateInfo() 를 쓴다. */
+MESDB.laborRateInfo=async function(type,key){
   try{if(_rates==null&&online){const rs=await rest('labor_rates?select=rate_code,rate_type,rate_per_hour');_rates=rs||[]}}catch(e){_rates=[]}
   const rs=_rates||[];
-  const k=key?rs.find(r=>r.rate_code===key):null;
-  if(k&&Number(k.rate_per_hour)>0)return Number(k.rate_per_hour);
-  const c=rs.find(r=>r.rate_code===(type==='조립'?'ASM':'MCH'))||rs.find(r=>r.rate_type===type);
-  return c&&Number(c.rate_per_hour)>0?Number(c.rate_per_hour):30000;
+  const keys=(Array.isArray(key)?key:[key]).map(k=>String(k||'').trim()).filter(Boolean);
+  for(const k of keys){
+    const hit=rs.find(r=>String(r.rate_code)===k);
+    if(hit&&Number(hit.rate_per_hour)>0)return {rate:Number(hit.rate_per_hour),code:k,source:'작업단가'};
+  }
+  const common=type==='조립'?'ASM':'MCH';
+  const c=rs.find(r=>String(r.rate_code)===common);
+  if(c&&Number(c.rate_per_hour)>0)return {rate:Number(c.rate_per_hour),code:common,source:'작업단가(공통)'};
+  const t=rs.find(r=>r.rate_type===type&&Number(r.rate_per_hour)>0);
+  if(t)return {rate:Number(t.rate_per_hour),code:String(t.rate_code||''),source:'작업단가'};
+  return {rate:30000,code:'',source:'미등록(기본값)'};
 };
+MESDB.laborRate=async function(type,key){return (await MESDB.laborRateInfo(type,key)).rate};
 MESDB.laborRateList=async function(type){await MESDB.laborRate(type);return (_rates||[]).filter(r=>!type||r.rate_type===type)};
 try{if(typeof onChange==='function'){onChange(['process_categories'],()=>{_cats=null});onChange(['labor_rates'],()=>{_rates=null})}}catch(e){}
 MESDB.openDrawing=async function(part,job){

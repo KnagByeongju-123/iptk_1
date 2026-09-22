@@ -159,6 +159,7 @@ async function load(){
   $('hdItem').textContent=(head&&head[0]&&(head[0].item_name||head[0].model))||'-';
   $('hdDraw').textContent=(drw&&drw[0]&&drw[0].drawing_no)||'-';
   build(plan||[],pl||[],lines||[],res||[]);
+  await loadRates();
   render();
   msg(`${BASEMODE?base+' (관리제번 전체)':job} · 부품 ${ROWS.length}건 · 공정 ${COLS.length}개`);
  }catch(e){msg('조회 실패: '+String(e.message||e).slice(0,130))}
@@ -269,7 +270,7 @@ function render(){
    const procCells=COLS.map(c=>{
      const q=x.proc[c]||{inMin:0,out:0},h=N(q.inMin)/60,o=N(q.out);
      const planned=(x.steps||[]).includes(c);
-     const t1=`${x.part} · ${pn(c)} · 사내 가공시간(시간)`+(planned?' · 가공계획에 있는 공정':'');
+     const t1=`${x.part} · ${pn(c)} · 사내 가공시간(시간) · 단가 ${F(rateOf(x,c))}원/h`+(RATESRC[c]?` (${RATESRC[c]})`:'')+(planned?' · 가공계획에 있는 공정':'');
      const t2=`${x.part} · ${pn(c)} · 외주 가공비(원)`+(q.vendor?' · '+q.vendor:'');
      return `<td class="in${h?'':' zero'}" title="${esc(t1)}"><input value="${h?(h>=10?h.toFixed(0):h.toFixed(1)):''}" data-id="${x._id}" data-k="in:${c}" onchange="edit(this)" class="${DIRTY.has(x._id+'|in:'+c)?'dirty':''}"></td>`+
             `<td class="out${o?'':' zero'}" title="${esc(t2)}"><input value="${o?F(o):''}" data-id="${x._id}" data-k="out:${c}" onchange="edit(this)" class="${DIRTY.has(x._id+'|out:'+c)?'dirty':''}"></td>`}).join('')||'<td></td>';
@@ -290,10 +291,17 @@ function render(){
  $('btnSave').disabled=!DIRTY.size;
 }
 
-/* 사내 단가 : 작업단가(MCH 또는 설비) — 표시·합계용 */
-let RATE=30000;
-(async()=>{try{RATE=await MESDB.laborRate('가공',null)||30000}catch(e){}})();
-const rateOf=()=>RATE;
+/* v165: 사내 단가는 기준정보 › 단가관리 › 작업단가에서 공정별로 가져온다.
+   (공정코드로 등록된 단가 → 없으면 MCH 공통 → 그것도 없으면 기본 30,000) */
+let RATE=30000;const RATEMAP={},RATESRC={};
+async function loadRates(){
+ try{const base=await MESDB.laborRateInfo('가공',[]);RATE=base.rate||30000}catch(e){}
+ for(const c of COLS){
+  try{const i=await MESDB.laborRateInfo('가공',[c]);RATEMAP[c]=i.rate;RATESRC[c]=i.source+(i.code?' · '+i.code:'')}
+  catch(e){RATEMAP[c]=RATE}
+ }
+}
+const rateOf=(x,c)=>RATEMAP[c]||RATE;
 
 /* ── 입력 ────────────────────────────────────────────────────────────── */
 function edit(el){
@@ -384,10 +392,11 @@ async function save(){
       /* 화면 칸 = 합계. 다른 화면(사내가공 실적등록)에서 넣은 몫은 그대로 두고
          이 화면이 만든 행만 차액으로 맞춘다. */
       const want=Math.max(0,Math.round(N(q.inMin)-N(q.inOther)));
+      const rt=rateOf(x,c);
       const row={work_type:'가공',job_no:x.job,process_code:jo,part_no:x.part,
         machining_process_code:c,machining_process_name:pn(c),
         work_date:x.inDate||T0(),work_minutes:want,headcount:1,
-        hourly_rate:RATE,labor_cost:Math.round(want/60*RATE),
+        hourly_rate:rt,labor_cost:Math.round(want/60*rt),
         worker_name:me(),source:SRC,remark:MARK};
       if(q.inMine&&q.inMine.row_no)row.row_no=Number(q.inMine.row_no);
       await MESDB.table('design_results').upsert([row],'row_no');
@@ -428,7 +437,7 @@ function csv(){
  if(!ROWS.length)return msg('내보낼 자료가 없습니다.');
  const h=[...MATCOL.map(c=>c[1]),...COLS.flatMap(c=>[pn(c)+' 사내(h)',pn(c)+' 외주(원)']),'재료비','가공비','합계'];
  const rows=ROWS.map(x=>{
-  const matTot=N(x.amt),procTot=COLS.reduce((a,c)=>{const q=x.proc[c];return a+(q?q.out+N(q.inMin)/60*RATE:0)},0);
+  const matTot=N(x.amt),procTot=COLS.reduce((a,c)=>{const q=x.proc[c];return a+(q?q.out+N(q.inMin)/60*rateOf(x,c):0)},0);
   return [...MATCOL.map(c=>x[c[0]]??''),
     ...COLS.flatMap(c=>{const q=x.proc[c]||{};return [N(q.inMin)?(N(q.inMin)/60).toFixed(1):'',N(q.out)||'']}),
     Math.round(matTot)||'',Math.round(procTot)||'',Math.round(matTot+procTot)||'']});

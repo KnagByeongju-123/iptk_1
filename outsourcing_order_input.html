@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>외주가공 발주</title>
+<title>사내외가공 발주</title>
 <style>
 :root{--line:#9daab6;--line2:#c5ced6;--ink:#344758}
 *{box-sizing:border-box}html,body{height:100%;margin:0}body{font-family:"Malgun Gothic","맑은 고딕",Arial,sans-serif;font-size:12px;color:var(--ink);background:#fff;overflow:hidden}button,input,select{font:inherit;color:inherit}
@@ -113,19 +113,19 @@ tr.rdone td{color:#8b98a3}
 </head>
 <body>
 <div class="screen">
-  <div class="title"><h1>외주가공 발주</h1></div>
+  <div class="title"><h1>사내외가공 발주</h1></div>
   <section class="filters">
     <span class="label">제번</span><input id="jobQ" class="field" style="width:190px" placeholder="제번 입력/선택" autocomplete="off">
     <span class="label">품번</span><input id="pnQ" class="field" style="width:190px" placeholder="품번 입력/선택" list="pnDL" autocomplete="off"><datalist id="pnDL"></datalist>
     <span class="label">업체</span><input id="venF" class="field" style="width:190px">
     <button class="btn" onclick="search()">⌕ 조회</button>
-    <button class="btn" id="btnRefresh" onclick="refreshAll()" title="DB에서 제번·부품별 가공공정을 다시 불러옵니다 (다른 화면의 발주·입고 반영)">⟳ 새로고침</button><span class="ctxhint" title="공정 칸에서 마우스 오른쪽 버튼을 누르면 상태에 맞는 처리 창이 열립니다 (더블클릭도 같은 창).&#10;연속 공정을 한 업체에 맡길 때는 마지막 공정 칸을 우클릭하면 그 사이 공정이 한꺼번에 발주됩니다.&#10;부품 행(부품코드·부품명)을 우클릭하면 기준공정 선택, 공정 추가·삭제·순서, 사내가공 표시를 바로 고쳐 가공계획으로 저장할 수 있습니다.">※ 공정 칸 <b>우클릭</b> → 발주 · 입고 · 확정 · 취소 · 묶음 <b>|</b> 부품 행 <b>우클릭</b> → <b>공정 편집</b></span>
+    <button class="btn" id="btnRefresh" onclick="refreshAll()" title="DB에서 제번·부품별 가공공정을 다시 불러옵니다 (다른 화면의 발주·입고 반영)">⟳ 새로고침</button><span class="ctxhint" title="공정 칸에서 마우스 오른쪽 버튼을 누르면 상태에 맞는 처리 창이 열립니다 (더블클릭도 같은 창).&#10;연속 공정을 한 업체에 맡길 때는 마지막 공정 칸을 우클릭하면 그 사이 공정이 한꺼번에 발주됩니다.&#10;부품 행(부품코드·부품명)을 우클릭하면 기준공정 선택, 공정 추가·삭제·순서, 사내가공 표시를 바로 고쳐 가공계획으로 저장할 수 있습니다.">※ <b style="color:#7a4a12">외주 칸</b> 우클릭 → 발주 · 입고 · 확정 · 묶음 <b>|</b> <b style="color:#8a6d3b">사내 칸</b> 우클릭 → <b>가공완료 등록</b> <b>|</b> 부품 행 우클릭 → <b>공정 편집</b></span>
   </section>
   <section class="panes">
     <div class="box"><div class="box-title">제번리스트</div><div class="tablewrap"><table id="jobListTable">
       <colgroup><col><col><col><col></colgroup>
       <thead><tr><th>제번</th><th>품번</th><th>공정</th><th>공정명</th></tr></thead><tbody id="jobBody"></tbody></table></div></div>
-    <div class="box"><div class="box-title">부품별 가공공정 리스트<span class="legend"><i style="background:#8fdc6b"></i>다음 공정(우클릭=발주)<i style="background:#8e6bb0"></i>요청<i style="background:#e07a1f"></i>출고<i style="background:#2f6fb5"></i>입고<i style="background:#8b98a3"></i>완료<i style="background:#efe0bf;box-shadow:inset 4px 0 0 #8a6d3b"></i>사내(가공시간 입력)<i style="background:#cbb894;box-shadow:inset 4px 0 0 #6b5327"></i>사내 완료</span></div><div class="tablewrap"><table style="min-width:1242px">
+    <div class="box"><div class="box-title">부품별 가공공정 리스트<span class="legend"><i style="background:#8fdc6b"></i>다음 공정(우클릭=발주)<i style="background:#8e6bb0"></i>요청<i style="background:#e07a1f"></i>출고<i style="background:#2f6fb5"></i>입고<i style="background:#8b98a3"></i>완료<i style="background:#efe0bf;box-shadow:inset 4px 0 0 #8a6d3b"></i>사내 미완료<i style="background:#cbb894;box-shadow:inset 4px 0 0 #6b5327"></i>사내 완료(시간 입력)</span></div><div class="tablewrap"><table style="min-width:1242px">
       <!-- v149: 공정1~10. 화면보다 넓으면 가로로 밀어(스크롤) 보고, 왼쪽 5칸(조·부품코드·부품명·수량)은 고정된다 --><colgroup><col style="width:30px"><col style="width:40px"><col style="width:92px"><col style="width:132px"><col style="width:58px"><col style="width:92px"><col style="width:92px"><col style="width:92px"><col style="width:92px"><col style="width:92px"><col style="width:92px"><col style="width:92px"><col style="width:92px"><col style="width:92px"><col style="width:92px"></colgroup>
       <thead><tr><th></th><th title="공정(조)">조</th><th>부품코드</th><th>부품명</th><th title="PartList에서 가져온 소요수량 — 외주가공 발주 기본수량">소요수량</th><th>공정1</th><th>공정2</th><th>공정3</th><th>공정4</th><th>공정5</th><th>공정6</th><th>공정7</th><th>공정8</th><th>공정9</th><th>공정10</th></tr></thead>
       <tbody id="routeBody"></tbody></table></div></div>
@@ -324,10 +324,10 @@ function renderRoutes(){
      if(isHouse(r,i)){
        const hi=houseInfo(r,i),hdone=hi.min>0,todo=firstTodo(r);
        const hcls='route s-house'+(hdone?' s-hdone':(i===todo?' s-hnext':''));
-       const hline=`<span class="qtyline${hdone?'':' zero'}">${hdone?`${Hh(hi.min)}h · ${_won(hi.cost)}원`:'실적 없음'}</span>`;
-       const hlab=hdone?'사내 완료':(i===todo?'▶ 사내작업':'사내');
-       const ht=`공정${i+1} ${procName(c)} · 사내가공`+(hdone?` · ${Hh(hi.min)}h · ${_won(hi.cost)}원 · 최종 ${hi.last}`:' · 가공시간 미입력')
-         +' · 우클릭: 가공실적 입력';
+       const hline=`<span class="qtyline${hdone?'':' zero'}">${hdone?`${Hh(hi.min)}h · ${_won(hi.cost)}원`:'미완료'}</span>`;
+       const hlab=hdone?'✔ 완료':(i===todo?'▶ 완료등록':'사내');
+       const ht=`공정${i+1} ${procName(c)} · 사내가공`+(hdone?` · 완료 ${hi.last} · ${Hh(hi.min)}h · ${_won(hi.cost)}원`:' · 아직 완료 등록 전')
+         +' · 우클릭: 가공완료 등록';
        return `<td class="${hcls}" title="${_esc(ht)}" ondblclick="return ctxMenu(event,${ri},${i})" oncontextmenu="return ctxMenu(event,${ri},${i})">${_esc(procName(c))}${hline}<span class="st">${hlab}</span></td>`;
      }
      const o=stepInfo(r,i),st=o.st;
@@ -624,29 +624,45 @@ function ctxHouse(ev,ri,i){
    +`<td class="c">${_esc(e.equipment_code||'')}</td><td class="r">${Number(e.work_minutes)||0}분</td><td class="r">${_won(e.labor_cost)}</td>`
    +`<td class="c"><button class="btn" style="height:20px;padding:0 6px" onclick="ctxHouseDel(${Number(e.row_no)})">✕</button></td></tr>`).join('')
   :`<tr><td colspan="6" class="c" style="color:#8b98a3">등록된 가공실적이 없습니다.</td></tr>`;
- ctxOpen(ev,`공정${i+1} ${procName(c)} — 사내가공 실적`,'',
+ const done=hi.min>0;
+ ctxOpen(ev,`공정${i+1} ${procName(c)} — 사내가공 ${done?'완료 내역':'완료 등록'}`,'',
   head+
   `<div class="g">
-     <label>작업일</label><input id="hxDate" type="date" value="${T0()}">
+     <label>완료일</label><input id="hxDate" type="date" value="${T0()}">
      <label>작업자</label><input id="hxWorker" value="${_esc(who)}" placeholder="이름">
      <label>설비</label><input id="hxEquip" placeholder="설비코드 (선택)" onchange="ctxHouseRate()">
-     <label>가공시간(분)</label><input id="hxMin" class="r" inputmode="numeric" placeholder="예) 240" onchange="ctxHouseAmt()" oninput="ctxHouseAmt()">
-     <label>단가(원/h)</label><input id="hxRate" class="r" inputmode="numeric" onchange="ctxHouseAmt()">
+     <label>가공시간(분)</label><input id="hxMin" class="r" inputmode="numeric" placeholder="예) 240 (4시간)" onchange="ctxHouseAmt()" oninput="ctxHouseAmt()">
+     <label>단가(원/h)</label><input id="hxRate" class="r" inputmode="numeric" onchange="ctxHouseAmt()" title="기준정보 › 단가관리 › 작업단가에서 가져옵니다. 이 건만 다르게 하려면 직접 고치세요.">
      <label>가공비</label><input id="hxCost" class="r" readonly value="0">
    </div>
-   <table class="stp"><thead><tr><th style="width:52px">작업일</th><th>작업자</th><th style="width:70px">설비</th><th style="width:60px">시간</th><th style="width:80px">가공비</th><th style="width:34px"></th></tr></thead>
+   <div class="note" id="hxRateSrc" style="margin-top:2px">단가 조회 중…</div>
+   <table class="stp"><thead><tr><th style="width:52px">완료일</th><th>작업자</th><th style="width:70px">설비</th><th style="width:60px">시간</th><th style="width:80px">가공비</th><th style="width:34px"></th></tr></thead>
     <tbody>${rows}</tbody>
     <tfoot><tr><th colspan="3" class="r">누계</th><th class="r">${Hh(hi.min)}h</th><th class="r">${_won(hi.cost)}</th><th></th></tr></tfoot></table>
-   <div class="note">이 공정은 <b>사내</b>에서 처리하므로 외주 발주 대상이 아닙니다. 가공시간을 넣으면 <b>가공비가 자동 계산</b>되어 제조원가·금형원가 내역에 사내가공비로 잡힙니다. 단가는 기준정보 › 단가관리 › 작업단가(MCH 또는 설비코드)에서 가져옵니다.</div>`,
-  `<button class="btn go" onclick="ctxHouseSave()">▣ 실적 등록</button>`+
+   <div class="note">이 공정은 <b>사내</b>에서 처리하므로 발주가 아니라 <b>완료 등록</b>을 합니다. 가공시간을 넣고 [✔ 가공완료 등록]을 누르면 <b>가공비가 자동 계산</b>되어 제조원가·금형원가 내역에 사내가공비로 잡힙니다. 단가는 기준정보 › 단가관리 › 작업단가(MCH 또는 설비코드)에서 가져옵니다.</div>`,
+  `<button class="btn go" onclick="ctxHouseSave()">✔ ${done?'추가 완료등록':'가공완료 등록'}</button>`+
+  (done?`<button class="btn k-cancel" onclick="ctxHouseUndo(${ri},${i})" title="이 공정의 사내가공 완료 기록을 모두 지웁니다">↺ 완료취소</button>`:'')+
   `<button class="btn" onclick="ctxClose();window.MESROUTE&&MESROUTE.open(null,${ri})">✎ 공정 편집</button>`+
   `<button class="btn" onclick="ctxClose()">닫기</button>`);
  ctxHouseRate();
  return false;
 }
+/* v165: 단가는 기준정보 › 단가관리 › 작업단가에서 — 설비코드 → 공정코드 → MCH(가공 공통) 순 */
 async function ctxHouseRate(){
- try{const rt=await MESDB.laborRate('가공',_v('hxEquip')||null);
-   const e=document.getElementById('hxRate');if(e&&!e.dataset.manual)e.value=Math.round(rt)}catch(e){}
+ const el=document.getElementById('hxRateSrc');
+ try{
+  const c=CTX&&CTX.c?stepCode(CTX.c):'';
+  const info=await MESDB.laborRateInfo('가공',[_v('hxEquip')||'',c]);
+  const e=document.getElementById('hxRate');
+  if(e&&!e.dataset.manual)e.value=Math.round(info.rate);
+  if(el){
+   if(info.source==='미등록(기본값)')
+    el.innerHTML='⚠ 작업단가가 등록되어 있지 않아 <b>기본 30,000원/h</b>로 계산합니다. 기준정보 › 단가관리 › <b>작업단가</b>에 '
+      +(c?`<b>${_esc(c)}</b>(이 공정) 또는 `:'')+'<b>MCH</b>(가공 공통)를 등록하세요.';
+   else el.innerHTML=`단가 출처 : 기준정보 › 단가관리 › <b>작업단가</b> · 코드 <b>${_esc(info.code)}</b> (${_esc(info.source)})`
+      +' — 이 건만 다르게 하려면 단가 칸을 직접 고치세요.';
+  }
+ }catch(e){if(el)el.textContent='단가를 불러오지 못했습니다. 작업단가를 확인하세요.'}
  ctxHouseAmt();
 }
 function ctxHouseAmt(){
@@ -667,8 +683,20 @@ async function ctxHouseSave(){
     work_date:_v('hxDate')||T0(),work_minutes:m,headcount:1,hourly_rate:rt,labor_cost:cost},'row_no');
   ctxClose();
   await loadHouse(j.job);renderRoutes();
-  msg(`${r.part} 공정${i+1} ${procName(c)} 사내가공 ${m}분 (${_won(cost)}원) 등록 — 제조원가에 반영됩니다.`);
+  msg(`${r.part} 공정${i+1} ${procName(c)} 사내가공 완료 — ${m}분 (${_won(cost)}원) · 제조원가에 반영됩니다.`);
  }catch(e){msg('사내가공 실적 저장 실패: '+String(e.message||e).slice(0,140))}
+}
+/* v165: 사내가공 완료취소 — 이 공정의 완료 기록을 모두 지운다 */
+async function ctxHouseUndo(ri,i){
+ const r=ROUTES[Number(ri)],c=stepCode(r.steps[Number(i)]),j=jobView[jobIdx]||{};
+ const hi=houseInfo(r,Number(i));
+ if(!hi.rows.length)return msg('취소할 완료 기록이 없습니다.');
+ if(!confirm(`${r.part} · ${procName(c)} 의 사내가공 완료 기록 ${hi.rows.length}건(${Hh(hi.min)}h · ${_won(hi.cost)}원)을 모두 지웁니다.\n계속할까요?`))return;
+ try{
+  for(const e of hi.rows)await MESDB.table('design_results').delete({row_no:Number(e.row_no)});
+  ctxClose();await loadHouse(j.job);renderRoutes();
+  msg(`${r.part} ${procName(c)} 사내가공 완료를 취소했습니다 (${hi.rows.length}건 삭제).`);
+ }catch(e){msg('완료취소 실패: '+String(e.message||e).slice(0,140))}
 }
 async function ctxHouseDel(rowNo){
  if(!rowNo)return;
@@ -962,14 +990,14 @@ window.MES={search,save,exportCsv,setMessage:msg,reload:refreshAll};
 </script>
 <div id="ctxMask" onclick="ctxClose()"></div>
 <div id="ctxPop"><div class="ch" id="ctxHead"><span id="ctxTitle"></span><button class="x" onclick="ctxClose()">✕</button></div><div class="cb" id="ctxBody"></div><div class="cf" id="ctxFoot"></div></div>
-<script src="mes_sample.js?v=92"></script><script src="mes_scene.js?v=92"></script><script src="mes_demo.js?v=92"></script><script src="mes_db.js?v=161"></script>
+<script src="mes_sample.js?v=92"></script><script src="mes_scene.js?v=92"></script><script src="mes_demo.js?v=92"></script><script src="mes_db.js?v=162"></script>
 <script>
 /* v39: JOBS/ROUTES 는 page_state 스냅샷이 아니라 실데이터에서 매번 로드한다.
    (스냅샷에 갇혀 신규 수주가 안 뜨던 문제) */
 REQ.length=0;if(typeof renderReq==='function')renderReq();
 loadJobs();
 </script>
-<script src="mes_ctx.js?v=161"></script>
+<script src="mes_ctx.js?v=162"></script>
 <script src="mes_lookup.js?v=92"></script>
 <script>
 /* 협력업체 목록: 하드코딩 → 마스터 직결 */
@@ -992,8 +1020,8 @@ window.MESLOOK_RELOAD_VENDORS=async()=>{MESLOOK.invalidate('vendor_outsourcing')
  if(typeof renderVendors==='function')renderVendors();
  if(typeof renderRoutes==='function')renderRoutes();};
 </script>
-<script src="mes_price.js?v=160"></script>
-<script src="mes_route_edit.js?v=161"></script>
+<script src="mes_price.js?v=162"></script>
+<script src="mes_route_edit.js?v=162"></script>
 <script src="mes_vendorcheck.js?v=92"></script>
 <script>
 function sampleFill(){
@@ -1001,7 +1029,7 @@ function sampleFill(){
   var e=document.getElementById('message'); if(e)e.textContent='예제 모듈을 불러오지 못했습니다.';
 }
 </script>
-<script src="mes_jobpick.js?v=121"></script>
+<script src="mes_jobpick.js?v=162"></script>
 <script>/* v121: 제번·품번 — 목록에서 고르거나 직접 입력 (둘 다) */
 try{MESJOB.attach("jobQ",{onPick:()=>{try{jobPick()}catch(e){}}})}catch(e){}
 /* v127: 제번 change 는 MESJOB.attach 가 처리한다 (중복 호출 방지) */
