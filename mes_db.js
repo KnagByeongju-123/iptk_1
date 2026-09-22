@@ -231,6 +231,97 @@ MESDB.partImages=async function(job){
   }
   return out;
 };
+/* ── v160 도면 보관 (Supabase 비공개 버킷) ─────────────────────────────
+ * 도면 PDF 를 mes-drawing(비공개) 에 올리고, drawings.file_url 에 "sb:<경로>" 로 적는다.
+ * 열 때마다 5분짜리 서명 URL 을 새로 받으므로 로그인한 사용자만 볼 수 있다.
+ *   MESDB.pdfShrink(file, maxKB, onStep) → 0.5MB 이하로 줄인 PDF(Blob)
+ *   MESDB.drawingUpload(file, {job,part,dno}) → "sb:<경로>"
+ *   MESDB.signedUrl(ref, sec)  → 임시 주소
+ *   MESDB.openRef(ref)         → 팝업으로 열기 (http/sb/사내경로 모두 처리) */
+const DRW_BUCKET='mes-drawing';
+const isRef=u=>/^sb:/i.test(String(u||'').trim());
+function libLoad(src,test){return new Promise((res,rej)=>{if(test())return res();
+  const s=document.createElement('script');s.src=src;s.onload=()=>test()?res():rej(new Error('라이브러리 로드 실패'));
+  s.onerror=()=>rej(new Error('인터넷 연결이 필요합니다 (압축 라이브러리).'));document.head.appendChild(s)})}
+async function pdfLibs(){
+  await libLoad('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',()=>window.pdfjsLib);
+  try{window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'}catch(e){}
+  await libLoad('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',()=>window.jspdf&&window.jspdf.jsPDF);
+}
+async function pdfRender(pdf,scale,q,onStep){
+  const {jsPDF}=window.jspdf;let doc=null;
+  for(let i=1;i<=pdf.numPages;i++){
+    onStep&&onStep(`압축 중… ${i}/${pdf.numPages}쪽`);
+    const pg=await pdf.getPage(i),v0=pg.getViewport({scale:1}),vp=pg.getViewport({scale});
+    const cv=document.createElement('canvas');cv.width=Math.max(1,Math.ceil(vp.width));cv.height=Math.max(1,Math.ceil(vp.height));
+    const cx=cv.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,cv.width,cv.height);
+    await pg.render({canvasContext:cx,viewport:vp}).promise;
+    const img=cv.toDataURL('image/jpeg',q),w=v0.width,h=v0.height,or=w>h?'l':'p';
+    if(!doc)doc=new jsPDF({orientation:or,unit:'pt',format:[w,h],compress:true});
+    else doc.addPage([w,h],or);
+    doc.addImage(img,'JPEG',0,0,w,h);
+    cv.width=cv.height=0;
+  }
+  return doc?doc.output('blob'):null;
+}
+MESDB.pdfShrink=async function(file,maxKB,onStep){
+  const max=(maxKB||500)*1024;
+  if(!file)throw new Error('파일이 없습니다.');
+  if(file.size<=max)return file;
+  if(!/pdf/i.test(file.type||'')&&!/\.pdf$/i.test(file.name||''))
+    throw new Error(`PDF 만 자동 압축합니다. 현재 ${(file.size/1048576).toFixed(1)}MB — PDF 로 저장해 다시 올려 주세요.`);
+  await pdfLibs();
+  const buf=await file.arrayBuffer();
+  const pdf=await window.pdfjsLib.getDocument({data:buf}).promise;
+  const steps=[[2.0,.72],[1.6,.62],[1.3,.55],[1.05,.48],[.85,.4],[.7,.34]];
+  let best=null;
+  for(const [sc,q] of steps){
+    const b=await pdfRender(pdf,sc,q,onStep);
+    if(!b)break;
+    if(!best||b.size<best.size)best=b;
+    if(b.size<=max){best=b;break}
+  }
+  if(!best)throw new Error('압축에 실패했습니다.');
+  return new File([best],String(file.name||'drawing.pdf').replace(/\.[^.]+$/,'')+'.pdf',{type:'application/pdf'});
+};
+MESDB.drawingUpload=async function(file,o){
+  o=o||{};
+  if(!file)throw new Error('파일이 없습니다.');
+  const tok=sbToken();if(!tok)throw new Error('로그인 후 도면을 올릴 수 있습니다.');
+  if(file.size>20*1024*1024)throw new Error('파일이 너무 큽니다 (20MB 이하).');
+  const ext=(String(file.name||'').split('.').pop()||'pdf').toLowerCase().replace(/[^a-z0-9]/g,'')||'pdf';
+  const safe=s=>String(s||'').replace(/[^\w.\-가-힣]/g,'_');
+  const path='dwg/'+safe(o.job||'공통')+'/'+safe(o.dno||o.part||'도면')+'_'+Date.now()+'.'+ext;
+  const r=await fetch(CFG.url+'/storage/v1/object/'+DRW_BUCKET+'/'+path.split('/').map(encodeURIComponent).join('/'),
+    {method:'POST',headers:{'apikey':CFG.key,'Authorization':'Bearer '+tok,
+      'Content-Type':file.type||'application/pdf','x-upsert':'true'},body:file});
+  if(!r.ok)throw new Error((await r.text()).slice(0,140));
+  return 'sb:'+path;
+};
+MESDB.signedUrl=async function(ref,sec){
+  const path=String(ref||'').trim().replace(/^sb:/i,'');
+  if(!path)throw new Error('도면 경로가 비어 있습니다.');
+  const tok=sbToken();if(!tok)throw new Error('로그인 후 도면을 볼 수 있습니다.');
+  const r=await fetch(CFG.url+'/storage/v1/object/sign/'+DRW_BUCKET+'/'+path.split('/').map(encodeURIComponent).join('/'),
+    {method:'POST',headers:{'apikey':CFG.key,'Authorization':'Bearer '+tok,'Content-Type':'application/json'},
+     body:JSON.stringify({expiresIn:sec||300})});
+  if(!r.ok)throw new Error((await r.text()).slice(0,140));
+  const j=await r.json(),u=j.signedURL||j.signedUrl||'';
+  return /^https?:/i.test(u)?u:CFG.url+'/storage/v1'+(u.startsWith('/')?'':'/')+u;
+};
+MESDB.openRef=async function(ref,say){
+  const u=String(ref||'').trim();
+  if(!u){say&&say('파일 위치가 비어 있습니다.');return false}
+  if(/^https?:\/\//i.test(u)){window.open(u,'_blank');return true}
+  if(isRef(u)){
+    const w=window.open('','_blank');           /* 팝업 차단 회피 — 먼저 창을 연다 */
+    try{const s=await MESDB.signedUrl(u,300);if(w)w.location=s;else window.open(s,'_blank');return true}
+    catch(e){if(w)w.close();say&&say('도면 열기 실패: '+String(e.message||e).slice(0,120));return false}
+  }
+  try{await navigator.clipboard.writeText(u)}catch(e){}
+  say&&say('사내 서버 경로를 복사했습니다. 탐색기 주소창에 붙여넣으세요.');
+  return true;
+};
 /* v159: 부품 메타(이미지·형태) — 키는 "제번|품번". job 생략 시 전체 */
 MESDB.partMeta=async function(job){
   const out={};if(!online)return out;
@@ -297,7 +388,13 @@ MESDB.openDrawing=async function(part,job){
   let r=job?rs.find(x=>x.job_no===job):null;if(!r)r=rs[0];
   if(!r){alert(`품번 ${part} 의 도면이 등록되어 있지 않습니다.\nSQ › 문서/도면 › 도면등록에서 품번과 파일 위치(사내 서버 주소)를 등록하세요.`);return false}
   const u=String(r.file_url||'').trim();
-  if(!u){alert(`도면 ${r.drawing_no} 에 파일 위치가 비어 있습니다. 도면등록에서 사내 서버 주소를 넣어 주세요.`);return false}
+  if(!u){alert(`도면 ${r.drawing_no} 에 파일 위치가 비어 있습니다. 도면등록에서 도면 파일을 올리거나 사내 서버 주소를 넣어 주세요.`);return false}
+  /* v160: sb:경로 = Supabase 비공개 보관 → 5분짜리 임시 주소로 연다 */
+  if(isRef(u)){
+    const w=window.open('','_blank');
+    try{const sg=await MESDB.signedUrl(u,300);if(w)w.location=sg;else window.open(sg,'_blank');return true}
+    catch(e){if(w)w.close();alert('도면 열기 실패: '+String(e.message||e).slice(0,140));return false}
+  }
   if(/^https?:\/\//i.test(u)){window.open(u,'_blank');return true}
   /* 사내 서버 경로(\\server\... 또는 file://) 는 웹 화면에서 직접 열 수 없다 → 경로를 복사해 준다 */
   try{await navigator.clipboard.writeText(u)}catch(e){}
