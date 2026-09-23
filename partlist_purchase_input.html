@@ -46,8 +46,8 @@ tbody tr.new td{color:#1d4f86}
 <div class="title"><h1>PartList 등록(구매품)</h1><small>설계관리 · PARTLIST</small></div>
 
 <section class="filt">
- <span class="lb">제 번</span><input id="q_job" class="field" style="width:190px" autocomplete="off">
- <span class="lb">품 번</span><input id="q_pn" class="field" style="width:170px" placeholder="품번 입력/선택" list="pnDL" autocomplete="off"><datalist id="pnDL"></datalist>
+ <span class="lb">제번</span><input id="q_job" class="field" style="width:190px" autocomplete="off">
+ <span class="lb">품번</span><input id="q_pn" class="field" style="width:170px" placeholder="품번 입력/선택" list="pnDL" autocomplete="off"><datalist id="pnDL"></datalist>
  <span class="hint">제번 선택 → 엑셀 <b>금형번호·품명·형식·규격·수량</b> 복사(<b>Ctrl+C</b>) → <b>Ctrl+V</b> → 리스트에 추가 → 체크 → <b>[▤ 등록]</b></span>
 </section>
 
@@ -117,7 +117,7 @@ tbody tr.new td{color:#1d4f86}
 <div class="xmask" id="dMask" onmousedown="dMask._d=(event.target===dMask)" onclick="if(event.target===dMask&&dMask._d)bulkClose()"><div class="xdlg" style="width:min(520px,94vw)">
  <div class="xhead"><span>PartList 일괄삭제 - 구매품</span><button onclick="bulkClose()">&times;</button></div>
  <div class="xbody">
-  <div class="xrow" style="margin-bottom:8px"><span class="lb">제 번</span><input id="dJob" class="field" style="width:170px" oninput="bulkReset()" onkeydown="if(event.key==='Enter')bulkCount()"><button class="btn" onclick="bulkCount()">⌕ 건수확인</button></div>
+  <div class="xrow" style="margin-bottom:8px"><span class="lb">제번</span><input id="dJob" class="field" style="width:170px" oninput="bulkReset()" onkeydown="if(event.key==='Enter')bulkCount()"><button class="btn" onclick="bulkCount()">⌕ 건수확인</button></div>
   <div id="dInfo" style="padding:8px;background:#fff;border:1px solid #cfd8e0;min-height:44px;color:#455;margin-bottom:8px">제번을 입력하고 [건수확인]을 누르세요.</div>
   <div style="padding:7px 8px;background:#fdecec;border:1px solid #e0b4b4;color:#8a3a3a;margin-bottom:8px">⚠ 제번의 구매품 PartList 전체가 삭제되며 복구할 수 없습니다. 확인을 위해 아래에 제번을 다시 입력하세요.</div>
   <div class="xrow"><span class="lb">확인 입력</span><input id="dConfirm" class="field" style="width:170px" oninput="bulkChk()" placeholder="위 제번과 동일하게"></div>

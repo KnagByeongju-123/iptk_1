@@ -30,8 +30,8 @@ tfoot th{position:sticky;bottom:0;background:linear-gradient(#e6eef5,#d3e0ea)}
       <label><input type="checkbox" name="dev" value="사외" checked> 사외</label>
     </div>
     <span class="label">완료일</span><input id="cd1" class="field" type="date"><span>~</span><input id="cd2" class="field" type="date">
-    <span class="label">제 번</span><input id="jobQ" class="field" style="width:170px" list="jobDL" autocomplete="off" placeholder="제번 선택/입력"><datalist id="jobDL"></datalist>
-    <span class="label">품 번</span><input id="itemQ" class="field" style="width:190px" list="modelDL" autocomplete="off" placeholder="품번 선택/입력"><datalist id="modelDL"></datalist>
+    <span class="label">제번</span><input id="jobQ" class="field" style="width:170px" list="jobDL" autocomplete="off" placeholder="제번 선택/입력"><datalist id="jobDL"></datalist>
+    <span class="label">품번</span><input id="itemQ" class="field" style="width:190px" list="modelDL" autocomplete="off" placeholder="품번 선택/입력"><datalist id="modelDL"></datalist>
     <span class="label">조회 월</span><input id="month" class="field" type="month">
     <button class="btn" onclick="search()">⌕ 조회</button>
   </section>
@@ -42,7 +42,7 @@ tfoot th{position:sticky;bottom:0;background:linear-gradient(#e6eef5,#d3e0ea)}
       <tr><th>수주가</th><th>판매가</th><th>SET외주업체</th><th>당월 매입금액</th><th>총매입금액</th></tr>
     </thead>
     <tbody id="body"></tbody>
-    <tfoot><tr><th colspan="8" class="r">합 계</th><th class="r" id="sumOrder">0</th><th class="r" id="sumSale">0</th><th></th><th class="r" id="sumMonth">0</th><th class="r" id="sumTotal">0</th></tr></tfoot>
+    <tfoot><tr><th colspan="8" class="r">합계</th><th class="r" id="sumOrder">0</th><th class="r" id="sumSale">0</th><th></th><th class="r" id="sumMonth">0</th><th class="r" id="sumTotal">0</th></tr></tfoot>
   </table></div></div>
   <footer class="foot"><button class="btn" onclick="search()">⌕ 검 색</button><button class="btn primary" onclick="exportCsv()">▤ EXCEL</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫 기</button><span class="msg" id="message">매출현황을 조회했습니다.</span><span class="right" id="countText"></span></footer>
 </div>

@@ -41,9 +41,9 @@ tfoot td{position:sticky;bottom:0;background:#dfe9f2!important;font-weight:700;b
 </style></head><body><div class="screen">
 <div class="title"><h1>금형원가 내역 <span id="hdJob" style="font-size:16px;color:#1d5da3;margin-left:10px"></span></h1><small>원가관리 · 제조원가 &nbsp;|&nbsp; 부품(품번)별 재료비 + 공정별 가공비 · 진행현황</small></div>
 <section class="filt">
- <span class="lb">제 번</span><input id="jobQ" class="field" style="width:190px" placeholder="제번 입력/선택">
+ <span class="lb">제번</span><input id="jobQ" class="field" style="width:190px" placeholder="제번 입력/선택">
  <label style="display:flex;align-items:center;gap:4px" title="같은 관리제번(공정 문자를 뺀 제번)의 A·B·C 공정을 한 표로 묶어 봅니다"><input type="checkbox" id="grpQ" onchange="load()"> 관리제번 전체</label>
- <span class="lb" style="margin-left:6px">품 번</span><input id="partQ" class="field" style="width:150px" placeholder="품번/부품명" oninput="render()">
+ <span class="lb" style="margin-left:6px">품번</span><input id="partQ" class="field" style="width:150px" placeholder="품번/부품명" oninput="render()">
  <label style="display:flex;align-items:center;gap:4px" title="원재료·가공 기록이 하나도 없는 부품을 숨깁니다"><input type="checkbox" id="hideEmpty" onchange="render()"> 기록 있는 부품만</label>
  <button class="btn" onclick="load()">⌕ 조회</button>
  <span style="color:#6b7a86">공정 열은 기준정보 › 가공공정관리의 코드·순서를 따릅니다. 셀 위 =<b style="color:#1d5da3">사내 시간</b>, 아래 =<b style="color:#7a4a12">외주 금액</b>, <span style="color:#9aa5ad">(회색)</span> = 미확정</span>

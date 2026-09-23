@@ -23,7 +23,7 @@ tfoot th{position:sticky;bottom:0;background:linear-gradient(#e6eef5,#d3e0ea)}
   <div class="title"><h1>구매품 발주/입고현황</h1></div>
   <section class="filters">
     <div class="frow">
-      <span class="label">구 분</span>
+      <span class="label">구분</span>
       <div class="radios">
         <label><input type="radio" name="st" value="전체" checked onchange="search()"> 전체</label>
         <label><input type="radio" name="st" value="발주" onchange="search()"> 발주</label>
@@ -35,8 +35,8 @@ tfoot th{position:sticky;bottom:0;background:linear-gradient(#e6eef5,#d3e0ea)}
       <span class="label">입고확정일</span><input id="cd1" class="field" type="date"><span>~</span><input id="cd2" class="field" type="date">
     </div>
     <div class="frow">
-      <span class="label">제 번</span><input id="jobQ" class="field" style="width:180px" placeholder="제번 입력/선택" autocomplete="off">
-      <span class="label">품 명</span><input id="itemQ" class="field" style="width:180px" placeholder="품명 입력/선택" list="itemDL" autocomplete="off"><datalist id="itemDL"></datalist>
+      <span class="label">제번</span><input id="jobQ" class="field" style="width:180px" placeholder="제번 입력/선택" autocomplete="off">
+      <span class="label">품명</span><input id="itemQ" class="field" style="width:180px" placeholder="품명 입력/선택" list="itemDL" autocomplete="off"><datalist id="itemDL"></datalist>
       <span class="label">협력업체</span><select id="vendorQ" class="field" data-combo style="width:180px"><option value="">전체</option></select>
       <button class="btn" onclick="search()">⌕ 조회</button>
     </div>
@@ -45,7 +45,7 @@ tfoot th{position:sticky;bottom:0;background:linear-gradient(#e6eef5,#d3e0ea)}
     <colgroup><col style="width:44px"><col style="width:76px"><col style="width:104px"><col style="width:104px"><col style="width:96px"><col style="width:46px"><col style="width:58px"><col style="width:66px"><col style="width:140px"><col style="width:56px"><col style="width:140px"><col style="width:56px"><col style="width:62px"><col style="width:92px"><col style="width:96px"><col style="width:92px"><col style="width:96px"><col style="width:100px"></colgroup>
     <thead><tr><th style="width:34px" title="전체 선택 / 해제"><input type="checkbox" id="chkAll" onclick="checkAll(this.checked)"></th><th>No</th><th>구분</th><th>업체명</th><th>제번</th><th>품명</th><th>공정</th><th>공정명</th><th>품번</th><th>부품명</th><th>재질</th><th>스펙</th><th>수량</th><th>단가</th><th>발주월</th><th>입고요구일</th><th>입고월</th><th>입고확정일</th><th>견적가</th></tr></thead>
     <tbody id="body"></tbody>
-    <tfoot><tr><th colspan="12" class="r">합 계</th><th class="r" id="sumQty">0</th><th colspan="5"></th><th class="r" id="sumQuote">0</th></tr></tfoot>
+    <tfoot><tr><th colspan="12" class="r">합계</th><th class="r" id="sumQty">0</th><th colspan="5"></th><th class="r" id="sumQuote">0</th></tr></tfoot>
   </table></div></div>
   <footer class="foot"><button class="btn" onclick="search()">⌕ 검색</button><button class="btn primary" onclick="exportCsv()">▤ EXCEL</button><button class="btn" onclick="cancelConfirm()" title="체크한 입고확정 건을 「입고」 상태로 되돌립니다">✖ 입고확정취소</button><button class="btn danger" onclick="cancelOrder()" title="선택한 발주 행을 취소합니다 (입고 전만 가능)">✕ 발주취소</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫 기</button><span class="msg" id="message">구매품 발주현황을 조회했습니다.</span><span class="right" id="countText"></span></footer>
 </div>

@@ -31,8 +31,8 @@ tbody tr.sel .step{background:transparent;color:#fff;border-color:#cfe2f4}
 </style></head><body><div class="screen">
 <div class="title"><h1>사내가공 실적등록</h1><small>구매관리 · 가공 &nbsp;|&nbsp; 부품(품번)별 가공시간 → 가공비 자동 계산 (회의록 3-2)</small></div>
 <section class="filt">
- <span class="lb">제 번</span><input id="jobQ" class="field" style="width:200px" placeholder="제번 입력/선택">
- <span class="lb" style="margin-left:6px">품 번</span><input id="partQ" class="field" style="width:160px" placeholder="품번/품명 검색" oninput="renderParts()">
+ <span class="lb">제번</span><input id="jobQ" class="field" style="width:200px" placeholder="제번 입력/선택">
+ <span class="lb" style="margin-left:6px">품번</span><input id="partQ" class="field" style="width:160px" placeholder="품번/품명 검색" oninput="renderParts()">
  <span style="color:#6b7a86">부품을 고르고 오른쪽에서 공정·가공시간을 등록합니다. 가공비 = 가공시간 ÷ 60 × 단가(원/h)</span>
 </section>
 <div class="panes">
@@ -41,12 +41,12 @@ tbody tr.sel .step{background:transparent;color:#fff;border-color:#cfe2f4}
  <div class="pane"><div class="ph">가공 실적 <span id="curPart" style="font-weight:400;color:#2f5f8a"></span><span class="sp" id="resCnt"></span></div>
   <div class="pb"><table><thead><tr><th style="width:36px"></th><th style="width:90px">공정</th><th style="width:90px">설비</th><th style="width:80px">작업자</th><th style="width:88px">작업일</th><th style="width:70px">분</th><th style="width:80px">단가</th><th style="width:90px">가공비</th></tr></thead><tbody id="resBody"></tbody></table></div>
   <div class="entry">
-   <span class="lb">공 정</span><select id="proc" class="field"></select>
-   <span class="lb" title="설비별 단가가 작업단가에 등록돼 있으면 그 단가를 씁니다">설 비</span><select id="equip" class="field" onchange="pickRate()"><option value="">(공통)</option></select>
+   <span class="lb">공정</span><select id="proc" class="field"></select>
+   <span class="lb" title="설비별 단가가 작업단가에 등록돼 있으면 그 단가를 씁니다">설비</span><select id="equip" class="field" onchange="pickRate()"><option value="">(공통)</option></select>
    <span class="lb">작업자</span><input id="worker" class="field" list="workerList" placeholder="사용자정보에서 선택" autocomplete="off"><datalist id="workerList"></datalist>
    <span class="lb">작업일</span><input id="workDate" class="field" type="date">
    <span class="lb">가공시간</span><input id="minutes" class="field" type="number" min="0" placeholder="분" oninput="calcCost()">
-   <span class="lb" title="기준정보 › 단가관리 › 작업단가 (코드 MCH 또는 설비코드)">단 가</span><input id="rate" class="field" type="number" min="0" placeholder="원/h" oninput="calcCost()">
+   <span class="lb" title="기준정보 › 단가관리 › 작업단가 (코드 MCH 또는 설비코드)">단가</span><input id="rate" class="field" type="number" min="0" placeholder="원/h" oninput="calcCost()">
    <span class="lb">가공비</span><input id="laborCost" class="field" readonly style="background:#eef3f7;font-weight:700">
   </div>
   <div class="entrybtns"><button class="btn pri" onclick="addResult()">실적 등록</button><button class="btn red" onclick="delResult()">실적 삭제</button><button class="btn" onclick="openDrawing()" title="품번의 도면을 엽니다 (SQ › 도면등록의 파일 위치)">📐 도면</button><button class="btn" onclick="printSheet()" title="부품 정보와 가공공정 순서를 A4 작업표지로 출력합니다 (회의록 4-3)">⎙ 작업표지 출력</button></div>

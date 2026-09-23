@@ -28,8 +28,8 @@
     <div class="opts"><label><input type="radio" name="done" value="미완료" checked onchange="search()"> 미완료</label><label><input type="radio" name="done" value="완료" onchange="search()"> 완료</label></div>
   </div>
   <section class="filters">
-    <span class="label">제 번</span><input id="jobQ" class="field" style="width:230px">
-    <span class="label">품 명</span><input id="itemQ" class="field" style="width:230px">
+    <span class="label">제번</span><input id="jobQ" class="field" style="width:230px">
+    <span class="label">품명</span><input id="itemQ" class="field" style="width:230px">
     <button class="btn" onclick="search()">⌕ 조회</button>
   </section>
   <div class="jobbox"><div class="box-title">제번리스트</div><div class="tablewrap"><table>
@@ -42,7 +42,7 @@
       <thead><tr><th></th><th>완료여부</th><th>가공공정코드</th><th>가공공정명</th><th>작업시간(분)</th><th>조립진척(%)</th></tr></thead>
       <tbody id="procBody"></tbody></table></div>
       <div class="entry" style="grid-template-columns:64px 1fr auto">
-        <span class="label">공 정</span><select id="addProc" class="field"></select>
+        <span class="label">공정</span><select id="addProc" class="field"></select>
         <span style="display:flex;gap:4px"><button class="btn sm primary" onclick="addStep()">＋ 세부공정 추가</button><button class="btn sm warn" onclick="delStep()">세부공정 삭제</button></span>
       </div></div>
     <div class="box"><div class="box-title">설계/조립 실적등록</div>
@@ -54,8 +54,8 @@
         <span class="label">작업시간</span><input id="minutes" class="field" type="number" min="0" placeholder="분">
         <span class="label">작업일</span><input id="workDate" class="field" type="date">
         <span class="label">작업자</span><input id="worker" class="field" list="workerList" placeholder="사용자정보에서 선택" autocomplete="off"><datalist id="workerList"></datalist>
-        <span class="label" title="투입 인원수 (회의록 3-1)">인 원</span><input id="headcount" class="field" type="number" min="1" value="1" oninput="calcCost()">
-        <span class="label" title="기준정보 › 단가관리 › 작업단가 (코드 ASM). 필요하면 이 건만 고칠 수 있습니다">단 가</span><input id="rate" class="field" type="number" min="0" placeholder="원/h" oninput="calcCost()">
+        <span class="label" title="투입 인원수 (회의록 3-1)">인원</span><input id="headcount" class="field" type="number" min="1" value="1" oninput="calcCost()">
+        <span class="label" title="기준정보 › 단가관리 › 작업단가 (코드 ASM). 필요하면 이 건만 고칠 수 있습니다">단가</span><input id="rate" class="field" type="number" min="0" placeholder="원/h" oninput="calcCost()">
         <span class="label" title="작업시간 × 인원 × 단가 (자동)">조립비</span><input id="laborCost" class="field" readonly style="background:#eef3f7;font-weight:700">
       </div>
       <div class="entrybtns">
