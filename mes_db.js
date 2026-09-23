@@ -36,21 +36,23 @@ const CFG={url:'https://ipggvrzxfcryzryileuv.supabase.co',key:'sb_publishable_CH
    (예: 새 Supabase 로 옮길 때 order_lines.reorder_reason 가 빠진 경우)
    빠진 컬럼은 배지와 에러로그에 남기므로, DB 에 컬럼을 추가하면 원래대로 저장된다. */
 const MISSINGCOL=new Set();
+/* 없는 컬럼 오류(PGRST204)면 그 컬럼을 뺀 행 목록을 돌려주고, 아니면 null */
+function stripMissing(name,e,rows){
+  const m=String(e&&e.message||e);
+  const col=(m.match(/Could not find the '([^']+)' column/)||[])[1];
+  if(!col)return null;
+  const k=name+'.'+col;
+  if(!MISSINGCOL.has(k)){MISSINGCOL.add(k);
+    try{badge(`DB 에 ${name}.${col} 컬럼이 없어 그 값은 빼고 저장합니다 — SQL 실행이 필요합니다`,'#f57c00')}catch(_){}
+    ELOG.push({level:'WARN',message:`컬럼 없음: ${name}.${col} — 이 값을 빼고 저장했습니다`,source:'POST '+name,detail:m.slice(0,1000)});}
+  const a=rows.map(r=>{const o={...r};delete o[col];return o});
+  return (a.length&&Object.keys(a[0]).length)?a:null;
+}
 async function sendRows(name,path,rows,headers){
   let a=rows;
-  for(let i=0;i<6;i++){
+  for(let i=0;i<40;i++){                       /* v168: 새 화면은 빠진 컬럼이 20개도 넘을 수 있다 */
     try{return await rest(path,{method:'POST',headers,body:JSON.stringify(a)})}
-    catch(e){
-      const m=String(e.message||e);
-      const col=(m.match(/Could not find the '([^']+)' column/)||[])[1];
-      if(!col)throw e;
-      const k=name+'.'+col;
-      if(!MISSINGCOL.has(k)){MISSINGCOL.add(k);
-        try{badge(`DB 에 ${name}.${col} 컬럼이 없어 그 값은 빼고 저장합니다`,'#f57c00')}catch(_){}
-        ELOG.push({level:'WARN',message:`컬럼 없음: ${name}.${col} — 이 값을 빼고 저장했습니다`,source:'POST '+name,detail:m.slice(0,1000)});}
-      a=a.map(r=>{const o={...r};delete o[col];return o});
-      if(!a.length||!Object.keys(a[0]).length)throw e;
-    }
+    catch(e){const b=stripMissing(name,e,a);if(!b)throw e;a=b}
   }
   throw new Error('저장 실패: 없는 컬럼이 계속 나옵니다. 기준정보 › 에러로그를 확인하세요.');
 }
@@ -149,8 +151,13 @@ const table=name=>({
   delete:(match)=>autoNotify(name,rest(`${name}?`+Object.entries(match).map(([k,v])=>`${k}=eq.${encodeURIComponent(v)}`).join('&'),{method:'DELETE',headers:{'Prefer':'return=minimal'}})),
   /* v39: identity 채번 컬럼을 DB에 맡기고 생성된 행을 돌려받는다.
      (화면에서 max+1 로 직접 채번하면 동시 저장 시 PK 가 충돌한다) */
-  insertOne:async(row)=>{const r=await rest(`${name}?select=*`,{method:'POST',
-    headers:{'Prefer':'return=representation'},body:JSON.stringify([row])});
+  insertOne:async(row)=>{
+    /* v168: upsert 와 같이, DB 에 아직 없는 컬럼은 빼고 다시 보낸다 (PGRST204) */
+    let a=[row],r=null;
+    for(let i=0;i<40;i++){
+      try{r=await rest(`${name}?select=*`,{method:'POST',headers:{'Prefer':'return=representation'},body:JSON.stringify(a)});break}
+      catch(e){const b=stripMissing(name,e,a);if(!b)throw e;a=b}
+    }
     try{window.MESDB.notify&&window.MESDB.notify([name])}catch(e){}
     return Array.isArray(r)?r[0]:r}
 });
