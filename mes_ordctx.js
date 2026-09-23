@@ -165,7 +165,7 @@ function ensureUI() {
 .oxhint{margin-left:10px;color:#4a6b88;background:#eaf3fb;border:1px solid #c3daed;border-radius:12px;padding:3px 10px;white-space:nowrap;font-weight:400}
 .oxhint b{color:#1d5da3}
 #oxMask{position:fixed;inset:0;z-index:9000;display:none}#oxMask.on{display:block}
-#oxPop{position:fixed;z-index:9001;width:430px;max-width:96vw;background:#fff;border:1px solid #6f8090;
+#oxPop{position:fixed;z-index:9001;width:430px;max-width:96vw;max-height:92vh;overflow:auto;background:#fff;border:1px solid #6f8090;
  box-shadow:0 8px 26px rgba(0,0,0,.28);display:none;font:12px/1.5 "Malgun Gothic","맑은 고딕",Arial,sans-serif;color:#22303a}
 #oxPop.on{display:block}
 #oxPop .ch{display:flex;align-items:center;gap:8px;padding:0 8px 0 11px;height:31px;color:#fff;font-weight:700;background:linear-gradient(#5f7f9f,#3f5f7d);cursor:move;user-select:none;touch-action:none}
@@ -195,6 +195,10 @@ function ensureUI() {
 #oxPop table.ln th{background:linear-gradient(#dbe9f4,#c7d9e8);color:#405266}
 #oxPop table.ln tbody tr{cursor:pointer}
 #oxPop table.ln tbody tr:hover td{background:#edf6fd}
+#oxPop table.bt{margin:4px 0 6px}#oxPop table.bt tbody tr{cursor:default}#oxPop table.bt td{padding:0 2px}
+#oxPop table.bt td input{width:100%;height:22px;border:1px solid #c7d1da;padding:0 4px;font-size:11px;box-sizing:border-box}
+#oxPop table.bt td input[readonly]{background:#f3f6f8}#oxPop table.bt td input.manual{background:#fff6c8}
+#oxPop table.bt td input[data-auto="1"]{color:#1d5da3}
 #oxPop table.ln td.r{text-align:right}#oxPop table.ln td.c{text-align:center}
 #oxPop .badge{display:inline-block;padding:0 5px;border-radius:7px;color:#fff;font-size:10px}
 #oxPop .b-out{background:#e07a1f}#oxPop .b-in{background:#2f6fb5}#oxPop .b-done{background:#8b98a3}
@@ -275,6 +279,7 @@ function close() { const m = $('oxMask'), p = $('oxPop'); if (m) m.classList.rem
 function open(ev, title, kind, bodyHtml, footBtns) {
   ensureUI();
   const p = $('oxPop');
+  p.style.width = /id="oxBt"/.test(bodyHtml) ? '640px' : '';
   $('oxTitle').textContent = title;
   $('oxHead').className = 'ch ' + (kind || '');
   $('oxBody').innerHTML = bodyHtml;
@@ -381,6 +386,46 @@ function formLine(ev, l) {
     `<div class="note">상태 「${_esc(l.status)}」 는 이 창에서 처리하지 않습니다.</div>`);
 }
 
+/* v169: 함께 발주할 품번 표 — 수량·중량·단가는 품번별로 직접 고칠 수 있다 */
+function batchTable(ok) {
+  if (!ok.length) return '';
+  const W = CFG.useWeight;
+  return `<table class="ln bt" id="oxBt"><thead><tr><th>품번</th><th>부품명</th><th>재질·규격</th><th style="width:52px">수량</th>${W ? '<th style="width:64px">중량kg</th>' : ''}<th style="width:78px">단가</th><th style="width:86px">금액(견적가)</th></tr></thead><tbody>${
+    ok.map((x, k) => { const q = Math.max(1, remain(x.b) || Number(x.b.qty) || 1), kg = W ? Math.round(autoKg(x.b.spec, q) * 100) / 100 : 0;
+      return `<tr data-k="${k}"><td>${_esc(x.b.part)}</td><td>${_esc(x.b.name || '')}</td><td>${_esc([x.b.mat, x.b.spec].filter(Boolean).join(' '))}</td>
+        <td><input class="r bq" value="${q}" inputmode="numeric"></td>${W ? `<td><input class="r bw" value="${kg ? kg.toFixed(2) : ''}" inputmode="decimal"></td>` : ''}
+        <td><input class="r bp" placeholder="자동" inputmode="numeric" data-auto="1"></td><td><input class="r ba" readonly></td></tr>`; }).join('')}</tbody></table>`;
+}
+function batchRows() {
+  const t = $('oxBt'); if (!t) return [];
+  return [...t.querySelectorAll('tbody tr')].map(tr => {
+    const k = Number(tr.dataset.k), x = (CTX.batchOrder || [])[k]; if (!x) return null;
+    const q = Math.max(1, Math.round(_n(tr.querySelector('.bq').value)));
+    const wEl = tr.querySelector('.bw'), kg = wEl ? _n(wEl.value) : 0, price = _n(tr.querySelector('.bp').value);
+    const amt = Math.round(price * (kg || q));
+    return { b: x.b, tr, q, kg, price, amt, auto: tr.querySelector('.bp').dataset.auto === '1' };
+  }).filter(Boolean);
+}
+function batchCalc() {
+  batchRows().forEach(r => { r.tr.querySelector('.ba').value = r.price ? _won(r.amt) : ''; const p = r.tr.querySelector('.bp'); if (r.price) p.value = _won(r.price); });
+}
+async function batchPrice() {
+  const v = _v('oxVendor'), d = _v('oxOdate') || T0(); if (!v || !window.MESPRICE) return batchCalc();
+  for (const r of batchRows()) {
+    const p = r.tr.querySelector('.bp'); if (p.dataset.auto !== '1') continue;
+    let ep = 0;
+    try { const opt = { asOf: d }; if (CFG.bySize) { const th = Number(String(r.b.spec || '').split(/[*xX×]/)[0]); if (th > 0) opt.size = th; }
+      const hit = await MESPRICE.material(CFG.priceKey(r.b), v, opt); if (hit && hit.price) ep = _n(hit.price); } catch (e) {}
+    p.value = ep ? _won(ep) : ''; p.placeholder = ep ? '' : '이력 없음';
+  }
+  batchCalc();
+}
+function bindBatch() {
+  const t = $('oxBt'); if (!t) return;
+  t.querySelectorAll('.bq').forEach(i => i.onchange = () => { const tr = i.closest('tr'), w = tr.querySelector('.bw'); if (w && w.dataset.manual !== '1') { const x = CTX.batchOrder[Number(tr.dataset.k)]; const kg = Math.round(autoKg(x.b.spec, Math.max(1, _n(i.value))) * 100) / 100; w.value = kg ? kg.toFixed(2) : ''; } batchCalc(); });
+  t.querySelectorAll('.bw').forEach(i => { i.oninput = () => { i.dataset.manual = '1'; i.classList.add('manual'); }; i.onchange = batchCalc; });
+  t.querySelectorAll('.bp').forEach(i => i.onchange = () => { i.dataset.auto = ''; batchCalc(); });
+}
 /* ── ① 발주 ────────────────────────────────────────────────── */
 function formOrder(ev) {
   const { b, job } = CTX;
@@ -406,13 +451,14 @@ function formOrder(ev) {
    </div>
    ${(CTX && CTX.newCycle) ? `<div class="note" style="border-color:#e5ad62;background:#fff7ea;color:#8a4f08"><b>신규발주</b> — 기존 이력은 이전 차수로 그대로 남고, 이 발주부터 소요수량 전체를 기준으로 새 차수가 시작됩니다.</div>` : ''}
    ${(() => { const bt = (CTX.newCycle ? [] : batchFor()); const ok = bt.filter(x => remain(x.b) > 0), skip = bt.filter(x => !(remain(x.b) > 0)).map(x => x.b.part);
-      CTX.batchOrder = ok; return batchNote(ok.length, '발주 (수량은 각 잔량 · 단가는 업체별 자동조회)', skip); })()}
+      CTX.batchOrder = ok; return batchNote(ok.length, '발주 — 아래 표에서 품번별 수량·단가·금액을 각각 고칠 수 있습니다', skip) + batchTable(ok); })()}
    <div class="note" id="oxNote">업체를 고르면 단가변동등록에서 발주일 기준 단가를 자동 조회합니다. 이력이 없으면 직접 입력하세요.</div>
    ${CFG.useWeight ? '<div class="note">중량(kg)은 설계치수로 자동 계산되지만 <b>직접 입력</b>할 수 있습니다. 손으로 넣은 중량은 노랗게 표시되며 발주금액(단가×중량)에 그대로 쓰입니다. [자동]을 누르면 계산값으로 돌아갑니다.</div>' : ''}`,
    [{ t: '▣ 즉시 발주' + ((CTX.batchOrder || []).length ? ` (+${CTX.batchOrder.length}개)` : ''), cls: 'go k-order', id: 'oxGo', fn: doOrder },
     { t: '닫기', fn: close }]);
-  $('oxVendor').onchange = autoPrice;
-  $('oxOdate').onchange  = autoPrice;
+  $('oxVendor').onchange = () => { autoPrice(); batchPrice(); };
+  $('oxOdate').onchange  = () => { autoPrice(); batchPrice(); };
+  bindBatch();
   $('oxQty').onchange    = calcAmt;
   $('oxPrice').onchange  = () => { $('oxPrice').dataset.auto = ''; calcAmt(); };
   /* v158: 중량 수동 입력 — 한 번 고치면 수량을 바꿔도 덮어쓰지 않는다 ([자동]으로 해제) */
@@ -502,25 +548,20 @@ async function doOrder() {
   try { if (window.MESVCHK && MESVCHK.gate && !(await MESVCHK.gate([vendor]))) return say('협력업체 적격성 확인에서 중단했습니다.'); } catch (e) {}
 
   const btn = $('oxGo'); if (btn) { btn.disabled = true; btn.textContent = '등록 중…'; }
-  /* v169: 체크한 품번들 — 수량은 각 잔량, 중량은 각 설계치수, 단가는 업체별 자동조회(없고 재질이 같으면 입력 단가) */
+  /* v169: 체크한 품번들 — 표에 적힌 수량·중량·단가·금액을 그대로 쓴다 (자동값이든 손으로 고친 값이든) */
   const extra = [], noPrice = [];
-  for (const x of (fresh ? [] : (CTX.batchOrder || []))) {
-    const eb = x.b, eq = Math.max(1, remain(eb) || Number(eb.qty) || 1);
-    let ep = 0;
-    try { if (window.MESPRICE) { const opt = { asOf: _v('oxOdate') || T0() };
-      if (CFG.bySize) { const th = Number(String(eb.spec || '').split(/[*xX×]/)[0]); if (th > 0) opt.size = th; }
-      const hit = await MESPRICE.material(CFG.priceKey(eb), vendor, opt); if (hit && hit.price) ep = _n(hit.price); } } catch (e) {}
-    if (!ep && price && CFG.priceKey(eb) === CFG.priceKey(b)) ep = price;
+  if (!fresh) for (const r of batchRows()) {
+    const eb = r.b; let ep = r.price;
+    if (!ep && r.auto && price && CFG.priceKey(eb) === CFG.priceKey(b)) ep = price;
+    const eamt = Math.round(ep * (r.kg || r.q));
     if (!ep) noPrice.push(eb.part);
-    const ekg = CFG.useWeight ? Math.round(autoKg(eb.spec, eq) * 100) / 100 : 0;
-    const eamt = Math.round(ep * (ekg || eq));
     extra.push({ b: eb, row: {
       category: CFG.category, status: '발주',
       vendor_name: vendor, job_no: job.job, item_name: job.item || null,
       process_code: eb.procCode || job.proc || null,
       part_no: eb.part, part_name: eb.name || null,
       material: eb.mat || null, spec: eb.spec || null,
-      order_qty: eq, order_weight: ekg || null,
+      order_qty: r.q, order_weight: r.kg || null,
       unit_price: ep || null, quote_price: eamt || null, confirm_price: eamt || null,
       order_date: _v('oxOdate') || T0(), required_date: _v('oxRdate') || null,
       owner_name: OWNER,

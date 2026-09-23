@@ -110,22 +110,27 @@ render();msg(`${st} 기준 ${view.length}건을 조회했습니다.`)}
 function exportCsv(){const out=[['구분','업체명','제번','품명','공정','공정명','품번','부품명','재질','스펙','수량','단가','발주월','입고요구일','입고월','입고확정일','견적가'],...view.map(r=>[ST(r.st),r.vendor,r.job,r.item,r.proc,r.procName,r.part,r.partName,r.mat,r.spec,r.qty,r.price,r.odate,r.rdate,r.idate,r.cdate,r.quote])];const csv='\ufeff'+out.map(a=>a.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='purchase_order_status.csv';a.click();URL.revokeObjectURL(a.href);msg('EXCEL(CSV) 파일을 생성했습니다.')}
 /* 발주취소 — 선택한 행의 order_lines 를 삭제한다. 입고된 건은 입고취소가 먼저다. */
 async function cancelOrder(){
- const r=view[selIdx];
- if(!r)return msg('취소할 발주 행을 먼저 선택하세요. (행을 클릭)');
+ /* v169: 체크한 행 전부 취소. 체크가 없으면 클릭해 선택한 한 행 */
+ let sel=view.filter(r=>CHK.has(Number(r.no)));
+ if(!sel.length&&view[selIdx])sel=[view[selIdx]];
+ if(!sel.length)return msg('취소할 발주 행을 체크하거나 클릭해 선택하세요.');
  if(!online())return msg('DB 미연결 상태에서는 발주취소할 수 없습니다.');
- if(ST(r.st)!=='발주'||r.idate||r.cdate)
-  return msg(`이미 입고 처리된 발주입니다 (${ST(r.st)}). 구매품 입고 화면에서 입고취소를 먼저 하세요.`);
- if(!confirm(`아래 구매품 발주를 취소합니다.\n\n제 번 : ${r.job}\n협력업체 : ${r.vendor||''}\n품 번 : ${r.part||''} ${r.partName||''}\n수 량 : ${r.qty||''}\n발주일 : ${r.odate||''}\n\n취소하시겠습니까? (발주요청이 삭제됩니다)`))return;
- try{
-  await MESDB.delLines([r.no]);
-  try{MESDB.notify&&MESDB.notify(['order_lines'])}catch(e){}
-  if(MESDB.reloadLines)await MESDB.reloadLines();
-  search();
-  msg(`${r.job} · ${r.part||''} 발주를 취소했습니다. 구매품 발주 화면에서 다시 발주할 수 있습니다.`);
- }catch(e){
-  const m=String(e.message||e);
-  msg(/foreign key|무결성|23503/i.test(m)?'발주취소 실패: 이 발주를 참조하는 입고 자료가 있습니다.':'발주취소 실패: '+m.slice(0,130));
+ const t=sel.filter(r=>ST(r.st)==='발주'&&!r.idate&&!r.cdate),skip=sel.length-t.length;
+ if(!t.length)return msg(`체크한 행이 모두 입고 처리된 발주입니다. 구매품 입고 화면에서 입고취소를 먼저 하세요.`);
+ const list=t.slice(0,8).map(r=>`${r.job} · ${r.vendor||''} · ${r.part||''} ${r.partName||''} ${r.qty||''}개 (${r.odate||''})`).join('\n · ');
+ if(!confirm(`구매품 발주 ${t.length}건을 취소합니다.\n\n · ${list}${t.length>8?'\n … 외 '+(t.length-8)+'건':''}${skip?`\n\n(입고 처리된 ${skip}건은 제외)`:''}\n\n취소하시겠습니까? (발주요청이 삭제됩니다)`))return;
+ let ok=0,ng=0,last='';
+ for(const r of t){
+  msg(`발주취소 중… ${ok+ng+1}/${t.length}`);
+  try{await MESDB.delLines([r.no]);ok++;CHK.delete(Number(r.no))}
+  catch(e){ng++;last=String(e.message||e)}
  }
+ try{MESDB.notify&&MESDB.notify(['order_lines'])}catch(e){}
+ try{MESDB.dropCache&&MESDB.dropCache('order_lines')}catch(e){}
+ if(MESDB.reloadLines)await MESDB.reloadLines();
+ search();
+ if(ng)msg(`발주취소 — 성공 ${ok}건 · 실패 ${ng}건: `+(/foreign key|무결성|23503/i.test(last)?'이 발주를 참조하는 입고 자료가 있습니다.':last.slice(0,100)));
+ else msg(`발주 ${ok}건을 취소했습니다. 구매품 발주 화면에서 다시 발주할 수 있습니다.`);
 }
 function msg(t){message.textContent=t}
 /* ── v150: 제번·품명·협력업체 — 목록에서 고르거나 직접 입력 (외주가공 발주현황과 동일) ──
