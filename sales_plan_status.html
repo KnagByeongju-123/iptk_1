@@ -83,11 +83,18 @@ table.sheet tbody tr.sel td.ev.late{background:#ffd34d!important}
 .sheet .frz-last{box-shadow:3px 0 4px -2px rgba(0,0,0,.22)}
 /* 고정 열 사이로 뒤 칸 글자가 비치지 않게 — 테두리를 칸마다 따로 그린다 */
 table.sheet{border-collapse:separate;border-spacing:0}
-</style></head><body><div class="screen"><div class="title"><h1>제작진행현황</h1><small>영업관리 · 제작계획</small></div><section class="filt"><div class="f2"><div class="lb" title="관리제번 또는 공정 제번(A·B·C) 일부">관리제번</div><div><input id="q_job" class="field" list="dl_base" autocomplete="off" oninput="search()" placeholder="관리제번 입력/선택"><datalist id="dl_base"></datalist></div><div class="lb">품번</div><div><input id="q_model" class="field" oninput="search()" placeholder="품번 입력/선택"></div><div></div><div style="display:flex;gap:12px;align-items:center;white-space:nowrap"><label style="display:flex;gap:4px;align-items:center" title="가능일정이 목표보다 늦은 제번만"><input type="checkbox" id="q_late" onchange="search()"> 지연만</label><label style="display:flex;gap:4px;align-items:center" title="완료 목표일이 지난 제번은 숨깁니다"><input type="checkbox" id="q_hideDone" onchange="search()"> 완료 숨김</label><span style="color:#6b7a86;font-size:11px">칸 색: <i class="sw late"></i>목표보다 늦음 <i class="sw early"></i>앞당김 · 행 더블클릭 → 상세</span></div></div></section><div class="gridbox"><table class="sheet" style="min-width:1860px">
+
+/* v191: 열폭은 글자에 맞춘다 — 고정폭 대신 내용 크기로. 진척현황·특기사항만 줄바꿈 허용 */
+table.sheet{table-layout:auto;width:auto;min-width:100%}
+.sheet th,.sheet td{white-space:nowrap;overflow:visible;text-overflow:clip}
+.sheet td.idn,.sheet td.idn *{white-space:nowrap}
+.sheet .plog,.sheet .notes{white-space:normal;min-width:180px;max-width:360px}
+.sheet td.ev{padding-left:6px;padding-right:6px}
+</style></head><body><div class="screen"><div class="title"><h1>제작진행현황</h1><small>영업관리 · 제작계획</small></div><section class="filt"><div class="f2"><div class="lb" title="관리제번 또는 공정 제번(A·B·C) 일부">관리제번</div><div><input id="q_job" class="field" list="dl_base" autocomplete="off" oninput="search()" placeholder="관리제번 입력/선택"><datalist id="dl_base"></datalist></div><div class="lb">품번</div><div><input id="q_model" class="field" oninput="search()" placeholder="품번 입력/선택"></div><div></div><div style="display:flex;gap:12px;align-items:center;white-space:nowrap"><label style="display:flex;gap:4px;align-items:center" title="가능일정이 목표보다 늦은 제번만"><input type="checkbox" id="q_late" onchange="search()"> 지연만</label><label style="display:flex;gap:4px;align-items:center" title="완료 목표일이 지난 제번은 숨깁니다"><input type="checkbox" id="q_hideDone" onchange="search()"> 완료 숨김</label><span style="color:#6b7a86;font-size:11px">칸 색: <i class="sw late"></i>목표보다 늦음 <i class="sw early"></i>앞당김 · 행 더블클릭 → 상세</span></div></div></section><div class="gridbox"><table class="sheet">
 <thead>
- <tr><th rowspan="2" style="width:40px">NO</th><th rowspan="2" style="width:128px">관리제번</th><th rowspan="2" style="width:190px">도번 · 품명 · 품번</th><th rowspan="2" style="width:76px">제품형상</th><th rowspan="2" style="width:70px">제작<br>구분</th><th rowspan="2" style="width:46px">조수</th>
-  <th colspan="7" class="grp">금형제작 EVENT</th><th rowspan="2" style="width:300px">진척현황</th><th rowspan="2" style="width:210px">특기사항</th><th rowspan="2" style="width:100px">수주가</th><th rowspan="2" style="width:100px">목표가</th><th rowspan="2" style="width:56px">이익률</th></tr>
- <tr><th style="width:60px">구분</th><th style="width:66px">접수</th><th style="width:66px">설계</th><th style="width:66px">가공</th><th style="width:66px">조립</th><th style="width:66px">초품</th><th style="width:66px">완료</th></tr>
+ <tr><th rowspan="2">NO</th><th rowspan="2">관리제번</th><th rowspan="2">도번 · 품명 · 품번</th><th rowspan="2">제품형상</th><th rowspan="2">제작<br>구분</th><th rowspan="2">조수</th>
+  <th colspan="7" class="grp">금형제작 EVENT</th><th rowspan="2">진척현황</th><th rowspan="2">특기사항</th><th rowspan="2">수주가</th><th rowspan="2">목표가</th><th rowspan="2">이익률</th></tr>
+ <tr><th>구분</th><th>접수</th><th>설계</th><th>가공</th><th>조립</th><th>초품</th><th>완료</th></tr>
 </thead><tbody id="body"></tbody><tfoot><tr class="gtot"><td colspan="18" class="c" id="totline">조회 0건</td></tr></tfoot></table></div><footer class="foot"><button class="btn" onclick="detail()">⌕ 상세보기</button><button class="btn" onclick="search()">⌕ 검색</button><button class="btn" onclick="csv()">▤ EXCEL</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">행을 선택하고 상세보기를 누르면 계획등록 창이 열립니다.</span><span class="right" id="countText"></span></footer><div class="mask" id="mask" onmousedown="mask._d=(event.target===mask)" onclick="if(event.target===mask&&mask._d)closePlan()"><div class="dlg"><div class="dh"><span id="planTitle">제작계획</span><button onclick="closePlan()">×</button></div><div class="db" id="planBody"></div><div style="display:flex;justify-content:center;gap:10px;padding:8px"><button class="btn" onclick="editPlan()">▤ 수정</button><button class="btn" onclick="delPlan()">✕ 삭제</button><button class="btn" onclick="closePlan()">⊠ 닫기</button></div></div></div></div><script>
 /* v68: 화면 하드코딩 초기 데이터 제거 — 전부 DB(sales_plan_status_rows / sales_plans) 에서 */
 const data=[];const plans=[];
@@ -175,6 +182,8 @@ function fillBaseDL(){
 /* v190: 고정 열 위치 — 실제 머리글 폭을 재서 left 를 맞춘다 */
 function freezeCols(){
  const ths=[...document.querySelectorAll('.sheet thead tr:first-child th')].slice(0,4);if(ths.length<4)return;
+ const cells=[...ths];document.querySelectorAll('.sheet tbody tr.g1').forEach(tr=>cells.push(...[...tr.children].slice(0,4)));
+ cells.forEach(el=>el.style.left='');   /* 먼저 풀고 재야 자연 위치가 나온다 (열폭이 바뀐 뒤에도 정확) */
  const x0=ths[0].offsetLeft,L=ths.map(t=>t.offsetLeft-x0);
  const set=(el,k)=>{el.style.left=L[k]+'px';el.classList.toggle('frz-last',k===3)};
  ths.forEach(set);
