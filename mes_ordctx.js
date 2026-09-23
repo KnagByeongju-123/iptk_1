@@ -313,7 +313,7 @@ function openPart(ev, idx) {
   if (LINES_JOB !== j.job) { say('발주 내역을 불러오는 중입니다. 잠시 후 다시 시도하세요.'); loadLines(j.job).then(refresh); return false; }
   CTX = { b, i: idx, job: j };
   /* v169: 체크한 다른 품번도 함께 처리 (가공계획 적용과 같은 방식) — 우클릭한 줄 + 체크된 줄 */
-  CTX.batch = checkedBoms().filter(x => x.i !== idx);
+  CTX.batch = checkedBoms().filter(x => x.i !== idx); CTX.extraLines = null;
   const a = linesOf(b.part);
   if (!a.length) return formOrder(ev);
   if (a.length === 1) return formLine(ev, a[0]);
@@ -358,6 +358,7 @@ function listLines(ev) {
   const bd = { 발주: 'b-out', 입고: 'b-in', 입고확정: 'b-done' };
   const nm = { 발주: '발주', 입고: '입고', 입고확정: '확정' };
   const rows = a.map((l, k) => `<tr data-k="${k}">
+    <td class="c"><input type="checkbox" class="lk" data-k="${k}" ${l.status === '발주' ? 'checked' : 'disabled'} onclick="event.stopPropagation()" title="${l.status === '발주' ? '체크한 발주건을 아래 버튼으로 함께 입고·취소' : '발주 상태만 함께 처리'}"></td>
     <td class="c"><span class="badge ${bd[l.status] || ''}">${nm[l.status] || _esc(l.status)}</span></td>
     <td>${_esc(l.vendor_name || '')}${l.reorder_reason ? ' <b style="color:#a04000">재</b>' : ''}</td>
     <td class="r">${Number(l.order_qty) || 0}</td>
@@ -365,17 +366,34 @@ function listLines(ev) {
     <td class="c">${_esc(_dt(l.order_date))}</td>
     <td class="c">${_esc(_dt(l.receipt_date))}</td></tr>`).join('');
   open(ev, `${b.part} — 발주 내역 ${a.length}건`, '', headHtml() +
-    `<table class="ln"><thead><tr><th style="width:46px">상태</th><th>협력업체</th><th style="width:46px">수량</th>
+    `<table class="ln"><thead><tr><th style="width:24px"><input type="checkbox" id="oxLkAll" ${a.some(l => l.status === '발주') ? 'checked' : 'disabled'} onclick="event.stopPropagation()"></th><th style="width:46px">상태</th><th>협력업체</th><th style="width:46px">수량</th>
      <th style="width:76px">금액</th><th style="width:76px">발주일</th><th style="width:76px">입고일</th></tr></thead>
      <tbody id="oxLn">${rows}</tbody></table>
-     <div class="note">줄을 클릭하면 그 발주건의 <b>입고 / 입고확정 / 취소</b> 창이 열립니다.</div>`,
-    [{ t: '＋ 추가 발주', cls: 'go k-order', fn: e => formOrder(e) },
+     <div class="note">줄을 클릭하면 그 발주건의 <b>입고 / 입고확정 / 취소</b> 창이 열립니다. <b>발주 상태 줄을 체크</b>하면 [입고 처리]·[발주취소]가 체크한 건 전부에 적용됩니다.</div>`,
+    [{ t: '▣ 입고 처리 (체크)', cls: 'go k-in', id: 'oxLnIn', title: '체크한 발주건을 한 창에서 함께 입고 처리합니다', fn: e => {
+        const ks = lnChecked(); if (!ks.length) return say('입고할 발주건을 체크하세요.');
+        CTX.extraLines = ks.slice(1).map(k => a[k]); return formReceive(e, a[ks[0]]); } },
+     { t: '✖ 발주취소 (체크)', cls: 'warn', id: 'oxLnDel', title: '체크한 발주건을 모두 삭제합니다', fn: () => doOrderCancelMany(lnChecked().map(k => a[k])) },
+     { t: '＋ 추가 발주', cls: 'go k-order', fn: e => formOrder(e) },
      { t: '↻ 신규발주', cls: 'warn', title: '현재 차수가 모두 완료된 뒤 기존 이력을 남기고 새 발주차수로 다시 시작합니다', fn: e => startNewCycle(e) },
      { t: '닫기', fn: close }]);
   $('oxLn').querySelectorAll('tr').forEach(tr => {
-    tr.onclick = e => formLine(e, a[Number(tr.dataset.k)]);
+    tr.onclick = e => { CTX.extraLines = null; formLine(e, a[Number(tr.dataset.k)]); };
   });
+  const all = $('oxLkAll'); if (all) all.onclick = e => { e.stopPropagation(); $('oxLn').querySelectorAll('input.lk:not(:disabled)').forEach(c => c.checked = all.checked); };
   return false;
+}
+const lnChecked = () => [...(($('oxLn') || document).querySelectorAll('input.lk:checked'))].map(c => Number(c.dataset.k));
+/* v169: 같은 품번의 여러 발주건을 한 번에 취소 */
+async function doOrderCancelMany(ls) {
+  const { b } = CTX; ls = (ls || []).filter(l => l && l.line_id && l.status === '발주');
+  if (!ls.length) return say('취소할 발주건을 체크하세요. (발주 상태만 취소 가능)');
+  if (!_online()) return say('DB 미연결 - 발주취소를 할 수 없습니다.');
+  if (!confirm(`${b.part} 발주 ${ls.length}건을 취소(삭제)합니다.\n\n` + ls.map(l => ` · ${l.vendor_name || ''} ${Number(l.order_qty) || 0}개 ${_dt(l.order_date)}`).join('\n') + `\n\n되돌릴 수 없습니다. 계속할까요?`)) return;
+  try {
+    await MESDB.delLines(ls.map(l => Number(l.line_id)));
+    await after(`${b.part} 발주 ${ls.length}건을 취소(삭제)했습니다.`);
+  } catch (e) { say('발주취소 실패: ' + String(e.message || e).slice(0, 120)); }
 }
 
 function formLine(ev, l) {
@@ -623,6 +641,7 @@ function formReceive(ev, l) {
     <label>비고</label><input id="oxInRemark" class="full" placeholder="선택" value="${_esc(cleanCycleRemark(l.remark))}">
    </div>
    ${(() => { const bt = batchFor('발주'); const ok = bt.filter(x => x.lines.length), skip = bt.filter(x => !x.lines.length).map(x => x.b.part);
+      const ex = (CTX.extraLines || []).filter(x => x && x.status === '발주'); if (ex.length) ok.unshift({ b, lines: ex });
       CTX.batchIn = ok; return batchNote(ok.reduce((n, x) => n + x.lines.length, 0), '입고 (수량은 각 발주 잔량 · 단가는 각 발주단가 · 입고일은 이 창의 날짜)', skip); })()}
    <div class="note"><b>입고 처리</b>는 「입고」까지만, <b>입고+확정</b>은 매입가 그대로(네고 0%) 입고확정까지 한 번에 끝냅니다. 네고가 필요하면 입고 처리 뒤 다시 우클릭하세요.</div>
    ${CFG.useWeight ? '<div class="note">중량(kg)은 발주 중량을 입고수량만큼 환산해 채웁니다. <b>실측 중량으로 직접 고칠 수 있고</b>, 고친 값이 입고금액(단가×중량)에 쓰입니다.</div>' : ''}`,
@@ -895,7 +914,7 @@ function init(opt) {
      ─ 이 창은 품번·업체·수량이 들어간 자체 확인문을 띄우므로 그쪽이 더 친절하다. */
   try {
     const opt = window.MES_CTX_OPT || {};
-    const mine = /^\s*✖?\s*(발주취소|입고취소|확정취소)\s*$/;
+    const mine = /^\s*✖?\s*(발주취소|입고취소|확정취소)(\s*\(.*\))?\s*$/;
     const prev = opt.noGuard;
     opt.noGuard = prev ? { test: s => prev.test(s) || mine.test(String(s)) } : mine;
     window.MES_CTX_OPT = opt;
