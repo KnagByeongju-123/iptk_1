@@ -334,6 +334,8 @@ document.querySelectorAll('table.ev input[type=date]').forEach(inp=>{
  inp.addEventListener('change',()=>wdSet(inp));inp.addEventListener('input',()=>wdSet(inp));wdSet(inp)});
 const _markLate=markLate;markLate=function(){_markLate();wdAll()};
 document.querySelector('table.ev').addEventListener('wheel',wheelDate,{passive:false});
+/* v169: 목표 접수일 = 수주등록의 수주일. 수주일이 바뀌면 접수(목표)도 따라간다 */
+document.getElementById('order_date').addEventListener('change',()=>{const r=document.getElementById('receipt_date');if(order_date.value){r.value=order_date.value;r.dispatchEvent(new Event('change',{bubbles:true}))}});
 /* 시작일 줄은 일수 재계산 */
 ['design','machining','assembly'].forEach(p=>['_start_date','_end_date'].forEach(k=>{const el=document.getElementById(p+k);if(el&&!el.__cd){el.__cd=1;el.addEventListener('change',()=>calcDays(p))}}));
 
@@ -379,6 +381,7 @@ function load(o){
   setSel(k,o[k]);
  }
  PLOG=Array.isArray(o.progress_log)?o.progress_log.slice():(typeof o.progress_log==='string'?(function(){try{return JSON.parse(o.progress_log)||[]}catch(e){return []}})():[]);
+ {const r=document.getElementById('receipt_date');if(o.order_date)r.value=String(o.order_date).slice(0,10)}
  plRender();shapeShow(o.image_url||'');markLate();
  document.getElementById('remark').value=o.remark||'';
  /* v119: 설계·조립 외주 항목은 화면에서 삭제 — 값은 외주설계발주·SET외주발주 화면이 sales_plans 에 기록한다 */

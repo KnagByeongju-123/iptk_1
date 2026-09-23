@@ -109,7 +109,7 @@ const MD=v=>{const t=String(v||'').slice(0,10);if(!/^\d{4}-\d{2}-\d{2}$/.test(t)
  return `${Number(t.slice(5,7))}/${Number(t.slice(8,10))}<small class="wd${w==='토'?' sat':w==='일'?' sun':''}">(${w})</small>`};
 const dd=(a,b)=>Math.round((new Date(b)-new Date(a))/86400000);
 function lateOf(pl){ /* 지연 일수 최대값 (없으면 0) */
- if(!pl)return 0;let m=0;EV.forEach(([k,g])=>{const c=pl['can_'+k+'_date'],t=pl[g];if(c&&t&&c>t)m=Math.max(m,dd(t,c))});return m}
+ if(!pl)return 0;let m=0;EV.forEach(([k,g])=>{const c=pl['can_'+k+'_date'],t=k==='receipt'?(pl.order_date||pl[g]):pl[g];if(c&&t&&c>t)m=Math.max(m,dd(t,c))});return m}
 function plog(pl){
  let L=pl&&pl.progress_log;if(typeof L==='string'){try{L=JSON.parse(L)}catch(e){L=[]}}
  if(!Array.isArray(L)||!L.length)return '<span style="color:#9aa7b1">-</span>';
@@ -133,20 +133,22 @@ function render(){
    <td rowspan="3" class="c">${esc(pl.process_set_qty??r.process_set_qty??'')}</td>`;
   const evRow=(lab,cls,get)=>`<th class="rl ${cls}">${lab}</th>`+EV.map(([k,g])=>{
     const v=get(k,g);let c='';
-    if(cls==='can'&&v&&pl[g]){c=v>pl[g]?' late':(v<pl[g]?' early':'')}
+    const gv=k==='receipt'?(pl.order_date||pl[g]):pl[g];if(cls==='can'&&v&&gv){c=v>gv?' late':(v<gv?' early':'')}
     return `<td class="c ev${c}" title="${esc(v||'')}">${MD(v)}</td>`}).join('');
   const tail=`<td rowspan="3">${plog(pl)}</td><td rowspan="3">${notes(pl)}</td>
    <td rowspan="3" class="num">${n(r.order_price)}</td><td rowspan="3" class="num">${n(r.target_price)}</td>
    <td rowspan="3" class="num">${r.profit_rate_pct==null||r.profit_rate_pct===''?'':Number(r.profit_rate_pct).toFixed(1)}</td>`;
   const on=`onclick="pick(${i},this)" ondblclick="pick(${i},this);detail()"`;
   return `<tr class="g1${lt?' haslate':''}" data-i="${i}" ${on}>${idCell}${evRow('요구일정','req',(k)=>pl['req_'+k+'_date'])}${tail}</tr>`
-   +`<tr class="g2" data-i="${i}" ${on}>${evRow('목표일정','goal',(k,g)=>pl[g])}</tr>`
+   +`<tr class="g2" data-i="${i}" ${on}>${evRow('목표일정','goal',(k,g)=>k==='receipt'?(pl.order_date||pl[g]):pl[g])}</tr>`
    +`<tr class="g3" data-i="${i}" ${on}>${evRow('가능일정','can',(k)=>pl['can_'+k+'_date'])}</tr>`;
  }).join('')
  :'<tr><td colspan="18" class="c" style="height:100px;color:#8a97a2">등록된 제작계획이 없습니다.</td></tr>';
  countText.textContent=view.length+'건';sel=-1;renderTotal();
 }
 function pick(i,tr){sel=i;document.querySelectorAll('#body tr').forEach(x=>x.classList.toggle('sel',Number(x.dataset.i)===i));}
+/* v169: 표 밖(다른 곳)을 클릭하면 행 선택 해제 */
+document.addEventListener('mousedown',e=>{if(sel<0)return;if(e.target.closest('#body tr')||e.target.closest('.foot,.mask,.toolbar'))return;pick(-1)},true);
 function search(){const j=(q_job.value||'').trim().toLowerCase(),it=(q_item.value||'').trim().toLowerCase();
  const onlyLate=!!(document.getElementById('q_late')||{}).checked,hide=!!(document.getElementById('q_hideDone')||{}).checked,today=new Date().toLocaleDateString('sv-SE');
  view=data.filter(r=>{const pl=planOf(r.job_no);
