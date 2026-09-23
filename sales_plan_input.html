@@ -153,7 +153,9 @@ table.ev td .dcell .wd.late{background:#ffe45c;color:#5a4400;font-weight:700}
    <tr class="sub"><th>담당자</th>
     <td><input id="receipt_manager" class="cbo" list="dl_emp" autocomplete="off" placeholder="접수" title="접수(영업) 담당자 (v185)"></td><td><input id="design_manager" class="cbo" list="dl_emp" autocomplete="off" placeholder="설계"></td>
     <td><div class="mrow"><input id="machining_manager" class="cbo" list="dl_emp" autocomplete="off" placeholder="가공"></div></td>
-    <td><input id="assembly_manager" class="cbo" list="dl_emp" autocomplete="off" placeholder="조립"></td><td></td><td></td>
+    <td><input id="assembly_manager" class="cbo" list="dl_emp" autocomplete="off" placeholder="조립"></td>
+    <td><input id="tryout_manager" class="cbo" list="dl_emp" autocomplete="off" placeholder="초품" title="초품 담당자 (v186)"></td>
+    <td><input id="complete_manager" class="cbo" list="dl_emp" autocomplete="off" placeholder="완료" title="완료(납품) 담당자 (v186)"></td>
     <td><div class="chk src" title="가공을 사내에서 할지 외주(협력업체)에 맡길지"><label><input type="radio" name="machining_src" value="사내" checked>사내</label><label><input type="radio" name="machining_src" value="외주">외주</label>
      <label title="세트(조수 전체) 외주"><input type="checkbox" id="machining_set_outsourced">세트</label></div></td></tr>
    <tr class="sub"><th>외주업체</th><td></td><td></td><td colspan="4"><input id="machining_vendor" class="cbo" list="dl_vd_mach" autocomplete="off" placeholder="가공 외주 선택 시" disabled style="width:100%"></td>
@@ -412,7 +414,7 @@ const PCT={design_internal_amount:'design_internal_pct',design_external_amount:'
  machining_internal_amount:'machining_internal_pct',machining_external_amount:'machining_external_pct',
  assembly_internal_amount:'assembly_internal_pct',assembly_external_amount:'assembly_external_pct'};
 /* v167: 엑셀(제번관리) 항목 — 도번·제작구분·재질·사이즈·고객담당·설계처·제작처·양산처·그림·요구/가능일정·특기사항 */
-const EXTK=['receipt_manager','tryout_start_date','complete_start_date','drawing_no','make_type','material_spec','size_spec','customer_contact','design_partner','maker_name','mass_vendor','image_url',
+const EXTK=['receipt_manager','tryout_manager','complete_manager','tryout_start_date','complete_start_date','drawing_no','make_type','material_spec','size_spec','customer_contact','design_partner','maker_name','mass_vendor','image_url',
  'receipt_date','req_receipt_date','req_design_date','req_machining_date','req_assembly_date','req_tryout_date','req_complete_date',
  'can_receipt_date','can_design_date','can_machining_date','can_assembly_date','can_tryout_date','can_complete_date'];
 const HK=['job_no','product_name','customer_name','process_set_qty','item_name','order_date',
