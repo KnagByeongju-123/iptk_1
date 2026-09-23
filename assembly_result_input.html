@@ -227,7 +227,7 @@ async function hxSave(){
  const rows=targets.map(pt=>({work_type:WORK.type,job_no:job.job,process_code:(PARTS.find(x=>x.part===pt)||{}).jo||null,
    part_no:pt===ALL?null:pt,machining_process_code:PROC.code,machining_process_name:PROC.name,
    work_date:d,worker_name:wk,headcount:hc,work_minutes:each,hourly_rate:rt,labor_cost:Math.round(each/60*hc*rt),
-   remark:rm||null,source:WORK.src}));
+   remark:rm||null,source:WORK.src,...(WORK.extra||{})}));
  const b=$('hxGo');if(b){b.disabled=true;b.textContent='등록 중…'}
  try{
   SELF_AT=Date.now();await MESDB.table('design_results').upsert(rows,'row_no');

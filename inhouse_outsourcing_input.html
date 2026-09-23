@@ -152,7 +152,7 @@ async function load(){
    MESDB.table('machining_plan_parts').select(`select=*&${F1}&order=row_no`,{fresh:true}).catch(()=>[]),
    MESDB.table('partlist_all').select(`select=*&${F1}`,{fresh:true}).catch(()=>[]),
    MESDB.table('order_lines').select(`select=*&${F1}&order=line_id`,{fresh:true}).catch(()=>[]),
-   MESDB.table('design_results').select(`select=*&${F1}&work_type=in.(가공,조립,검사)`,{fresh:true}).catch(()=>[]),   /* v169: 랩핑,조립·검사 칸은 조립/검사실적등록과 공유 */
+   MESDB.table('design_results').select(`select=*&${F1}&work_type=in.(가공,조립,검사,설계)`,{fresh:true}).catch(()=>[]),   /* v169: 랩핑,조립·검사 칸은 조립/검사실적등록과 공유 */
    MESDB.table('job_pool').select(`select=job_no,model,item_name&${F1}&limit=1`).catch(()=>[]),
    MESDB.table('drawings').select(`select=drawing_no,job_no&${F1}&limit=1`).catch(()=>[])
   ]);
@@ -233,7 +233,7 @@ const MATCOL=[['inDate','입고일',84,'ctr'],['part','품번',86,'t'],['name','
  ['mat','재질',62,'t'],['shape','형태',50,'ctr'],['th','두께',44,'n'],['len','길이',44,'n'],['wid','폭',44,'n'],
  ['qty','수',34,'n'],['kg','중량',56,'n'],['price','단가',62,'n'],['amt','금액',78,'n']];
 
-const PW=54,POW=76,TOTW=86;                    /* 사내 / 외주 / 합계 열 폭 */
+const PW=74,POW=88,TOTW=86;                    /* 사내 / 외주 / 합계 열 폭 */
 function stickyLeft(){const o=[];let x=0;for(const c of MATCOL){o.push(x);x+=c[2]}return o}
 function colgroup(){
  return MATCOL.map(c=>`<col style="width:${c[2]}px">`).join('')
@@ -254,7 +254,7 @@ function render(){
     <th class="grp" colspan="3">합계</th></tr>
    <tr>
     ${MATCOL.map((c,i)=>`<th class="sk gmat" style="left:${off[i]}px">${c[1]}</th>`).join('')}
-    ${COLS.map(()=>`<th title="사내 가공시간 (시간)">사내</th><th title="외주 가공비 (원)">외주</th>`).join('')||'<th></th>'}
+    ${COLS.map(()=>`<th title="사내 가공시간 (시간)">사내 (h)</th><th title="외주 가공비 (원)">외주 (원)</th>`).join('')||'<th></th>'}
     <th>재료비</th><th>가공비</th><th>합계</th></tr>`;
 
  $('body').innerHTML=ROWS.length?ROWS.map(x=>{
@@ -393,7 +393,7 @@ async function save(){
          이 화면이 만든 행만 차액으로 맞춘다. */
       const want=Math.max(0,Math.round(N(q.inMin)-N(q.inOther)));
       const rt=rateOf(x,c);
-      const row={work_type:(/랩핑|래핑|조립/.test(pn(c))?'조립':(/검사/.test(pn(c))?'검사':'가공')),job_no:x.job,process_code:jo,part_no:x.part,   /* v169: 랩핑,조립 칸은 조립비로 */
+      const row={work_type:(/랩핑|래핑|조립/.test(pn(c))?'조립':(/검사/.test(pn(c))?'검사':(/설계/.test(pn(c))?'설계':'가공'))),job_no:x.job,process_code:jo,part_no:x.part,   /* v169: 랩핑,조립 칸은 조립비로 */
         machining_process_code:c,machining_process_name:pn(c),
         work_date:x.inDate||T0(),work_minutes:want,headcount:1,
         hourly_rate:rt,labor_cost:Math.round(want/60*rt),
