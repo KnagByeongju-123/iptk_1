@@ -79,6 +79,7 @@ table.ev td input:focus{border-color:#2f75b5;background:#fff;outline:none}
 table.ev td input.keepcolor.late{background:#ffe45c!important;font-weight:700;color:#5a4400!important;-webkit-text-fill-color:#5a4400}
 table.ev td input.keepcolor.early{background:#e6f6e6!important}
 table.ev td input.keepcolor{color:#22303a;background:transparent}
+table.ev td input.bump{outline:2px solid #2f75b5;outline-offset:-2px}
 table.ev .mrow{display:flex;gap:3px;align-items:center}
 .shape{display:flex;flex-direction:column}
 .shapebox{flex:1;min-height:150px;margin:8px;border:1px dashed #b5c0c9;border-radius:4px;display:flex;align-items:center;justify-content:center;text-align:center;color:#8b98a3;cursor:pointer;background:#fafbfc;overflow:hidden}
@@ -123,7 +124,7 @@ table.ev .mrow{display:flex;gap:3px;align-items:center}
 
 <div class="blk two">
  <div>
-  <div class="bt">금형제작 EVENT <span class="bthint">요구 = 고객 요구일 · 목표 = 우리 계획 · 가능 = 현재 예상 (목표보다 늦으면 <i class="late-sw"></i>노랑)</span></div>
+  <div class="bt">금형제작 EVENT <span class="bthint">요구 = 고객 요구일 · 목표 = 우리 계획 · 가능 = 현재 예상 (목표보다 늦으면 <i class="late-sw"></i>노랑) &nbsp;|&nbsp; 날짜 칸 위에서 <b>휠</b> = ±1일 (같은 줄 오른쪽 일정도 같이 밀림) · <b>Shift+휠</b> = ±7일 · <b>Alt+휠</b> = 그 칸만</span></div>
   <table class="ev"><thead><tr>
    <th style="width:70px">구분</th><th>접수</th><th>설계</th><th>가공</th><th>조립</th><th>초품</th><th>완료</th><th style="width:196px">담당·비고</th></tr></thead>
   <tbody>
@@ -306,6 +307,25 @@ function markLate(){
 }
 EV.forEach(k=>{document.getElementById(GOAL[k]).addEventListener('change',markLate);document.getElementById('can_'+k+'_date').addEventListener('change',markLate)});
 
+/* v168: 날짜 칸 위에서 휠 → ±1일. 같은 줄의 오른쪽(이후 공정) 날짜도 같은 만큼 밀린다.
+   Shift = ±7일, Alt = 그 칸만. 빈 칸은 오늘부터 시작한다. */
+const addDays=(ymd,n)=>{const d=new Date(ymd+'T00:00:00');if(isNaN(d))return '';d.setDate(d.getDate()+n);return d.toLocaleDateString('sv-SE')};
+function wheelDate(e){
+ const inp=e.target.closest&&e.target.closest('table.ev input[type=date]');if(!inp)return;
+ e.preventDefault();
+ const n=(e.deltaY>0?1:-1)*(e.shiftKey?7:1);
+ const tr=inp.closest('tr'),cells=[...tr.querySelectorAll('input[type=date]')],i=cells.indexOf(inp);
+ const targets=e.altKey?[inp]:cells.slice(i);
+ if(!inp.value)inp.value=new Date().toLocaleDateString('sv-SE');
+ let moved=0;
+ targets.forEach((c,idx)=>{if(idx>0&&!c.value)return;c.value=addDays(c.value,n);c.dispatchEvent(new Event('change',{bubbles:true}));moved++});
+ inp.classList.add('bump');setTimeout(()=>inp.classList.remove('bump'),160);
+ msg(`${tr.querySelector('th')?.textContent||''} ${n>0?'+':''}${n}일 → ${inp.value}${moved>1?` (오른쪽 ${moved-1}칸도 함께)`:''}`);
+}
+document.querySelector('table.ev').addEventListener('wheel',wheelDate,{passive:false});
+/* 시작일 줄은 일수 재계산 */
+['design','machining','assembly'].forEach(p=>['_start_date','_end_date'].forEach(k=>{const el=document.getElementById(p+k);if(el&&!el.__cd){el.__cd=1;el.addEventListener('change',()=>calcDays(p))}}));
+
 /* v167 진척현황 — [{d:'2026-07-31',t:'제작접수/도면협의'}] */
 let PLOG=[];
 function plRender(){
@@ -457,6 +477,8 @@ async function loadJob(j){
   setSel('delivery_planned_date',s.delivery_planned_date);setSel('mold_type_name',s.mold_type_name);
   setSel('process_set_qty',s.process_set_qty);
   setSel('drawing_no',s.drawing_no);setSel('receipt_date',s.order_date);
+  if(!req_receipt_date.value)setSel('req_receipt_date',new Date().toLocaleDateString('sv-SE'));   /* v168: 요구 접수일은 오늘로 시작 */
+  markLate();
   order_price.value=num(s.order_price)?fmt(num(s.order_price)):'';
   recalc();msg(`${job} 수주정보를 불러왔습니다. (신규 제작계획)`);
  }catch(e){msg('조회 실패: '+String(e.message||e).slice(0,120))}
