@@ -279,11 +279,18 @@ async function resetJob(job){
   await load();
   setTimeout(load,800);
   /* v80: 정말로 지워졌는지 확인한다. 남아 있으면 조용히 넘어가지 않고 알린다 */
-  let left=0;
-  try{const chk=await MESDB.table('jobs').select(`select=job_no&job_no=eq.${encodeURIComponent(job)}`);left=(chk||[]).length}catch(e){}
+  /* v169: RPC 가 못 지운 잔여 행(수주·제번 풀·제작계획)은 화면에서 직접 지운다 — 제번 드롭다운(job_pool)에 남는 문제 */
+  const leftIn=[];
+  for(const t of ['sales_plans','sale_orders','jobs','job_pool']){
+   try{const chk=await MESDB.table(t).select(`select=job_no&job_no=eq.${encodeURIComponent(job)}`,{fresh:true});
+    if((chk||[]).length){try{await MESDB.table(t).delete({job_no:job})}catch(e){}
+     const re=await MESDB.table(t).select(`select=job_no&job_no=eq.${encodeURIComponent(job)}`,{fresh:true});if((re||[]).length)leftIn.push(t)}}catch(e){}
+  }
+  try{MESDB.dropCache&&MESDB.dropCache('rpc');MESDB.notify&&MESDB.notify(['jobs','sale_orders','job_pool','sales_plans'])}catch(e){}
+  const left=leftIn.length;
   if(left){
-   alert(`${job} 이(가) 아직 남아 있습니다. 삭제가 완전히 되지 않았습니다.`);
-   msg(`${job} 삭제가 완전히 되지 않았습니다. 화면을 새로고침한 뒤 다시 시도하세요.`);
+   alert(`${job} 이(가) 아직 남아 있습니다 (${leftIn.join(', ')}). 삭제가 완전히 되지 않았습니다.`);
+   msg(`${job} 삭제가 완전히 되지 않았습니다 (${leftIn.join(', ')} 에 남음). 화면을 새로고침한 뒤 다시 시도하세요.`);
   }else{
    msg(`${job} 을(를) 삭제했습니다. ${r&&r.deleted!=null?r.deleted+'건':''}`+(tabs?` (${tabs})`:''));
   }
