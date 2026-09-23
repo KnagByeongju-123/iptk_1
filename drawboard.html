@@ -13,6 +13,9 @@ body{font-family:'Malgun Gothic','맑은 고딕',Arial,sans-serif;font-size:12px
 .pbtn.on .n{background:#2f75b5}
 .pbtn .k{font-weight:700;color:#20456b}
 .pbtn .v{margin-left:auto;font-size:11px;color:#7c8993;white-space:nowrap}
+.pbtn.plan{border-color:#6a9ad0;background:linear-gradient(#fff,#e2edf9)}
+.pbtn .p{font-size:10.5px;color:#1d4f86;border:1px solid #9dbbe0;background:#e8f1fb;padding:0 4px;border-radius:2px;white-space:nowrap}
+#btns{max-height:calc(100vh - 190px);overflow:auto;padding-right:2px}
 .pbtn .h{font-size:10.5px;color:#8a6d3b;border:1px solid #d9c9a5;background:#fbf4e3;padding:0 4px;border-radius:2px}
 .tools{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
 .tools button{height:28px;padding:0 10px;border:1px solid #8b9ba9;background:linear-gradient(#fff,#e9eef2);cursor:pointer;font:inherit;border-radius:3px}
@@ -64,10 +67,10 @@ body.portrait .sheet{width:198mm}
  </div>
  <div class="side">
   <h3 id="sideTitle">가공공정</h3>
-  <div class="hint">누르는 순서대로 도면 위 띠에 번호가 붙습니다. 다시 누르면 빠집니다. 띠의 공정을 눌러도 뺄 수 있습니다.</div>
+  <div class="hint">공정 마스터 전체입니다. 누르는 순서대로 도면 위 띠에 번호가 붙고, 다시 누르면 빠집니다. 파란 「계획」 표시는 이 부품의 가공계획에 있는 공정입니다.</div>
   <div id="btns"></div>
   <div class="tools">
-   <button id="bAll" title="가공계획 순서 그대로 전부 넣습니다">▶ 전체 순서대로</button>
+   <button id="bAll" title="이 부품의 가공계획 순서 그대로 넣습니다">▶ 계획 순서대로</button>
    <button id="bClr">지우기</button>
    <button id="bOri" title="도면 방향에 맞춰 자동으로 정해집니다. 눌러서 바꿀 수 있습니다">용지: 가로</button>
    <button class="go" id="bPrint" title="인쇄창에서 대상을 「PDF로 저장」으로 고르면 PDF 파일로 저장됩니다">🖨 인쇄 / PDF 저장</button>
@@ -75,5 +78,5 @@ body.portrait .sheet{width:198mm}
   </div>
  </div>
 </div>
-<script src="drawboard.js?v=205"></script>
+<script src="drawboard.js?v=206"></script>
 </body></html>

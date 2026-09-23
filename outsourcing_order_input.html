@@ -167,7 +167,7 @@ const OWNER=(function(){try{return (window.MES_AUTH||window.parent.MES_AUTH)?.na
 
 const JOBS=[];
 let VENDORS=[];  /* 협력업체는 마스터에서 로드 (mes_lookup.js) */
-const PROCNAME={};   /* v39: 공정마스터에서 로드 */
+const PROCNAME={};const PROCLIST=[];   /* v39: 공정마스터에서 로드 */
 /* v86: 부품별 가공공정 리스트를 공정코드 대신 공정명으로 표기 */
 const _esc=v=>String(v??'').replace(/[&<>"]/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[x]));
 const stepCode=s=>String((s&&typeof s==='object')?(s.process_code||s.code||''):(s??'')).trim();
@@ -467,7 +467,7 @@ async function _waitDB(){for(let i=0;i<60&&!window.MESDB;i++)await new Promise(r
  if(window.MESDB&&MESDB.ready){try{await MESDB.ready}catch(e){}}}
 async function loadProcNames(){
  try{const ps=await MESDB.table('processes').select('select=process_code,process_name');
-  ps.forEach(p=>{const c=String(p.process_code||'').trim();if(!c)return;PROCNAME[c]=p.process_name||'';PROCNAME[c.toUpperCase()]=p.process_name||''})}catch(e){}
+  PROCLIST.length=0;ps.forEach(p=>{const c=String(p.process_code||'').trim();if(!c)return;PROCNAME[c]=p.process_name||'';PROCNAME[c.toUpperCase()]=p.process_name||'';PROCLIST.push({code:c,name:p.process_name||''})})}catch(e){}
 }
 async function loadJobs(){
  await _waitDB();if(!_online()){msg('DB 미연결 - 제번리스트를 불러올 수 없습니다.');return}
@@ -1220,7 +1220,7 @@ function drawBoard(ri){
  if(!window.MESDRAW)return msg('그림보드 모듈(mes_drawboard.js)이 없습니다.');
  const steps=(r.steps||[]).map((s,i)=>{const c=stepCode(s);if(!c)return null;const o=isHouse(r,i)?{vendor:'',st:''}:stepInfo(r,i);
   return {code:c,name:procName(c),inhouse:isHouse(r,i),vendor:o.vendor||'',state:o.st||''}}).filter(Boolean);
- MESDRAW.open({job:j.job||'',item:j.item||'',part:r.part,name:r.name||'',qty:r.qty,image:PIMG[r.part]||'',steps,by:OWNER});
+ MESDRAW.open({job:j.job||'',item:j.item||'',part:r.part,name:r.name||'',qty:r.qty,image:PIMG[r.part]||'',steps,all:PROCLIST,by:OWNER});
 }
 /* 처리 후 공통: 캐시 비우고 → 알림 → 공정 리스트 재조회 */
 async function ctxAfter(job,text){
@@ -1271,7 +1271,7 @@ window.MESLOOK_RELOAD_VENDORS=async()=>{MESLOOK.invalidate('vendor_outsourcing')
  if(typeof renderRoutes==='function')renderRoutes();};
 </script>
 <script src="mes_price.js?v=162"></script>
-<script src="mes_mail.js?v=175"></script><script src="mes_drawboard.js?v=205"></script>
+<script src="mes_mail.js?v=175"></script><script src="mes_drawboard.js?v=206"></script>
 <script src="mes_route_edit.js?v=168"></script>
 <script src="mes_vendorcheck.js?v=92"></script>
 <script>

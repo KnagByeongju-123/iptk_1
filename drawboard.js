@@ -1,4 +1,4 @@
-/* drawboard.js (v205) — 부품 그림보드 화면 스크립트
+/* drawboard.js (v206) — 부품 그림보드 화면 스크립트
  * 사내외가공 발주(mes_drawboard.js)가 sessionStorage 'mes_drawboard' 에 넣어 준 자료를 읽어 그린다.
  * 문서를 스크립트로 써 넣지 않고(document.write 없음) DOM 만 만든다. */
 (function(){
@@ -7,7 +7,13 @@
  let o={};
  try{o=JSON.parse(sessionStorage.getItem('mes_drawboard')||'{}')||{}}catch(e){o={}}
  if(!o.part){try{o=JSON.parse(decodeURIComponent(location.hash.slice(1))||'{}')}catch(e){}}
- const STEPS=(o.steps||[]).map((s,i)=>Object.assign({idx:i},s));
+ /* v206: 오른쪽 버튼은 공정 마스터 전체. 이 부품의 가공계획에 있는 공정은 "계획 n" 표시를 달고, ▶ 전체 순서대로 는 계획 순서로 넣는다 */
+ const PLAN=(o.steps||[]);
+ let STEPS=(o.all&&o.all.length?o.all:PLAN).map((s,i)=>({idx:i,code:String(s.code||'').trim(),name:s.name||'',inhouse:false,vendor:'',state:'',plan:[]}));
+ PLAN.forEach((ps,k)=>{const c=String(ps.code||'').trim();let t=STEPS.find(x=>x.code===c||x.code.toUpperCase()===c.toUpperCase());
+  if(!t){t={idx:STEPS.length,code:c,name:ps.name||c,inhouse:false,vendor:'',state:'',plan:[]};STEPS.push(t)}
+  t.plan.push(k+1);if(!t.vendor)t.vendor=ps.vendor||'';if(!t.state)t.state=ps.state||'';if(ps.inhouse)t.inhouse=true;if(!t.name)t.name=ps.name||''});
+ const PLANSEQ=[];PLAN.forEach(ps=>{const c=String(ps.code||'').trim();const t=STEPS.find(x=>x.code===c||x.code.toUpperCase()===c.toUpperCase());if(t&&!PLANSEQ.includes(t.idx))PLANSEQ.push(t.idx)});
  let SEQ=[];
  document.title='부품 그림보드 '+(o.job||'')+' '+(o.part||'');
  /* 머리글 */
@@ -26,12 +32,13 @@
  function setOri(v){ORI=v;document.body.classList.toggle('portrait',v==='portrait');pageSt.textContent='@page{size:A4 '+v+';margin:6mm}';$('bOri').textContent='용지: '+(v==='portrait'?'세로':'가로')}
  $('bOri').addEventListener('click',()=>{ORI_SET=true;setOri(ORI==='portrait'?'landscape':'portrait')});
  /* 공정 버튼 */
- $('sideTitle').textContent='가공공정 ('+STEPS.length+')';
+ $('sideTitle').textContent='가공공정 전체 ('+STEPS.length+') · 계획 '+PLANSEQ.length;
  const btns=$('btns');
  if(!STEPS.length)btns.appendChild(el('div','hint','가공계획에 공정이 없습니다.'));
  STEPS.forEach(s=>{const b=el('button','pbtn');b.dataset.i=s.idx;b.type='button';
   const n=el('span','n');n.id='n'+s.idx;b.appendChild(n);
-  b.appendChild(el('span','k','공정'+(s.idx+1)+' '+(s.name||s.code||'')));
+  b.appendChild(el('span','k',s.name||s.code||''));
+  if(s.plan.length){b.classList.add('plan');b.appendChild(el('span','p','계획 '+s.plan.join(',')))}
   if(s.inhouse)b.appendChild(el('span','h','사내'));
   b.appendChild(el('span','v',[s.vendor,s.state].filter(Boolean).join(' · ')));
   b.addEventListener('click',()=>tg(s.idx));btns.appendChild(b)});
@@ -47,7 +54,7 @@
    if(b)b.classList.toggle('on',k>=0);if(n)n.textContent=k>=0?String(k+1):''});
  }
  function tg(i){const k=SEQ.indexOf(i);if(k>=0)SEQ.splice(k,1);else SEQ.push(i);draw()}
- $('bAll').addEventListener('click',()=>{SEQ=STEPS.map(s=>s.idx);draw()});
+ $('bAll').addEventListener('click',()=>{SEQ=PLANSEQ.slice();draw()});
  $('bClr').addEventListener('click',()=>{SEQ=[];draw()});
  $('bPrint').addEventListener('click',()=>window.print());
  $('bClose').addEventListener('click',()=>window.close());
