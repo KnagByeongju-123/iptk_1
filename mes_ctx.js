@@ -677,8 +677,8 @@ window.MESCTX={confirm:dlgConfirm};
    if(typeof ORD==='undefined')return false;
    ORD.length=0;
    rows.forEach(r=>ORD.push({_id:r.line_id,seq:Nn(r.line_id),job_no:r.job_no||'',item_name:r.item_name||'',partner_name:r.vendor_name||'',
-    process_code:r.process_code||'',order_date:D(r.order_date),expected_date:D(r.required_date),
-    nego_price:Nn(r.confirm_price),progress_rate:Nn(r.nego_rate),receipt_date:D(r.receipt_date)}));
+    process_code:r.process_code||'',process_name:r.process_name||'',order_date:D(r.order_date),expected_date:D(r.required_date),
+    nego_price:Nn(r.confirm_price),quote_price:Nn(r.quote_price),progress_rate:Nn(r.nego_rate),receipt_date:D(r.receipt_date)}));   /* v199: 관리제번 표시용 process_name · 견적가 */
    try{RCP=await MESDB.table('outsourced_design_receipts').select('select=*&order=receipt_no')}catch(e){}
    if(typeof fillVen==='function')fillVen();
    return true;

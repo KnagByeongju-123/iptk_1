@@ -38,7 +38,7 @@ tfoot th{position:sticky;bottom:0;background:linear-gradient(#e6eef5,#d3e0ea)}
   </section>
   <div class="gridbox"><div class="tablewrap"><table>
     <colgroup><col style="width:44px"><col style="width:110px"><col style="width:130px"><col style="width:110px"><col style="width:74px"><col style="width:110px"><col style="width:108px"><col style="width:50px"><col style="width:74px"><col style="width:90px"><col style="width:90px"><col style="width:90px"><col style="width:96px"><col style="width:86px"><col style="width:92px"><col style="width:100px"><col style="width:92px"></colgroup>
-    <thead><tr><th>No</th><th>제번</th><th>품명</th><th>품번</th><th>국내/해외</th><th>거래처</th><th>수주가</th><th>공정</th><th>유상사급</th><th>견적가</th><th>네고가</th><th>차액</th><th>협력업체</th><th>진행률</th><th>발주일</th><th>입고예정일</th><th>입고일</th></tr></thead>
+    <thead><tr><th>No</th><th title="관리제번 (괄호는 공정)">관리제번</th><th>품명</th><th>품번</th><th>국내/해외</th><th>거래처</th><th>수주가</th><th>공정</th><th>유상사급</th><th>견적가</th><th>네고가</th><th>차액</th><th>협력업체</th><th>진행률</th><th>발주일</th><th>입고예정일</th><th>입고일</th></tr></thead>
     <tbody id="body"></tbody>
     <tfoot><tr><th colspan="9" class="r">합계</th><th class="r" id="sumQuote">0</th><th class="r" id="sumNego">0</th><th class="r" id="sumDiff">0</th><th colspan="5"></th></tr></tfoot>
   </table></div></div>
@@ -55,6 +55,8 @@ const online=()=>!!(window.MESDB&&MESDB.online);
 const JSPL=j=>{const m=/^(.*\d)([A-Z])$/.exec(String(j||'').trim());return m?{base:m[1],seq:m[2]}:{base:String(j||'').trim(),seq:''}};
 const seqRange=q=>{q=[...new Set(q.filter(Boolean))].sort();if(!q.length)return '';const c=q.map(x=>x.charCodeAt(0));const run=c.every((v,i)=>!i||v===c[i-1]+1);
  return q.length===1?`(${q[0]})`:run?`(${q[0]}~${q[q.length-1]})`:`(${q.join('·')})`};
+/* v199: 설계외주는 관리제번 단위 — 제번 칸에 「26DSA057 (A~C)」 */
+const jobLab=(j,proc,name)=>{const s=JSPL(j);if(String(proc||'')==='ALL')return name||`${s.base} (전체)`;return s.seq?`${s.base} (${s.seq})`:String(j||'')};
 function fillBaseDL(dlId,list){
  const dl=document.getElementById(dlId);if(!dl)return;const e=v=>String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
  const mp=new Map();list.forEach(({job,item})=>{const s=JSPL(job);let g=mp.get(s.base);if(!g){g={seqs:[],item:''};mp.set(s.base,g)}g.seqs.push(s.seq);if(!g.item&&item)g.item=item});
@@ -68,7 +70,7 @@ async function loadRows(){
   const rs=await MESDB.table('outsourced_design_status_view').select('select=*&order=row_no');
   rows.length=0;
   rs.forEach(r=>rows.push({job:r.job_no,item:r.item_name||'',model:r.model||'',area:r.area||'',
-   cust:r.customer_name||'',amount:Number(r.order_price||0),proc:r.process_code||'',
+   cust:r.customer_name||'',amount:Number(r.order_price||0),proc:r.process_code||'',procName:r.process_name||'',
    line:r.line_id,status:r.status||'',
    paid:r.paid_supply||'',quote:Number(r.quote_price||0),nego:Number(r.nego_price||0),
    diff:Number(r.difference||0),partner:r.vendor_name||'',rate:Number(r.progress_rate||0),
@@ -79,7 +81,7 @@ async function loadRows(){
  }catch(e){msg('조회 실패: '+String(e.message||e).slice(0,120));render()}
 }
 function within(v,a,b){if(!a&&!b)return true;if(!v)return false;return (!a||v>=a)&&(!b||v<=b)}
-function render(){selIdx=-1;body.innerHTML=view.map((r,i)=>`<tr onclick="sel(this,${i})" ondblclick="sel(this,${i});detail(${i})" title="더블클릭하면 입고 이력을 봅니다"><td class="c">${i+1}</td><td>${r.job}</td><td>${r.item}</td><td>${r.model}</td><td class="c">${r.area}</td><td>${r.cust}</td><td class="r">${money(r.amount)}</td><td class="c">${r.proc}</td><td class="c">${r.paid}</td><td class="r">${money(r.quote)}</td><td class="r">${money(r.nego)}</td><td class="r">${money(r.diff)}</td><td>${r.partner}</td><td><div class="bar"><i style="width:${r.rate}%"></i><b>${r.rate}%</b></div></td><td class="c">${r.odate}</td><td class="c">${r.edate}</td><td class="c">${r.idate}</td></tr>`).join('');
+function render(){selIdx=-1;body.innerHTML=view.map((r,i)=>`<tr onclick="sel(this,${i})" ondblclick="sel(this,${i});detail(${i})" title="더블클릭하면 입고 이력을 봅니다"><td class="c">${i+1}</td><td title="${r.job}">${jobLab(r.job,r.proc,r.procName)}</td><td>${r.item}</td><td>${r.model}</td><td class="c">${r.area}</td><td>${r.cust}</td><td class="r">${money(r.amount)}</td><td class="c">${r.proc==='ALL'?'전체':r.proc}</td><td class="c">${r.paid}</td><td class="r">${money(r.quote)}</td><td class="r">${money(r.nego)}</td><td class="r">${money(r.diff)}</td><td>${r.partner}</td><td><div class="bar"><i style="width:${r.rate}%"></i><b>${r.rate}%</b></div></td><td class="c">${r.odate}</td><td class="c">${r.edate}</td><td class="c">${r.idate}</td></tr>`).join('');
 sumQuote.textContent=money(view.reduce((a,r)=>a+(Number(r.quote)||0),0));sumNego.textContent=money(view.reduce((a,r)=>a+(Number(r.nego)||0),0));sumDiff.textContent=money(view.reduce((a,r)=>a+(Number(r.diff)||0),0));countText.textContent=`${view.length}건`}
 let selIdx=-1;
 function sel(tr,i){selIdx=(i==null?-1:Number(i));document.querySelectorAll('#body tr').forEach(x=>x.classList.remove('sel'));tr.classList.add('sel')}
