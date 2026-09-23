@@ -148,10 +148,10 @@ table.ev td .dcell .wd.late{background:#ffe45c;color:#5a4400;font-weight:700}
     <td><input type="date" id="can_assembly_date" class="keepcolor"></td><td><input type="date" id="can_tryout_date" class="keepcolor"></td><td><input type="date" id="can_complete_date" class="keepcolor"></td>
     <td class="c" style="color:#8b98a3">지금 예상</td></tr>
    <tr class="sub"><th>시작일</th>
-    <td></td><td><input type="date" id="design_start_date"></td><td><input type="date" id="machining_start_date"></td><td><input type="date" id="assembly_start_date"></td><td></td><td></td>
-    <td class="c" style="color:#8b98a3">일수 <span id="design_days_v">-</span> / <span id="machining_days_v">-</span> / <span id="assembly_days_v">-</span></td></tr>
+    <td></td><td><input type="date" id="design_start_date"></td><td><input type="date" id="machining_start_date"></td><td><input type="date" id="assembly_start_date"></td><td><input type="date" id="tryout_start_date" title="초품 시작일 (v185)"></td><td><input type="date" id="complete_start_date" title="완료 시작일 (v185)"></td>
+    <td class="c" style="color:#8b98a3" title="설계 / 가공 / 조립 / 초품 / 완료 — 목표일 − 시작일 + 1">일수 <span id="design_days_v">-</span> / <span id="machining_days_v">-</span> / <span id="assembly_days_v">-</span> / <span id="tryout_days_v">-</span> / <span id="complete_days_v">-</span></td></tr>
    <tr class="sub"><th>담당자</th>
-    <td></td><td><input id="design_manager" class="cbo" list="dl_emp" autocomplete="off" placeholder="설계"></td>
+    <td><input id="receipt_manager" class="cbo" list="dl_emp" autocomplete="off" placeholder="접수" title="접수(영업) 담당자 (v185)"></td><td><input id="design_manager" class="cbo" list="dl_emp" autocomplete="off" placeholder="설계"></td>
     <td><div class="mrow"><input id="machining_manager" class="cbo" list="dl_emp" autocomplete="off" placeholder="가공"></div></td>
     <td><input id="assembly_manager" class="cbo" list="dl_emp" autocomplete="off" placeholder="조립"></td><td></td><td></td>
     <td><div class="chk src" title="가공을 사내에서 할지 외주(협력업체)에 맡길지"><label><input type="radio" name="machining_src" value="사내" checked>사내</label><label><input type="radio" name="machining_src" value="외주">외주</label>
@@ -290,6 +290,12 @@ function calcDays(p){
  if(s&&e){const n=Math.round((new Date(e)-new Date(s))/86400000)+1;d.value=n>0?n:''}else d.value='';
  const v=document.getElementById(p+'_days_v');if(v)v.textContent=d.value?d.value+'일':'-';
 }
+/* v185: 초품·완료 일수 = 목표일(초품=T/O 예정, 완료=납기 예정) − 시작일 + 1 (표시만) */
+const XEND={tryout:'s1_planned_date',complete:'delivery_planned_date'};
+function calcDaysX(p){const s=document.getElementById(p+'_start_date').value,e=document.getElementById(XEND[p]).value,v=document.getElementById(p+'_days_v');
+ let n=0;if(s&&e)n=Math.round((new Date(e)-new Date(s))/86400000)+1;if(v)v.textContent=n>0?n+'일':'-'}
+{const _cd=calcDays;calcDays=function(p){_cd(p);try{calcDaysX('tryout');calcDaysX('complete')}catch(e){}}}
+['tryout','complete'].forEach(p=>[p+'_start_date',XEND[p]].forEach(id=>document.getElementById(id).addEventListener('change',()=>calcDaysX(p))));
 /* v167: 가능일정이 목표보다 늦으면 노랑(late), 빠르면 연두(early) — 엑셀에서 손으로 칠하던 표시 */
 const EV=['receipt','design','machining','assembly','tryout','complete'];
 const GOAL={receipt:'receipt_date',design:'design_end_date',machining:'machining_end_date',assembly:'assembly_end_date',tryout:'s1_planned_date',complete:'delivery_planned_date'};
@@ -406,7 +412,7 @@ const PCT={design_internal_amount:'design_internal_pct',design_external_amount:'
  machining_internal_amount:'machining_internal_pct',machining_external_amount:'machining_external_pct',
  assembly_internal_amount:'assembly_internal_pct',assembly_external_amount:'assembly_external_pct'};
 /* v167: 엑셀(제번관리) 항목 — 도번·제작구분·재질·사이즈·고객담당·설계처·제작처·양산처·그림·요구/가능일정·특기사항 */
-const EXTK=['drawing_no','make_type','material_spec','size_spec','customer_contact','design_partner','maker_name','mass_vendor','image_url',
+const EXTK=['receipt_manager','tryout_start_date','complete_start_date','drawing_no','make_type','material_spec','size_spec','customer_contact','design_partner','maker_name','mass_vendor','image_url',
  'receipt_date','req_receipt_date','req_design_date','req_machining_date','req_assembly_date','req_tryout_date','req_complete_date',
  'can_receipt_date','can_design_date','can_machining_date','can_assembly_date','can_tryout_date','can_complete_date'];
 const HK=['job_no','product_name','customer_name','process_set_qty','item_name','order_date',
