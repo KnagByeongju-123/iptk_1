@@ -2,7 +2,7 @@
  * MESMAIL.order({category:'원재료'|'구매품'|'외주가공', vendor, job, item, lines:[{part,name,mat,spec,proc,qty,price,amt,rdate,image_url}], by})
  *   → 받는 사람(협력업체 email)·제목·본문을 채운 창 → [✉ 보내기] / [🖨 발주서(A4)] / [mailto]
  * 보내기 경로
- *   ① Supabase Edge Function  mes-mail  (POST {to,cc,subject,html,attachments:[{name,url}]})  — sql_v170_mail.sql 참조
+ *   ① 구글 앱스 스크립트 웹앱 GAS_URL (POST text/plain JSON {action:'sendOrderMail',to,cc,subject,text,html,attachments:[{name,url}]}) — mes_mail_gas.gs 참조
  *   ② 함수가 없으면 mailto: 로 메일 앱을 열고(본문 텍스트 + 그림 링크) 발주서 창을 같이 띄운다 → PDF 로 저장해 첨부
  * 부품 그림은 PartList 에 등록한 A4 그림(image_url)을 본문에 넣는다. */
 (function(){
@@ -12,6 +12,8 @@ const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 const won=v=>Math.round(Number(v)||0).toLocaleString('ko-KR');
 const T0=()=>new Date().toLocaleDateString('sv-SE');
 let O=null,VEND=null;
+/* v171: 발주서 메일 발송 — 구글 앱스 스크립트 웹앱 (doPost) */
+const GAS_URL='https://script.google.com/macros/s/AKfycbxWmPpH0vNtK5Abuk5fAvY1Se0OwRsv24lEXtKVWZ6m0PuzFtCWz3SeKFnCMgtbxxAf/exec';
 
 function ensureUI(){
  if($('mlMask'))return;
@@ -85,14 +87,22 @@ window.MESMAIL={
   const to=$('mlTo').value.trim();if(!to)return say('받는 사람 이메일을 넣으세요.');
   const b=$('mlSend');b.disabled=true;b.textContent='보내는 중…';
   try{
-   const tok=(()=>{try{return (window.MES_AUTH||window.parent.MES_AUTH||{}).token||''}catch(e){return ''}})();
-   const r=await fetch(MESDB.cfg.url+'/functions/v1/mes-mail',{method:'POST',headers:{'Content-Type':'application/json','apikey':MESDB.cfg.key,'Authorization':'Bearer '+(tok||MESDB.cfg.key)},
-     body:JSON.stringify({to,cc:$('mlCc').value.trim()||null,subject:$('mlSubj').value,text:textBody(O),html:sheetHtml(O,true),
-       attachments:O.lines.filter(l=>l.image_url).map(l=>({name:`${O.job}_${l.part}.png`,url:l.image_url}))})});
-   if(r.status===404){say('메일 함수(mes-mail)가 아직 배포되지 않았습니다 — 메일 앱으로 엽니다.');b.disabled=false;b.textContent='✉ 보내기';return MESMAIL.mailto()}
-   const t=await r.text();if(!r.ok)throw new Error(t.slice(0,160));
+   /* v171: 구글 앱스 스크립트 웹앱으로 발송 (text/plain 으로 보내 CORS 사전요청을 피한다) */
+   const payload={action:'sendOrderMail',to,cc:$('mlCc').value.trim()||'',subject:$('mlSubj').value,text:textBody(O),html:sheetHtml(O,true).replace(/<div class="bar">[\s\S]*?<\/div>/,''),
+     attachments:O.lines.filter(l=>l.image_url).map(l=>({name:`${O.job}_${l.part}.png`,url:l.image_url})),
+     meta:{category:O.category,vendor:O.vendor,job:O.job,by:O.by||'',lines:O.lines.length}};
+   let res=null;
+   try{
+    const r=await fetch(GAS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload),redirect:'follow'});
+    const t=await r.text();try{res=JSON.parse(t)}catch(e){res={ok:r.ok,raw:t.slice(0,160)}}
+   }catch(e){
+    /* 응답을 못 읽는 환경(CORS)이면 no-cors 로 한 번 더 — 전송은 되지만 결과는 확인 못 함 */
+    await fetch(GAS_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});
+    res={ok:true,unverified:true};
+   }
+   if(!res||res.ok===false)throw new Error((res&&(res.error||res.raw))||'구글 스크립트 응답 오류');
    try{await MESDB.table('mail_log').upsert([{kind:'발주서',category:O.category,vendor_name:O.vendor,job_no:O.job,to_addr:to,subject:$('mlSubj').value,sent_by:O.by||null,lines:O.lines.length}])}catch(e){}
-   say(`${to} 로 발주서를 보냈습니다.`);setTimeout(MESMAIL.close,900);
+   say(res.unverified?`${to} 로 보냈습니다 (응답 확인 불가 — 받은편지함을 확인하세요).`:`${to} 로 발주서를 보냈습니다.`);setTimeout(MESMAIL.close,1200);
   }catch(e){say('전송 실패: '+String(e.message||e).slice(0,140)+' — [📨 메일 앱]으로 보내세요.');b.disabled=false;b.textContent='✉ 보내기'}
  },
  sheet:sheetHtml,
