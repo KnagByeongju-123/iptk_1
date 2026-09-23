@@ -81,6 +81,12 @@ table.ev td input.keepcolor.early{background:#e6f6e6!important}
 table.ev td input.keepcolor{color:#22303a;background:transparent}
 table.ev td input.bump{outline:2px solid #2f75b5;outline-offset:-2px}
 table.ev .mrow{display:flex;gap:3px;align-items:center}
+/* v169: 날짜 옆 요일 표시 (수) — 토·일은 빨강 */
+table.ev td .dcell{display:flex;align-items:center;gap:2px;min-width:0}
+table.ev td .dcell input{flex:1 1 auto;min-width:0}
+table.ev td .dcell .wd{flex:0 0 auto;font-size:11px;color:#5b6c7a;width:26px;text-align:center;border-radius:3px;line-height:20px}
+table.ev td .dcell .wd.sat{color:#1d5da3}table.ev td .dcell .wd.sun{color:#c0392b;font-weight:700}
+table.ev td .dcell .wd.late{background:#ffe45c;color:#5a4400;font-weight:700}
 .shape{display:flex;flex-direction:column}
 .shapebox{flex:1;min-height:150px;margin:8px;border:1px dashed #b5c0c9;border-radius:4px;display:flex;align-items:center;justify-content:center;text-align:center;color:#8b98a3;cursor:pointer;background:#fafbfc;overflow:hidden}
 .shapebox:hover{border-color:#2f75b5;color:#2f75b5}
@@ -312,7 +318,7 @@ EV.forEach(k=>{document.getElementById(GOAL[k]).addEventListener('change',markLa
 function fillTodayAll(){
  const t=new Date().toLocaleDateString('sv-SE');let n=0;
  document.querySelectorAll('table.ev input[type=date]').forEach(i=>{if(!i.value){i.value=t;n++}});
- ['design','machining','assembly'].forEach(calcDays);
+ ['design','machining','assembly'].forEach(calcDays);if(typeof wdAll==='function')wdAll();
  return n;
 }
 const addDays=(ymd,n)=>{const d=new Date(ymd+'T00:00:00');if(isNaN(d))return '';d.setDate(d.getDate()+n);return d.toLocaleDateString('sv-SE')};
@@ -328,6 +334,18 @@ function wheelDate(e){
  inp.classList.add('bump');setTimeout(()=>inp.classList.remove('bump'),160);
  msg(`${tr.querySelector('th')?.textContent||''} ${n>0?'+':''}${n}일 → ${inp.value}${moved>1?` (오른쪽 ${moved-1}칸도 함께)`:''}`);
 }
+/* v169: 날짜 칸 옆에 요일 (수) 표시 */
+const WDN=['일','월','화','수','목','금','토'];
+function wdOf(ymd){if(!ymd)return '';const d=new Date(ymd+'T00:00:00');return isNaN(d)?'':WDN[d.getDay()]}
+function wdSet(inp){const b=inp.parentElement&&inp.parentElement.querySelector('.wd');if(!b)return;const w=wdOf(inp.value);
+ b.textContent=w?`(${w})`:'';b.className='wd'+(w==='토'?' sat':w==='일'?' sun':'')+(inp.classList.contains('late')?' late':'');b.title=w?`${inp.value} (${w}요일)`:''}
+function wdAll(){document.querySelectorAll('table.ev input[type=date]').forEach(wdSet)}
+document.querySelectorAll('table.ev input[type=date]').forEach(inp=>{
+ if(inp.parentElement.classList.contains('dcell'))return;
+ const w=document.createElement('span');w.className='dcell';inp.parentNode.insertBefore(w,inp);w.appendChild(inp);
+ const b=document.createElement('b');b.className='wd';w.appendChild(b);
+ inp.addEventListener('change',()=>wdSet(inp));inp.addEventListener('input',()=>wdSet(inp));wdSet(inp)});
+const _markLate=markLate;markLate=function(){_markLate();wdAll()};
 document.querySelector('table.ev').addEventListener('wheel',wheelDate,{passive:false});
 /* 시작일 줄은 일수 재계산 */
 ['design','machining','assembly'].forEach(p=>['_start_date','_end_date'].forEach(k=>{const el=document.getElementById(p+k);if(el&&!el.__cd){el.__cd=1;el.addEventListener('change',()=>calcDays(p))}}));
