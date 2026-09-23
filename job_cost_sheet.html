@@ -263,9 +263,9 @@ window.MES={search:load,csv,setMessage:msg,reload:load};
 render();
 (async()=>{await waitDB();const j=(jobQ.value||'').trim();if(j&&online())load()})();
 </script>
-<script src="mes_db.js?v=159"></script>
-<script src="mes_ctx.js?v=159"></script>
-<script src="mes_jobpick.js?v=121"></script>
+<script src="mes_db.js?v=168"></script>
+<script src="mes_ctx.js?v=162"></script>
+<script src="mes_jobpick.js?v=162"></script>
 <script>try{MESJOB.attach("jobQ",{onPick:j=>{jobQ.value=j;load()}})}catch(e){}
 jobQ.addEventListener('keydown',e=>{if(e.key==='Enter')load()});
 try{MESDB.onChange&&MESDB.onChange(['order_lines','design_results','machining_plan_parts'],()=>{clearTimeout(window.__jt);window.__jt=setTimeout(()=>{if(CURJOB)load()},500)})}catch(e){}</script>

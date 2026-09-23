@@ -61,10 +61,10 @@ table{border-collapse:collapse;min-width:1040px;width:100%;table-layout:fixed}th
   <tbody id="obody"></tbody>
   <tfoot><tr class="gtot"><td colspan="22" class="c" id="totline">조회 0건</td></tr></tfoot>
  </table></div>
- <div class="gridbox"><table style="min-width:1560px">
+ <div class="gridbox"><table style="min-width:2000px">
   <thead>
-   <tr class="grp"><th colspan="7">기본정보</th><th colspan="6">설계비</th><th colspan="6">재료비</th></tr>
-   <tr><th style="width:100px">제번</th><th style="width:90px">품번</th><th style="width:150px">품명</th><th style="width:120px">도번</th><th style="width:52px">공정</th><th style="width:110px">제조원가</th><th style="width:78px">제조원가율</th><th style="width:100px">소계</th><th style="width:56px">(%)</th><th style="width:100px">사내</th><th style="width:56px">(%)</th><th style="width:90px">사외</th><th style="width:56px">(%)</th><th style="width:100px">소계</th><th style="width:56px">(%)</th><th style="width:100px">원재료</th><th style="width:56px">(%)</th><th style="width:100px">구매품</th><th style="width:56px">(%)</th></tr>
+   <tr class="grp"><th colspan="7">기본정보</th><th colspan="6">설계비</th><th colspan="6">재료비</th><th colspan="6">가공비</th></tr>
+   <tr><th style="width:100px">제번</th><th style="width:90px">품번</th><th style="width:150px">품명</th><th style="width:120px">도번</th><th style="width:52px">공정</th><th style="width:110px">제조원가</th><th style="width:78px">제조원가율</th><th style="width:100px">소계</th><th style="width:56px">(%)</th><th style="width:100px">사내</th><th style="width:56px">(%)</th><th style="width:90px">사외</th><th style="width:56px">(%)</th><th style="width:100px">소계</th><th style="width:56px">(%)</th><th style="width:100px">원재료</th><th style="width:56px">(%)</th><th style="width:100px">구매품</th><th style="width:56px">(%)</th><th style="width:100px">소계</th><th style="width:56px">(%)</th><th style="width:100px" title="사내가공 실적(시간÷60×단가)">사내</th><th style="width:56px">(%)</th><th style="width:90px" title="외주가공 입고확정 금액">사외</th><th style="width:56px">(%)</th></tr>
   </thead>
   <tbody id="dbody"></tbody>
   <tfoot id="dfoot"></tfoot>
@@ -117,20 +117,32 @@ async function loadDetailRows(r){
  return [...g.values()].sort((a,b)=>a.cost_stage==='공통'?1:b.cost_stage==='공통'?-1:a.cost_stage.localeCompare(b.cost_stage)).map(x=>{
   x.design_cost_subtotal=x.design_cost_internal+x.design_cost_external;
   x.material_cost_subtotal=x.raw_material_cost+x.purchase_item_cost;
-  x.manufacturing_cost=x.design_cost_subtotal+x.material_cost_subtotal+x.machining_cost_external+x.assembly_cost_internal+x.etc_cost;
+  /* v161(회의록 3-2): 사내가공비(사내가공 실적 = 시간÷60×단가)도 제조원가에 포함한다.
+     종전에는 집계만 하고 합계식에서 빠져 있었다. */
+  x.machining_cost_internal=x.machining_cost_internal||0;
+  x.machining_cost_subtotal=x.machining_cost_internal+x.machining_cost_external;
+  x.manufacturing_cost=x.design_cost_subtotal+x.material_cost_subtotal+x.machining_cost_subtotal+x.assembly_cost_internal+x.etc_cost;
   x.manufacturing_cost_rate_pct=pct(x.manufacturing_cost);x.design_cost_rate_pct=pct(x.design_cost_subtotal);
   x.design_cost_internal_rate_pct=pct(x.design_cost_internal);x.design_cost_external_rate_pct=pct(x.design_cost_external);
   x.material_cost_rate_pct=pct(x.material_cost_subtotal);x.raw_material_rate_pct=pct(x.raw_material_cost);x.purchase_item_rate_pct=pct(x.purchase_item_cost);
+  x.machining_cost_rate_pct=pct(x.machining_cost_subtotal);
+  x.machining_internal_rate_pct=pct(x.machining_cost_internal);x.machining_external_rate_pct=pct(x.machining_cost_external);
   return x});
 }
 async function pick(i,tr){
  const r=view[i];
  document.querySelectorAll('#obody tr').forEach(x=>x.classList.remove('sel'));tr.classList.add('sel');
  let rows=[];try{if(r._grp){for(const j of r._jobs)rows.push(...await loadDetailRows(j))}else rows=await loadDetailRows(r)}catch(e){message.textContent='내역 조회 실패: '+String(e.message||e).slice(0,100);return}
- dbody.innerHTML=rows.length?rows.map(d=>`<tr><td>${esc(d.job_no)}</td><td>${esc(d.model||'')}</td><td>${esc(d.item_name)}</td><td>${esc(d.drawing_no||'')}</td><td class="c">${esc(d.cost_stage)}</td><td class="num">${n(d.manufacturing_cost)}</td><td class="num">${p(d.manufacturing_cost_rate_pct)}</td><td class="num">${n(d.design_cost_subtotal)}</td><td class="num">${p(d.design_cost_rate_pct)}</td><td class="num">${n(d.design_cost_internal)}</td><td class="num">${p(d.design_cost_internal_rate_pct)}</td><td class="num">${n(d.design_cost_external)}</td><td class="num">${p(d.design_cost_external_rate_pct)}</td><td class="num">${n(d.material_cost_subtotal)}</td><td class="num">${p(d.material_cost_rate_pct)}</td><td class="num">${n(d.raw_material_cost)}</td><td class="num">${p(d.raw_material_rate_pct)}</td><td class="num">${n(d.purchase_item_cost)}</td><td class="num">${p(d.purchase_item_rate_pct)}</td></tr>`).join(''):'<tr><td colspan="19" class="c" style="height:90px;color:#8a97a2">입고확정된 매입·실적이 없어 원가 내역이 없습니다.</td></tr>';
+ dbody.innerHTML=rows.length?rows.map(d=>`<tr><td>${esc(d.job_no)}</td><td>${esc(d.model||'')}</td><td>${esc(d.item_name)}</td><td>${esc(d.drawing_no||'')}</td><td class="c">${esc(d.cost_stage)}</td><td class="num">${n(d.manufacturing_cost)}</td><td class="num">${p(d.manufacturing_cost_rate_pct)}</td><td class="num">${n(d.design_cost_subtotal)}</td><td class="num">${p(d.design_cost_rate_pct)}</td><td class="num">${n(d.design_cost_internal)}</td><td class="num">${p(d.design_cost_internal_rate_pct)}</td><td class="num">${n(d.design_cost_external)}</td><td class="num">${p(d.design_cost_external_rate_pct)}</td><td class="num">${n(d.material_cost_subtotal)}</td><td class="num">${p(d.material_cost_rate_pct)}</td><td class="num">${n(d.raw_material_cost)}</td><td class="num">${p(d.raw_material_rate_pct)}</td><td class="num">${n(d.purchase_item_cost)}</td><td class="num">${p(d.purchase_item_rate_pct)}</td><td class="num">${n(d.machining_cost_subtotal)}</td><td class="num">${p(d.machining_cost_rate_pct)}</td><td class="num">${n(d.machining_cost_internal)}</td><td class="num">${p(d.machining_internal_rate_pct)}</td><td class="num">${n(d.machining_cost_external)}</td><td class="num">${p(d.machining_external_rate_pct)}</td></tr>`).join(''):'<tr><td colspan="25" class="c" style="height:90px;color:#8a97a2">입고확정된 매입·실적이 없어 원가 내역이 없습니다.</td></tr>';
  const sum=k=>rows.reduce((a,b)=>a+(b[k]||0),0);
- dfoot.innerHTML=rows.length?`<tr class="gtot"><td colspan="5" class="c">합계</td><td class="num">${n(sum('manufacturing_cost'))}</td><td></td><td class="num">${n(sum('design_cost_subtotal'))}</td><td></td><td class="num">${n(sum('design_cost_internal'))}</td><td></td><td class="num">${n(sum('design_cost_external'))}</td><td></td><td class="num">${n(sum('material_cost_subtotal'))}</td><td></td><td class="num">${n(sum('raw_material_cost'))}</td><td></td><td class="num">${n(sum('purchase_item_cost'))}</td><td></td></tr>`:'';
- message.textContent=`${r.job_no} / ${r.item_name} · 공정 ${rows.length}건`;
+ dfoot.innerHTML=rows.length?`<tr class="gtot"><td colspan="5" class="c">합계</td><td class="num">${n(sum('manufacturing_cost'))}</td><td></td><td class="num">${n(sum('design_cost_subtotal'))}</td><td></td><td class="num">${n(sum('design_cost_internal'))}</td><td></td><td class="num">${n(sum('design_cost_external'))}</td><td></td><td class="num">${n(sum('material_cost_subtotal'))}</td><td></td><td class="num">${n(sum('raw_material_cost'))}</td><td></td><td class="num">${n(sum('purchase_item_cost'))}</td><td></td><td class="num">${n(sum('machining_cost_subtotal'))}</td><td></td><td class="num">${n(sum('machining_cost_internal'))}</td><td></td><td class="num">${n(sum('machining_cost_external'))}</td><td></td></tr>`:'';
+ /* v161: 내역 합계와 목록(제조원가 뷰) 값이 다르면 차이를 알려 준다.
+    사내가공비를 뷰가 아직 안 세고 있으면 여기서 바로 드러난다. */
+ const _det=sum('manufacturing_cost'), _view=Number(r.manufacturing_cost)||0;
+ const _gap=Math.round(_det-_view), _mch=sum('machining_cost_internal');
+ message.textContent=`${r.job_no} / ${r.item_name} · 공정 ${rows.length}건`
+  +(_mch?` · 사내가공비 ${n(_mch)}원 포함`:'')
+  +(Math.abs(_gap)>=1?` · ⚠ 목록의 제조원가와 ${n(Math.abs(_gap))}원 차이 (목록은 DB 제조원가뷰 값)`:'');
 }
 /* ── v134: 행 선택 + [수정](수주등록 열기) + [삭제](제번 통째 삭제) ───────── */
 const CHK=new Set();
@@ -324,7 +336,7 @@ async function loadLive(){
 }
 window.MES={search,exportCsv,setMessage:t=>message.textContent=t};loadLive();
 render();renderTotal();
-</script><script src="mes_db.js?v=159"></script>
+</script><script src="mes_db.js?v=168"></script>
 
-<script src="mes_ctx.js?v=159"></script>
+<script src="mes_ctx.js?v=162"></script>
 </body></html>
