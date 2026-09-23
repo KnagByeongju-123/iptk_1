@@ -129,21 +129,7 @@ html[data-mw="xs"] .formgrid{grid-template-columns:84px minmax(0,1fr)}
 <div class="mask" id="attMask" onmousedown="this._d=(event.target===this)" onclick="if(event.target===this&&this._d)attClose()"><div class="dlg attbox"><div class="dlghead">첨부파일 <span id="attJob" style="font-weight:400;color:#6b7a86;margin-left:8px"></span><button onclick="attClose()">✕</button></div><div class="dlgbody"><div class="toolbar"><button class="btn" onclick="attPick()">파일첨부</button><button class="btn" onclick="attOpen(1)">다운로드</button><button class="btn" onclick="attOpen()">미리보기</button><button class="btn" onclick="attDel()">파일삭제</button><input type="file" id="attFile" multiple style="display:none" onchange="attUpload(this.files)"></div>
 <div class="att attdlg"><table style="min-width:640px"><thead><tr><th style="width:34px"></th><th>파일명</th><th style="width:150px">Version</th><th style="width:280px">파일내용</th><th style="width:90px">크기</th><th style="width:90px">확장자</th></tr></thead><tbody id="attBody"></tbody></table></div></div><div class="dlgfoot"><button class="btn" onclick="attClose()">닫기</button></div></div></div>
 
-<div class="mask" id="genMask" onmousedown="this._d=(event.target===this)" onclick="if(event.target===this&&this._d)genClose()"><div class="dlg" style="width:min(940px,96vw)"><div class="dlghead">공정 자동생성 <span id="genJob" style="font-weight:400;color:#6b7a86;margin-left:8px"></span><button onclick="genClose()">✕</button></div>
-<div class="dlgbody">
- <div style="display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin-bottom:8px">
-  <span><b>관리제번</b> <input id="gBase" class="field" style="width:120px;text-transform:uppercase"></span>
-  <span><b>공정수</b> <input id="gN" type="number" min="1" max="26" class="field" style="width:60px" onchange="genRows()"></span>
-  <span><b>총 견적가</b> <input id="gQ" class="field num" style="width:120px" onchange="genSplit()"></span>
-  <span><b>총 수주가</b> <input id="gO" class="field num" style="width:120px" onchange="genSplit()"></span>
-  <span><b>분할기준</b> <select id="gMode" class="field" onchange="genSplit()"><option value="even">균등 분할</option><option value="ratio">비율 입력</option><option value="direct">금액 직접 입력</option></select></span>
- </div>
- <div style="border:1px solid var(--line);overflow:auto;max-height:46vh"><table style="min-width:0"><thead><tr><th style="width:44px">공정</th><th style="width:150px">카테고리</th><th style="width:190px">설비사양(프레스 톤수 등)</th><th style="width:80px">비율(%)</th><th style="width:120px">견적가</th><th style="width:120px">수주가</th></tr></thead><tbody id="gBody"></tbody>
- <tfoot><tr class="gtot"><td colspan="3" class="c">합계</td><td class="num" id="gRatioSum"></td><td class="num" id="gQSum"></td><td class="num" id="gOSum"></td></tr></tfoot></table></div>
- <div style="color:#6b7a86;font-size:11.5px;margin-top:6px;line-height:1.6">지금 입력칸의 수주정보(고객사·품명·일자 등)를 공정마다 복사해 <b>관리제번+공정</b> 제번으로 저장합니다. 이미 저장된 공정 제번은 금액·카테고리·설비사양만 바뀝니다. 비율은 합이 100이 되도록 마지막 공정에서 맞춥니다.</div>
-</div>
-<div class="dlgfoot"><button class="btn" onclick="genApply()">▣ 공정 생성(저장)</button><button class="btn" onclick="genClose()">닫기</button><span class="msg" id="genMsg" style="margin-left:8px;color:#687784"></span></div></div></div>
-<footer class="foot"><button class="btn attbtn" id="attBtn" onclick="attShow()">📎 첨부파일<b id="attCnt"></b></button><button class="btn" onclick="genOpen()" title="공정별로 카테고리·설비사양·금액을 다르게 나눠 A·B·C… 제번을 만듭니다. (그냥 [저장]하면 공정수만큼 균등 분할로 만들어집니다)">⚙ 공정별 나누기</button><button class="btn" onclick="save()">▤ 저장</button><button class="btn" onclick="clearForm()">＋ 신규등록</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">관리제번·공정수 등 필수항목을 입력하고 저장하세요. 공정수가 2 이상이면 A·B·C… 제번이 공정 수만큼 만들어집니다.</span></footer>
+<footer class="foot"><button class="btn attbtn" id="attBtn" onclick="attShow()">📎 첨부파일<b id="attCnt"></b></button><button class="btn" onclick="save()">▤ 저장</button><button class="btn" onclick="clearForm()">＋ 신규등록</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">관리제번·공정수 등 필수항목을 입력하고 저장하세요. 공정수가 2 이상이면 A·B·C… 제번이 공정 수만큼 만들어집니다.</span></footer>
 </div>
 
 
@@ -399,77 +385,6 @@ let GCATS=[];
  if(window.MESDB&&MESDB.ready){try{await Promise.race([MESDB.ready,new Promise(r=>setTimeout(r,3000))])}catch(e){}}
  try{GCATS=await (window.MESDB&&MESDB.procCategories?MESDB.procCategories():[]);}catch(e){GCATS=[]}
  const sel=document.getElementById('proc_cat');if(sel){GCATS.forEach(c=>{const o=document.createElement('option');o.value=c.name;o.textContent=c.name;sel.appendChild(o)})}})();
-const GN=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isNaN(n)?0:n};
-const GF=v=>v?Number(v).toLocaleString('ko-KR'):'';
-function genOpen(){
- const b=(base_job.value||'').trim().toUpperCase();
- if(!b){msg('관리제번을 먼저 입력하세요.');base_job.focus();return}
- gBase.value=b;genJob.textContent='관리제번 '+b;
- const n=parseInt(String(proc_cnt.value||'').replace(/[^0-9]/g,''),10);gN.value=n>0&&n<=26?n:(gBody.children.length||2);
- gQ.value=GF(GN(quo_price.value));gO.value=GF(GN(order_price.value));
- genRows();genMask.classList.add('on');
-}
-function genClose(){genMask.classList.remove('on')}
-function genRows(){
- const n=Math.max(1,Math.min(26,parseInt(gN.value,10)||1));gN.value=n;
- const cur=[...gBody.querySelectorAll('tr')].map(tr=>({cat:tr.querySelector('.gcat').value,spec:tr.querySelector('.gspec').value,ratio:tr.querySelector('.gratio').value,q:tr.querySelector('.gq').value,o:tr.querySelector('.go').value}));
- const cats=GCATS.map(c=>`<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
- gBody.innerHTML=Array.from({length:n},(_,i)=>{const L=String.fromCharCode(65+i),c=cur[i]||{};
-  return `<tr><td class="c"><b>${L}</b></td><td><select class="gcat field" style="width:100%"><option value=""></option>${cats}</select></td><td><input class="gspec field" style="width:100%" value="${esc(c.spec||(i===0?ms_name.value:''))}" placeholder="예) 600TON 프레스"></td><td><input class="gratio field num" style="width:100%" value="${esc(c.ratio||'')}" onchange="genSplit('ratio')"></td><td><input class="gq field num" style="width:100%" value="${esc(c.q||'')}" onchange="genSplit('direct')"></td><td><input class="go field num" style="width:100%" value="${esc(c.o||'')}" onchange="genSplit('direct')"></td></tr>`}).join('');
- [...gBody.querySelectorAll('.gcat')].forEach((el,i)=>{el.value=(cur[i]||{}).cat||''});
- genSplit();
-}
-function genSplit(from){
- const rows=[...gBody.querySelectorAll('tr')],n=rows.length,mode=gMode.value;
- const Q=GN(gQ.value),O=GN(gO.value);
- if(from==='ratio'&&mode!=='ratio')gMode.value='ratio';
- if(from==='direct'&&mode!=='direct')gMode.value='direct';
- const m=gMode.value;
- const rin=rows.map(r=>r.querySelector('.gratio')),qin=rows.map(r=>r.querySelector('.gq')),oin=rows.map(r=>r.querySelector('.go'));
- rin.forEach(e=>e.readOnly=m!=='ratio');qin.forEach(e=>e.readOnly=m!=='direct');oin.forEach(e=>e.readOnly=m!=='direct');
- let ratios;
- if(m==='even')ratios=rows.map(()=>100/n);
- else if(m==='ratio'){ratios=rin.map(e=>GN(e.value));const s=ratios.slice(0,-1).reduce((a,b)=>a+b,0);ratios[n-1]=Math.max(0,Math.round((100-s)*100)/100);rin[n-1].value=ratios[n-1]}
- if(m!=='direct'){
-  rin.forEach((e,i)=>{if(m==='even')e.value=Math.round(ratios[i]*100)/100});
-  let sq=0,so=0;
-  rows.forEach((r,i)=>{const last=i===n-1;
-   const q=last?Q-sq:Math.round(Q*ratios[i]/100),o=last?O-so:Math.round(O*ratios[i]/100);sq+=q;so+=o;
-   qin[i].value=GF(q);oin[i].value=GF(o)});
- }else{
-  qin.forEach(e=>e.value=GF(GN(e.value)));oin.forEach(e=>e.value=GF(GN(e.value)));
-  const sq=qin.reduce((a,e)=>a+GN(e.value),0),so=oin.reduce((a,e)=>a+GN(e.value),0);
-  rin.forEach((e,i)=>e.value=so?Math.round(GN(oin[i].value)/so*10000)/100:'');
-  gQ.value=GF(sq);gO.value=GF(so);
- }
- const sr=rin.reduce((a,e)=>a+GN(e.value),0),sq=qin.reduce((a,e)=>a+GN(e.value),0),so=oin.reduce((a,e)=>a+GN(e.value),0);
- gRatioSum.textContent=Math.round(sr*100)/100+'%';gQSum.textContent=GF(sq);gOSum.textContent=GF(so);
- genMsg.textContent=(Math.abs(sr-100)>0.01?'⚠ 비율 합이 100이 아닙니다. ':'')+(GN(gQ.value)&&sq!==GN(gQ.value)?'⚠ 견적가 합계가 총액과 다릅니다. ':'')+(GN(gO.value)&&so!==GN(gO.value)?'⚠ 수주가 합계가 총액과 다릅니다.':'');
-}
-async function genApply(){
- const b=(gBase.value||'').trim().toUpperCase();if(!b)return genMsg.textContent='관리제번을 입력하세요.';
- if(!window.MESDB||!MESDB.online)return genMsg.textContent='DB 미연결 상태에서는 생성할 수 없습니다.';
- const rows=[...gBody.querySelectorAll('tr')];
- const plan=rows.map((r,i)=>({seq:String.fromCharCode(65+i),cat:r.querySelector('.gcat').value,spec:r.querySelector('.gspec').value.trim(),q:GN(r.querySelector('.gq').value),o:GN(r.querySelector('.go').value)}));
- if(!confirm(`관리제번 ${b}\n공정 ${plan.length}개 (${plan.map(p=>p.seq).join('·')})를 생성합니다.\n제번: ${plan.map(p=>b+p.seq).join(', ')}\n\n진행할까요?`))return;
- const snap={};for(const el of Object.keys(MAP)){const n=document.getElementById(el);if(n)snap[el]=n.value}
- const snapAtt=ATT.slice();
- let ok=0,fail=[];
- for(const p of plan){
-  for(const el of Object.keys(MAP)){const n=document.getElementById(el);if(n)n.value=snap[el]}
-  base_job.value=b;proc_seq.value=p.seq;job_no.value=b+p.seq;proc_cat.value=p.cat;
-  quo_price.value=p.q||'';order_price.value=p.o||'';if(p.spec)ms_name.value=p.spec;
-  proc_cnt.value=String(plan.length);
-  ATT.length=0;ATT.push(...snapAtt);
-  try{const r=await SAVE0('등록');if(r===true)ok++;else fail.push(b+p.seq)}catch(e){fail.push(b+p.seq)}
- }
- for(const el of Object.keys(MAP)){const n=document.getElementById(el);if(n)n.value=snap[el]}
- ATT.length=0;ATT.push(...snapAtt);renderAtt();
- base_job.value=b;proc_seq.value='';job_no.value=b;proc_cnt.value=String(plan.length);jobPreview();
- genClose();
- msg(`${b} 공정 ${ok}건을 생성했습니다 (${plan.map(p=>b+p.seq).join(', ')})`+(fail.length?` · 실패 ${fail.join(', ')}`:'')+'. 수주현황에서 관리제번 1줄로 확인하세요.');
- try{(window.MESPOP||window.parent?.MESPOP)?.ok(`${b} 공정 ${ok}건 생성`,'공정 자동생성')}catch(e){}
-}
 window.MES={save,clearForm,setMessage:msg,load,loadJob};
 clearForm();
 /* v115: 정산완료일이 오늘 이후면 경고 — 설계계획등록·공용 제번 콤보가 '정산완료'로 보고 제번을 숨기는 원인이 된다 */
