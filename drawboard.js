@@ -1,4 +1,4 @@
-/* drawboard.js (v206) — 부품 그림보드 화면 스크립트
+/* drawboard.js (v207) — 부품 그림보드 화면 스크립트
  * 사내외가공 발주(mes_drawboard.js)가 sessionStorage 'mes_drawboard' 에 넣어 준 자료를 읽어 그린다.
  * 문서를 스크립트로 써 넣지 않고(document.write 없음) DOM 만 만든다. */
 (function(){
@@ -39,7 +39,7 @@
   const n=el('span','n');n.id='n'+s.idx;b.appendChild(n);
   b.appendChild(el('span','k',s.name||s.code||''));
   if(s.plan.length){b.classList.add('plan');b.appendChild(el('span','p','계획 '+s.plan.join(',')))}
-  if(s.inhouse)b.appendChild(el('span','h','사내'));
+  const hl=el('label','h');hl.title='사내가공이면 체크';const hc=el('input');hc.type='checkbox';hc.checked=!!s.inhouse;hc.addEventListener('click',e=>e.stopPropagation());hc.addEventListener('change',()=>{s.inhouse=hc.checked;draw()});hl.appendChild(hc);hl.appendChild(document.createTextNode('사내'));hl.addEventListener('click',e=>e.stopPropagation());b.appendChild(hl);
   b.appendChild(el('span','v',[s.vendor,s.state].filter(Boolean).join(' · ')));
   b.addEventListener('click',()=>tg(s.idx));btns.appendChild(b)});
  function draw(){
@@ -57,6 +57,15 @@
  $('bAll').addEventListener('click',()=>{SEQ=PLANSEQ.slice();draw()});
  $('bClr').addEventListener('click',()=>{SEQ=[];draw()});
  $('bPrint').addEventListener('click',()=>window.print());
+ /* v207: 고른 순서를 사내외가공 발주 화면(연 창)으로 보내 가공계획에 적용 */
+ $('bApply').addEventListener('click',()=>{
+  if(!SEQ.length)return alert('먼저 오른쪽에서 공정을 순서대로 눌러 주세요.');
+  const op=window.opener;if(!op||op.closed)return alert('사내외가공 발주 화면이 닫혀 있어 적용할 수 없습니다.');
+  const steps=SEQ.map(i=>({code:STEPS[i].code,house:!!STEPS[i].inhouse}));
+  if(!confirm(o.part+' 의 가공공정을 아래 순서로 가공계획에 적용합니다.\n\n'+steps.map((x,k)=>(k+1)+'. '+(STEPS[SEQ[k]].name||x.code)+(x.house?' [사내]':'')).join('\n')))return;
+  op.postMessage({type:'mes_drawboard_apply',job:o.job||'',part:o.part||'',jo:o.jo==null?null:o.jo,ri:o.ri,steps},location.origin);
+  $('bApply').textContent='✔ 적용 보냄';setTimeout(()=>{$('bApply').textContent='▣ 가공계획 적용'},2500);
+ });
  $('bClose').addEventListener('click',()=>window.close());
  draw();
 })();
