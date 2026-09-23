@@ -84,7 +84,7 @@ tfoot td.sk{z-index:8}
 </footer>
 </div>
 
-<script src="mes_db.js?v=168"></script>
+<script src="mes_db.js?v=170"></script>
 <script src="mes_price.js?v=162"></script>
 <script src="mes_jobpick.js?v=162"></script>
 <script>
@@ -152,7 +152,7 @@ async function load(){
    MESDB.table('machining_plan_parts').select(`select=*&${F1}&order=row_no`,{fresh:true}).catch(()=>[]),
    MESDB.table('partlist_all').select(`select=*&${F1}`,{fresh:true}).catch(()=>[]),
    MESDB.table('order_lines').select(`select=*&${F1}&order=line_id`,{fresh:true}).catch(()=>[]),
-   MESDB.table('design_results').select(`select=*&${F1}&work_type=in.(가공,조립)`,{fresh:true}).catch(()=>[]),   /* v169: 랩핑,조립 칸은 조립실적등록(work_type=조립)과 공유 */
+   MESDB.table('design_results').select(`select=*&${F1}&work_type=in.(가공,조립,검사)`,{fresh:true}).catch(()=>[]),   /* v169: 랩핑,조립·검사 칸은 조립/검사실적등록과 공유 */
    MESDB.table('job_pool').select(`select=job_no,model,item_name&${F1}&limit=1`).catch(()=>[]),
    MESDB.table('drawings').select(`select=drawing_no,job_no&${F1}&limit=1`).catch(()=>[])
   ]);
@@ -393,7 +393,7 @@ async function save(){
          이 화면이 만든 행만 차액으로 맞춘다. */
       const want=Math.max(0,Math.round(N(q.inMin)-N(q.inOther)));
       const rt=rateOf(x,c);
-      const row={work_type:(/랩핑|래핑|조립/.test(pn(c))?'조립':'가공'),job_no:x.job,process_code:jo,part_no:x.part,   /* v169: 랩핑,조립 칸은 조립비로 */
+      const row={work_type:(/랩핑|래핑|조립/.test(pn(c))?'조립':(/검사/.test(pn(c))?'검사':'가공')),job_no:x.job,process_code:jo,part_no:x.part,   /* v169: 랩핑,조립 칸은 조립비로 */
         machining_process_code:c,machining_process_name:pn(c),
         work_date:x.inDate||T0(),work_minutes:want,headcount:1,
         hourly_rate:rt,labor_cost:Math.round(want/60*rt),

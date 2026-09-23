@@ -63,8 +63,8 @@ table{border-collapse:collapse;min-width:1040px;width:100%;table-layout:fixed}th
  </table></div>
  <div class="gridbox"><table style="min-width:2000px">
   <thead>
-   <tr class="grp"><th colspan="7">기본정보</th><th colspan="6">설계비</th><th colspan="6">재료비</th><th colspan="6">가공비</th></tr>
-   <tr><th style="width:100px">제번</th><th style="width:90px">품번</th><th style="width:150px">품명</th><th style="width:120px">도번</th><th style="width:52px">공정</th><th style="width:110px">제조원가</th><th style="width:78px">제조원가율</th><th style="width:100px">소계</th><th style="width:56px">(%)</th><th style="width:100px">사내</th><th style="width:56px">(%)</th><th style="width:90px">사외</th><th style="width:56px">(%)</th><th style="width:100px">소계</th><th style="width:56px">(%)</th><th style="width:100px">원재료</th><th style="width:56px">(%)</th><th style="width:100px">구매품</th><th style="width:56px">(%)</th><th style="width:100px">소계</th><th style="width:56px">(%)</th><th style="width:100px" title="사내가공 실적(시간÷60×단가)">사내</th><th style="width:56px">(%)</th><th style="width:90px" title="외주가공 입고확정 금액">사외</th><th style="width:56px">(%)</th></tr>
+   <tr class="grp"><th colspan="7">기본정보</th><th colspan="6">설계비</th><th colspan="6">재료비</th><th colspan="6">가공비</th><th colspan="4" title="조립실적등록·검사실적등록의 시간÷60×인원×단가">조립·검사비</th><th colspan="2">기타</th></tr>
+   <tr><th style="width:100px">제번</th><th style="width:90px">품번</th><th style="width:150px">품명</th><th style="width:120px">도번</th><th style="width:52px">공정</th><th style="width:110px">제조원가</th><th style="width:78px">제조원가율</th><th style="width:100px">소계</th><th style="width:56px">(%)</th><th style="width:100px">사내</th><th style="width:56px">(%)</th><th style="width:90px">사외</th><th style="width:56px">(%)</th><th style="width:100px">소계</th><th style="width:56px">(%)</th><th style="width:100px">원재료</th><th style="width:56px">(%)</th><th style="width:100px">구매품</th><th style="width:56px">(%)</th><th style="width:100px">소계</th><th style="width:56px">(%)</th><th style="width:100px" title="사내가공 실적(시간÷60×단가)">사내</th><th style="width:56px">(%)</th><th style="width:90px" title="외주가공 입고확정 금액">사외</th><th style="width:56px">(%)</th><th style="width:100px" title="조립실적등록(work_type=조립)">조립</th><th style="width:56px">(%)</th><th style="width:100px" title="검사실적등록(work_type=검사)">검사</th><th style="width:56px">(%)</th><th style="width:100px" title="SET외주 + 경비">SET외주·경비</th><th style="width:56px">(%)</th></tr>
   </thead>
   <tbody id="dbody"></tbody>
   <tfoot id="dfoot"></tfoot>
@@ -104,13 +104,13 @@ async function loadDetailRows(r){
   MESDB.table('order_lines').select(`select=category,process_code,quote_price,confirm_price,nego_rate&job_no=eq.${j}&status=eq.입고확정`),
   MESDB.table('design_results').select(`select=work_type,process_code,work_minutes,labor_cost&job_no=eq.${j}`)]);
  const g=new Map();const at=(k)=>{if(!g.has(k))g.set(k,{job_no:r.job_no,model:r.model,item_name:r.item_name,drawing_no:r.drawing_no,cost_stage:k,
-   design_cost_internal:0,design_cost_external:0,raw_material_cost:0,purchase_item_cost:0,machining_cost_external:0,assembly_cost_internal:0,etc_cost:0});return g.get(k)};
+   design_cost_internal:0,design_cost_external:0,raw_material_cost:0,purchase_item_cost:0,machining_cost_external:0,assembly_cost_internal:0,inspection_cost_internal:0,etc_cost:0});return g.get(k)};
  for(const l of ls){const k=l.process_code||'-';const a=confAmt(l);
   if(l.category==='원재료')at(k).raw_material_cost+=a;else if(l.category==='구매품')at(k).purchase_item_cost+=a;
   else if(l.category==='외주가공')at(k).machining_cost_external+=a;else if(l.category==='외주설계')at(k).design_cost_external+=a}
  /* v121: 실적에 labor_cost(시간×인원×단가)가 있으면 그 값을, 없으면 시간×기본단가. 가공 실적은 사내가공비로 */
  for(const d of dr){const k=d.process_code||'-';const a=d.labor_cost!=null&&d.labor_cost!==''?Math.round(Number(d.labor_cost)||0):Math.round(Number(d.work_minutes||0)/60*LABOR_RATE);
-  if(d.work_type==='조립')at(k).assembly_cost_internal+=a;else if(d.work_type==='가공')at(k).machining_cost_internal=(at(k).machining_cost_internal||0)+a;else at(k).design_cost_internal+=a}
+  if(d.work_type==='조립')at(k).assembly_cost_internal+=a;else if(d.work_type==='검사')at(k).inspection_cost_internal+=a;else if(d.work_type==='가공')at(k).machining_cost_internal=(at(k).machining_cost_internal||0)+a;else at(k).design_cost_internal+=a}
  const common=(Number(r.set_outsourcing_cost)||0)+(Number(r.expense_cost)||0);
  if(common)at('공통').etc_cost+=common;
  const total=Number(r.manufacturing_cost)||0;const pct=v=>total?+(v/total*100).toFixed(1):null;
@@ -121,27 +121,29 @@ async function loadDetailRows(r){
      종전에는 집계만 하고 합계식에서 빠져 있었다. */
   x.machining_cost_internal=x.machining_cost_internal||0;
   x.machining_cost_subtotal=x.machining_cost_internal+x.machining_cost_external;
-  x.manufacturing_cost=x.design_cost_subtotal+x.material_cost_subtotal+x.machining_cost_subtotal+x.assembly_cost_internal+x.etc_cost;
+  x.inspection_cost_internal=x.inspection_cost_internal||0;
+  x.manufacturing_cost=x.design_cost_subtotal+x.material_cost_subtotal+x.machining_cost_subtotal+x.assembly_cost_internal+x.inspection_cost_internal+x.etc_cost;
   x.manufacturing_cost_rate_pct=pct(x.manufacturing_cost);x.design_cost_rate_pct=pct(x.design_cost_subtotal);
   x.design_cost_internal_rate_pct=pct(x.design_cost_internal);x.design_cost_external_rate_pct=pct(x.design_cost_external);
   x.material_cost_rate_pct=pct(x.material_cost_subtotal);x.raw_material_rate_pct=pct(x.raw_material_cost);x.purchase_item_rate_pct=pct(x.purchase_item_cost);
   x.machining_cost_rate_pct=pct(x.machining_cost_subtotal);
   x.machining_internal_rate_pct=pct(x.machining_cost_internal);x.machining_external_rate_pct=pct(x.machining_cost_external);
+  x.assembly_rate_pct=pct(x.assembly_cost_internal);x.inspection_rate_pct=pct(x.inspection_cost_internal);x.etc_rate_pct=pct(x.etc_cost);
   return x});
 }
 async function pick(i,tr){
  const r=view[i];
  document.querySelectorAll('#obody tr').forEach(x=>x.classList.remove('sel'));tr.classList.add('sel');
  let rows=[];try{if(r._grp){for(const j of r._jobs)rows.push(...await loadDetailRows(j))}else rows=await loadDetailRows(r)}catch(e){message.textContent='내역 조회 실패: '+String(e.message||e).slice(0,100);return}
- dbody.innerHTML=rows.length?rows.map(d=>`<tr><td>${esc(d.job_no)}</td><td>${esc(d.model||'')}</td><td>${esc(d.item_name)}</td><td>${esc(d.drawing_no||'')}</td><td class="c">${esc(d.cost_stage)}</td><td class="num">${n(d.manufacturing_cost)}</td><td class="num">${p(d.manufacturing_cost_rate_pct)}</td><td class="num">${n(d.design_cost_subtotal)}</td><td class="num">${p(d.design_cost_rate_pct)}</td><td class="num">${n(d.design_cost_internal)}</td><td class="num">${p(d.design_cost_internal_rate_pct)}</td><td class="num">${n(d.design_cost_external)}</td><td class="num">${p(d.design_cost_external_rate_pct)}</td><td class="num">${n(d.material_cost_subtotal)}</td><td class="num">${p(d.material_cost_rate_pct)}</td><td class="num">${n(d.raw_material_cost)}</td><td class="num">${p(d.raw_material_rate_pct)}</td><td class="num">${n(d.purchase_item_cost)}</td><td class="num">${p(d.purchase_item_rate_pct)}</td><td class="num">${n(d.machining_cost_subtotal)}</td><td class="num">${p(d.machining_cost_rate_pct)}</td><td class="num">${n(d.machining_cost_internal)}</td><td class="num">${p(d.machining_internal_rate_pct)}</td><td class="num">${n(d.machining_cost_external)}</td><td class="num">${p(d.machining_external_rate_pct)}</td></tr>`).join(''):'<tr><td colspan="25" class="c" style="height:90px;color:#8a97a2">입고확정된 매입·실적이 없어 원가 내역이 없습니다.</td></tr>';
+ dbody.innerHTML=rows.length?rows.map(d=>`<tr><td>${esc(d.job_no)}</td><td>${esc(d.model||'')}</td><td>${esc(d.item_name)}</td><td>${esc(d.drawing_no||'')}</td><td class="c">${esc(d.cost_stage)}</td><td class="num">${n(d.manufacturing_cost)}</td><td class="num">${p(d.manufacturing_cost_rate_pct)}</td><td class="num">${n(d.design_cost_subtotal)}</td><td class="num">${p(d.design_cost_rate_pct)}</td><td class="num">${n(d.design_cost_internal)}</td><td class="num">${p(d.design_cost_internal_rate_pct)}</td><td class="num">${n(d.design_cost_external)}</td><td class="num">${p(d.design_cost_external_rate_pct)}</td><td class="num">${n(d.material_cost_subtotal)}</td><td class="num">${p(d.material_cost_rate_pct)}</td><td class="num">${n(d.raw_material_cost)}</td><td class="num">${p(d.raw_material_rate_pct)}</td><td class="num">${n(d.purchase_item_cost)}</td><td class="num">${p(d.purchase_item_rate_pct)}</td><td class="num">${n(d.machining_cost_subtotal)}</td><td class="num">${p(d.machining_cost_rate_pct)}</td><td class="num">${n(d.machining_cost_internal)}</td><td class="num">${p(d.machining_internal_rate_pct)}</td><td class="num">${n(d.machining_cost_external)}</td><td class="num">${p(d.machining_external_rate_pct)}</td><td class="num">${n(d.assembly_cost_internal)}</td><td class="num">${p(d.assembly_rate_pct)}</td><td class="num">${n(d.inspection_cost_internal)}</td><td class="num">${p(d.inspection_rate_pct)}</td><td class="num">${n(d.etc_cost)}</td><td class="num">${p(d.etc_rate_pct)}</td></tr>`).join(''):'<tr><td colspan="31" class="c" style="height:90px;color:#8a97a2">입고확정된 매입·실적이 없어 원가 내역이 없습니다.</td></tr>';
  const sum=k=>rows.reduce((a,b)=>a+(b[k]||0),0);
- dfoot.innerHTML=rows.length?`<tr class="gtot"><td colspan="5" class="c">합계</td><td class="num">${n(sum('manufacturing_cost'))}</td><td></td><td class="num">${n(sum('design_cost_subtotal'))}</td><td></td><td class="num">${n(sum('design_cost_internal'))}</td><td></td><td class="num">${n(sum('design_cost_external'))}</td><td></td><td class="num">${n(sum('material_cost_subtotal'))}</td><td></td><td class="num">${n(sum('raw_material_cost'))}</td><td></td><td class="num">${n(sum('purchase_item_cost'))}</td><td></td><td class="num">${n(sum('machining_cost_subtotal'))}</td><td></td><td class="num">${n(sum('machining_cost_internal'))}</td><td></td><td class="num">${n(sum('machining_cost_external'))}</td><td></td></tr>`:'';
+ dfoot.innerHTML=rows.length?`<tr class="gtot"><td colspan="5" class="c">합계</td><td class="num">${n(sum('manufacturing_cost'))}</td><td></td><td class="num">${n(sum('design_cost_subtotal'))}</td><td></td><td class="num">${n(sum('design_cost_internal'))}</td><td></td><td class="num">${n(sum('design_cost_external'))}</td><td></td><td class="num">${n(sum('material_cost_subtotal'))}</td><td></td><td class="num">${n(sum('raw_material_cost'))}</td><td></td><td class="num">${n(sum('purchase_item_cost'))}</td><td></td><td class="num">${n(sum('machining_cost_subtotal'))}</td><td></td><td class="num">${n(sum('machining_cost_internal'))}</td><td></td><td class="num">${n(sum('machining_cost_external'))}</td><td></td><td class="num">${n(sum('assembly_cost_internal'))}</td><td></td><td class="num">${n(sum('inspection_cost_internal'))}</td><td></td><td class="num">${n(sum('etc_cost'))}</td><td></td></tr>`:'';
  /* v161: 내역 합계와 목록(제조원가 뷰) 값이 다르면 차이를 알려 준다.
     사내가공비를 뷰가 아직 안 세고 있으면 여기서 바로 드러난다. */
  const _det=sum('manufacturing_cost'), _view=Number(r.manufacturing_cost)||0;
- const _gap=Math.round(_det-_view), _mch=sum('machining_cost_internal');
+ const _gap=Math.round(_det-_view), _mch=sum('machining_cost_internal'), _asm=sum('assembly_cost_internal'), _ins=sum('inspection_cost_internal');
  message.textContent=`${r.job_no} / ${r.item_name} · 공정 ${rows.length}건`
-  +(_mch?` · 사내가공비 ${n(_mch)}원 포함`:'')
+  +(_mch?` · 사내가공비 ${n(_mch)}원`:'')+(_asm?` · 조립비 ${n(_asm)}원`:'')+(_ins?` · 검사비 ${n(_ins)}원`:'')
   +(Math.abs(_gap)>=1?` · ⚠ 목록의 제조원가와 ${n(Math.abs(_gap))}원 차이 (목록은 DB 제조원가뷰 값)`:'');
 }
 /* ── v134: 행 선택 + [수정](수주등록 열기) + [삭제](제번 통째 삭제) ───────── */
@@ -336,7 +338,7 @@ async function loadLive(){
 }
 window.MES={search,exportCsv,setMessage:t=>message.textContent=t};loadLive();
 render();renderTotal();
-</script><script src="mes_db.js?v=168"></script>
+</script><script src="mes_db.js?v=170"></script>
 
 <script src="mes_ctx.js?v=169"></script>
 </body></html>

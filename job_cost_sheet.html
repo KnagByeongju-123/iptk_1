@@ -98,7 +98,7 @@ async function load(){
    MESDB.table('machining_plan_parts').select(`select=*&${F1}&order=row_no`).catch(()=>[]),
    MESDB.table('partlist_all').select(`select=*&${F1}`).catch(()=>[]),
    MESDB.table('order_lines').select(`select=*&${F1}&order=line_id`).catch(()=>[]),
-   MESDB.table('design_results').select(`select=*&${F1}&work_type=eq.가공`).catch(()=>[])
+   MESDB.table('design_results').select(`select=*&${F1}&work_type=in.(가공,조립,검사)`).catch(()=>[])   /* v169: 조립·검사 실적도 공정 칸에 */
   ]);
   /* v159: 형태·이미지 보충 (뷰에 없을 수 있음) */
   let meta={};try{meta=await MESDB.partMeta(BASEMODE?null:job)||{}}catch(e){}
@@ -263,7 +263,7 @@ window.MES={search:load,csv,setMessage:msg,reload:load};
 render();
 (async()=>{await waitDB();const j=(jobQ.value||'').trim();if(j&&online())load()})();
 </script>
-<script src="mes_db.js?v=168"></script>
+<script src="mes_db.js?v=170"></script>
 <script src="mes_ctx.js?v=169"></script>
 <script src="mes_jobpick.js?v=162"></script>
 <script>try{MESJOB.attach("jobQ",{onPick:j=>{jobQ.value=j;load()}})}catch(e){}
