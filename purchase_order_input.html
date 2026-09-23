@@ -340,7 +340,7 @@ async function loadBom(){
  try{
   const rs=await MESDB.table('partlist_purchases').select(`select=*&job_no=eq.${encodeURIComponent(j.job)}&order=row_no`);
   if(!rs.length&&j.bom&&j.bom.length)return;      /* PartList 없으면 기존 스냅샷 유지 */
-  j.bom=rs.map(r=>({part:r.part_no,name:r.part_name,mat:r.type||'',spec:r.spec||'',qty:r.qty??1,att:r.attachment||''}));
+  j.bom=rs.map(r=>({part:r.part_no,name:r.part_name,mat:r.type||'',spec:r.spec||'',qty:r.qty??1,att:r.attachment||'',image:r.image_url||''}));
   if(rs.length)j.proc=rs[0].process_code||j.proc;
   renderBom();
  }catch(e){}
@@ -475,7 +475,8 @@ try{MESJOB.attach("jobQ",{onPick:()=>{try{onJobPick()}catch(e){}}})}catch(e){}
  modelQ.addEventListener(ev,()=>{try{onModelPick()}catch(e){}});
 });
 </script>
-<script src="mes_ordctx.js?v=169"></script>
+<script src="mes_mail.js?v=170"></script>
+<script src="mes_ordctx.js?v=170"></script>
 <script>/* v142: 자재표 리스트 우클릭 → 발주 · 입고 · 입고확정 · 취소 (외주가공 발주와 같은 방식) */
 try{MESORDCTX.init({category:'구매품',useWeight:false,bySize:false,priceKey:b=>b.mat||b.part})}catch(e){}
 </script>
