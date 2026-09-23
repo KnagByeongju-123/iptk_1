@@ -1,4 +1,4 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>금형진척현황</title><style>
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>수주진척현황</title><style>
 :root{--line:#98a6b2;--line2:#c5d0d8;--blue:#2f75b5;--ink:#344757;--head1:#e8f1f8;--head2:#c8dbe9;
 --done:#2f7d4f;--doneb:#e2f1e8;--run:#b26a00;--runb:#fdf0d9;--wait:#93a1ab;--waitb:#f0f3f5;--late:#c0392b;--lateb:#fbeceb}
 *{box-sizing:border-box}html,body{height:100%;margin:0}
@@ -76,13 +76,37 @@ button,input,select{font:inherit;color:inherit}
 .empty{padding:60px;text-align:center;color:#8a97a2}
 .foot{height:42px;display:flex;align-items:center;padding:5px 14px;border-top:1px solid var(--line);background:#eef2f5;gap:5px}
 .msg{margin-left:8px;color:#687784}.right{margin-left:auto;color:#7c8993}
+/* v182: 관리제번 카드 — 대표(가장 늦은) 공정 1줄 + 펼치면 공정별 */
+.seqs{font-size:12px;color:#2a6191;border:1px solid #b9cfe2;background:#eaf3fa;padding:1px 7px;border-radius:9px;white-space:nowrap}
+.seqs b{color:#1d5a92}
+.slow{font-size:11px;color:#fff;background:#e08a00;padding:1px 7px;border-radius:9px;margin-right:4px}
+.fold{font-size:12px;color:#7c8993;white-space:nowrap}
+.procs{border-top:1px dashed var(--line2);background:#fbfcfd;padding:4px 10px 8px}
+.prow{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #edf1f4}
+.prow:last-child{border-bottom:0}
+.prow .pl{flex:0 0 118px;display:flex;flex-direction:column;gap:2px}
+.prow .pl .sq{font-size:16px;font-weight:700;color:#20456b}
+.prow .pl .jn{font-size:11px;color:#7c8993}
+.prow .pl .pc{font-size:12px;font-weight:700;color:#5c6b76}
+.prow .pipe{flex:1 1 auto;padding:4px 0}
+.prow .pipe .stp{padding:6px 4px 5px 16px;min-width:70px}
+.prow .pipe .stp:first-child{padding-left:6px}
+.prow .pipe .stp b{font-size:13px}.prow .pipe .stp span{font-size:11px;margin-top:2px}
+.prow .pipe .stp.here{transform:none}
+.prow .pipe .stp.here b:after{display:none}
+.prow .pn{flex:0 0 280px;display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+.prow .pn .ntxt{font-size:12.5px}
+.prow .pn .btns{display:flex;gap:4px}
+.prow .pn .btn{height:26px;min-width:0;font-size:12px;padding:0 8px}
+.prow .pn .owner{font-size:12px;padding:2px 8px}
+@media(max-width:980px){.prow{flex-wrap:wrap}.prow .pn{flex-basis:100%}}
 @media(max-width:980px){.item,.cust{display:none}.stp{min-width:84px}.stp b{font-size:14px}.stp span{font-size:12px}}
 </style></head><body>
 <div class="screen">
  <div class="title"><h1>수주진척현황</h1><small>영업관리 · 수주</small></div>
 
  <div class="filt">
-  <span class="lb" style="margin-left:0">제번</span><input id="qJob" class="field" style="width:130px" oninput="apply()">
+  <span class="lb" style="margin-left:0" title="관리제번 또는 공정 제번(A·B·C)">관리제번</span><input id="qJob" class="field" style="width:130px" oninput="apply()">
   <span class="lb">품명</span><input id="qItem" class="field" style="width:150px" oninput="apply()">
   <span class="lb">고객사</span><input id="qCust" class="field" style="width:130px" oninput="apply()">
   <span class="lb">정렬</span>
@@ -90,7 +114,7 @@ button,input,select{font:inherit;color:inherit}
    <option value="due">납기 임박순</option>
    <option value="pct">진척 낮은순</option>
    <option value="pctd">진척 높은순</option>
-   <option value="job">제번순</option>
+   <option value="job">관리제번순</option>
   </select>
   <label style="margin-left:8px"><input type="checkbox" id="qOpen" checked onchange="apply()"> 납품미완료</label>
   <button class="btn" onclick="load()">⟳ 새로고침</button>
@@ -105,7 +129,7 @@ button,input,select{font:inherit;color:inherit}
   <button class="btn" onclick="load()">⌕ 조회</button>
   <button class="btn" onclick="exportCsv()">▤ EXCEL</button>
   <button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button>
-  <span class="msg" id="message">제번 카드를 클릭하면 단계별 상세가 열립니다.</span>
+  <span class="msg" id="message">관리제번 1장에 가장 늦은 공정을 대표로 보여줍니다. 카드를 클릭하면 공정별(A·B·C) 진행이 펼쳐집니다.</span>
   <span class="right" id="countText"></span>
  </footer>
 </div>
@@ -127,6 +151,30 @@ const OWNERS=['영업','설계','구매','가공','조립','품질'];
 const SAMPLE=[];
 
 let rows=[...SAMPLE],view=[],fOwner='',fLate=false,open=new Set();
+/* v182: 관리제번(제번에서 공정 문자 A~Z 를 뺀 것)으로 묶는다 */
+const jsplit=j=>{const m=/^(.*\d)([A-Z])$/.exec(String(j||'').trim());return m?{base:m[1],seq:m[2]}:{base:String(j||'').trim(),seq:''}};
+const hereOf=r=>{const i=STAGES.findIndex(s=>(r['st_'+s.k]||'wait')!=='done');return i<0?STAGES.length:i};
+const isLate=r=>!!(r.s1_overdue||r.delivery_overdue);
+function groupRows(list){
+ const mp=new Map();
+ list.forEach(r=>{const s=jsplit(r.job_no);let g=mp.get(s.base);if(!g){g={base:s.base,jobs:[]};mp.set(s.base,g)}g.jobs.push(r)});
+ const out=[...mp.values()];
+ out.forEach(g=>{
+  g.jobs.sort((a,b)=>String(a.job_no).localeCompare(String(b.job_no)));
+  /* 대표 = 가장 늦은 공정 (진행 단계가 가장 앞 → 진척률 낮은 순) */
+  g.rep=g.jobs.slice().sort((a,b)=>hereOf(a)-hereOf(b)||n0(a.progress_pct)-n0(b.progress_pct))[0];
+  g.pct=Math.round(g.jobs.reduce((s,r)=>s+n0(r.progress_pct),0)/g.jobs.length);
+  const ds=g.jobs.filter(r=>r.st_delivery!=='done'&&r.delivery_days_left!=null).map(r=>Number(r.delivery_days_left));
+  g.days=ds.length?Math.min(...ds):null;
+  g.late=g.jobs.some(isLate);g.s1late=g.jobs.some(r=>r.s1_overdue);
+  g.delivered=g.jobs.every(r=>r.st_delivery==='done');
+  g.owners=new Set(g.jobs.map(r=>r.next_owner).filter(Boolean));
+  g.item=(g.jobs.map(r=>r.product_name||r.item_name).find(Boolean))||'';
+  g.cust=(g.jobs.map(r=>r.customer_name).find(Boolean))||'';
+ });
+ return out;
+}
+let groups=[],allGroups=[];
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const n0=v=>Number(v||0);
 const msg=t=>message.textContent=t;
@@ -147,31 +195,32 @@ async function load(){
 function apply(){
  const j=qJob.value.trim().toLowerCase(),i=qItem.value.trim().toLowerCase(),c=qCust.value.trim().toLowerCase();
  const onlyOpen=qOpen.checked;
+ /* 공정 제번 단위로 걸러 → 관리제번으로 묶는다. 담당·지연 필터는 공정 하나라도 해당하면 관리제번을 보인다 */
  view=rows.filter(r=>{
   if(j&&!String(r.job_no||'').toLowerCase().includes(j))return false;
   if(i&&!((String(r.item_name||'')+' '+String(r.product_name||'')).toLowerCase().includes(i)))return false;
   if(c&&!String(r.customer_name||'').toLowerCase().includes(c))return false;
   if(onlyOpen&&r.st_delivery==='done')return false;
-  if(fOwner&&r.next_owner!==fOwner)return false;
-  if(fLate&&!(r.s1_overdue||r.delivery_overdue))return false;
   return true;
  });
+ allGroups=groupRows(view);
+ groups=allGroups.filter(g=>(!fOwner||g.owners.has(fOwner))&&(!fLate||g.late));
  const s=qSort.value;
- const dd=r=>r.delivery_days_left==null?99999:Number(r.delivery_days_left);
- view.sort((a,b)=>s==='pct'?n0(a.progress_pct)-n0(b.progress_pct)
-  :s==='pctd'?n0(b.progress_pct)-n0(a.progress_pct)
-  :s==='job'?String(a.job_no).localeCompare(String(b.job_no))
+ const dd=g=>g.days==null?99999:g.days;
+ groups.sort((a,b)=>s==='pct'?a.pct-b.pct
+  :s==='pctd'?b.pct-a.pct
+  :s==='job'?String(a.base).localeCompare(String(b.base))
   :dd(a)-dd(b));
  render();
 }
 
 /* ── 요약 밴드 ───────────────────────────── */
 function renderSum(){
- const late=rows.filter(r=>r.s1_overdue||r.delivery_overdue).length;
- const cnt=o=>rows.filter(r=>r.next_owner===o).length;
+ const late=allGroups.filter(g=>g.late).length;
+ const cnt=o=>allGroups.filter(g=>g.owners.has(o)).length;
  sum.innerHTML=
-  `<span style="font-weight:700">다음 조치</span>`
-  +`<button class="pill${fOwner===''?' on':''}" onclick="setOwner('')">전체 <b>${rows.length}</b></button>`
+  `<span style="font-weight:700" title="관리제번 기준 건수 (공정 하나라도 해당하면 포함)">다음 조치</span>`
+  +`<button class="pill${fOwner===''?' on':''}" onclick="setOwner('')">전체 <b>${allGroups.length}</b></button>`
   +OWNERS.map(o=>`<button class="pill${fOwner===o?' on':''}" onclick="setOwner('${o}')">${o} <b>${cnt(o)}</b></button>`).join('')
   +`<button class="pill late${fLate?' on':''}" style="margin-left:10px" onclick="setLate()">⚠ 지연 <b>${late}</b></button>`;
 }
@@ -194,41 +243,60 @@ function stageCell(r,st,here){
  if(!sub)sub=v==='done'?'완료':v==='run'?'진행':'대기';
  return `<div class="stp ${v}${here?' here':''}"><b>${st.n}</b><span>${esc(sub)}</span></div>`;
 }
-function dueTxt(r){
- if(r.st_delivery==='done')return '<span class="d" style="color:#2f7d4f">납품완료</span>';
- const d=r.delivery_days_left;
+function dueTxt(r,g){
+ if(g?g.delivered:r.st_delivery==='done')return '<span class="d" style="color:#2f7d4f">납품완료</span>';
+ const d=g?g.days:r.delivery_days_left;
  if(d==null)return '<span class="d" style="color:#93a1ab">납기 미지정</span>';
  const k=Number(d);
  return `<span class="d ${k<0?'bad':k<=7?'warn':''}">납기 ${k<0?'D+'+(-k):'D-'+k}</span>`;
 }
+function nextHtml(r,small){
+ return `${r.next_owner?`<span class="owner ${esc(r.next_owner)}">${esc(r.next_owner)}</span>`:'<span class="owner" style="background:#2f7d4f">완료</span>'}
+    <span class="ntxt">${esc(r.next_step||'')}</span>`;
+}
+function btnHtml(r){
+ return `${r.next_screen?`<button class="btn go" onclick="event.stopPropagation();goScreen('${esc(r.next_screen)}')">↗ ${esc(r.next_screen)}</button>`:''}
+    ${canReset()?`<button class="btn del" onclick="event.stopPropagation();resetJob('${esc(r.job_no)}')">✕ 진행삭제</button>`:''}`;
+}
 function render(){
- board.innerHTML=view.length?view.map(r=>{
-  const p=n0(r.progress_pct);
+ board.innerHTML=groups.length?groups.map(g=>{
+  const r=g.rep,p=g.pct,multi=g.jobs.length>1||!!jsplit(r.job_no).seq;
   const hereIdx=STAGES.findIndex(s=>(r['st_'+s.k]||'wait')!=='done');
-  const isOpen=open.has(r.job_no);
-  const late=r.s1_overdue||r.delivery_overdue;
-  return `<div class="card${late?' late':''}">
-   <div class="chead" onclick="toggle('${esc(r.job_no)}')">
-    <span class="jno">${esc(r.job_no)}</span>
-    <span class="item">${esc(r.product_name||r.item_name||'')}</span>
-    <span class="cust">${esc(r.customer_name||'')}</span>
+  const isOpen=open.has(g.base);
+  const seqs=g.jobs.map(x=>jsplit(x.job_no).seq||'단일');
+  return `<div class="card${g.late?' late':''}">
+   <div class="chead" onclick="toggle('${esc(g.base)}')">
+    <span class="jno">${esc(g.base)}</span>
+    ${multi?`<span class="seqs" title="${esc(g.jobs.map(x=>x.job_no).join(', '))}">공정 <b>${g.jobs.length}</b> · ${esc(seqs.join('·'))}</span>`:''}
+    <span class="item">${esc(g.item)}</span>
+    <span class="cust">${esc(g.cust)}</span>
     ${!r.has_plan?'<span class="tag" style="color:#9aa5ad">계획 미등록</span>':r.design_outsourced?'<span class="tag out">설계 외주</span>':'<span class="tag">설계 사내</span>'}
-    ${r.s1_overdue?'<span class="tag" style="border-color:#e2b3ae;background:#fbeceb;color:#c0392b">T/O 지연</span>':''}
-    <span class="dday">${dueTxt(r)}
-     <span class="bar"><i style="width:${p}%"></i></span><span class="pctxt">${p}%</span></span>
+    ${g.s1late?'<span class="tag" style="border-color:#e2b3ae;background:#fbeceb;color:#c0392b">T/O 지연</span>':''}
+    <span class="dday">${multi?`<span class="fold">${isOpen?'▲ 접기':'▼ 공정별 보기'}</span>`:''}${dueTxt(r,g)}
+     <span class="bar" title="공정 평균 진척률"><i style="width:${p}%"></i></span><span class="pctxt">${p}%</span></span>
    </div>
    <div class="pipe">${STAGES.map((s,i)=>stageCell(r,s,i===hereIdx)).join('')}</div>
    <div class="next">
-    ${r.next_owner?`<span class="owner ${esc(r.next_owner)}">${esc(r.next_owner)}</span>`:'<span class="owner" style="background:#2f7d4f">완료</span>'}
-    <span class="ntxt">${esc(r.next_step||'')}</span>
-    ${r.next_screen?`<button class="btn go" onclick="event.stopPropagation();goScreen('${esc(r.next_screen)}')">↗ ${esc(r.next_screen)}</button>`:`<span class="go"></span>`}
-    ${canReset()?`<button class="btn del" onclick="event.stopPropagation();resetJob('${esc(r.job_no)}')">✕ 진행삭제</button>`:''}
+    ${multi?`<span class="slow" title="A·B·C 중 가장 늦은 공정">${esc(jsplit(r.job_no).seq||'단일')} 공정 기준</span>`:''}
+    ${nextHtml(r)}
+    <span style="margin-left:auto;display:flex;gap:6px">${btnHtml(r)}</span>
    </div>
-   ${isOpen?detail(r):''}
+   ${isOpen?(multi?procsHtml(g):detail(r)):''}
   </div>`}).join('')
  :'<div class="empty">조회 결과가 없습니다.</div>';
- countText.textContent=`${view.length} / ${rows.length}건`;
+ countText.textContent=`관리제번 ${groups.length} / ${allGroups.length}건 (공정 제번 ${view.length}건)`;
  renderSum();
+}
+/* 펼침: 공정별 진행줄 + 공정별 다음조치 + 상세 */
+function procsHtml(g){
+ return `<div class="procs">${g.jobs.map(r=>{
+  const hereIdx=STAGES.findIndex(s=>(r['st_'+s.k]||'wait')!=='done');
+  const sq=jsplit(r.job_no).seq||'단일';
+  return `<div class="prow${isLate(r)?' late':''}">
+    <div class="pl"><span class="sq">${esc(sq)}${r===g.rep?' <span class="slow" style="vertical-align:2px">대표</span>':''}</span><span class="jn">${esc(r.job_no)}</span><span class="pc">${n0(r.progress_pct)}% · ${dueTxt(r)}</span></div>
+    <div class="pipe">${STAGES.map((s,i)=>stageCell(r,s,i===hereIdx)).join('')}</div>
+    <div class="pn"><div>${nextHtml(r)}</div><div class="btns">${btnHtml(r)}</div></div>
+   </div>`}).join('')}${detail(g.rep)}</div>`;
 }
 function detail(r){
  const d=v=>v?String(v).slice(0,10):'-';
@@ -255,7 +323,7 @@ function detail(r){
  </table></div>`;
 }
 function toggle(job){open.has(job)?open.delete(job):open.add(job);render()}
-function expandAll(on){open=on?new Set(view.map(r=>r.job_no)):new Set();render()}
+function expandAll(on){open=on?new Set(groups.map(g=>g.base)):new Set();render()}
 /* 진행삭제: 수주정보(제번)까지 포함해 그 제번의 모든 기록을 지운다 (관리자만) */
 function canReset(){try{const a=MESDB.auth&&MESDB.auth();const r=a&&a.role;return r==='master'||r==='admin'}catch(e){return false}}
 async function resetJob(job){
@@ -272,7 +340,7 @@ async function resetJob(job){
   const r=await MESDB.rpc('mes_reset_job_progress',{p_job:job});
   const tabs=r&&r.tables?Object.entries(r.tables).map(([k,v])=>`${k} ${v}`).join(', '):'';
   try{MESDB.notify&&MESDB.notify(['jobs','sale_orders','sale_order_status_rows','sales_plans','sales_plan_status_rows','order_lines','design_plans','design_plan_steps','design_results','partlist_materials','partlist_purchases','assembly_jobs','assembly_steps','work_order_details','inspection_results','set_order_lines','expenses','sale_orders'])}catch(e){}
-  open.delete(job);
+  open.delete(jsplit(job).base);
   /* v80: 삭제 즉시 화면에서 지우고(낙관적 갱신) → DB 재조회 → 잠시 뒤 한 번 더.
      RPC 는 여러 테이블을 지우므로 뷰 반영이 살짝 늦을 수 있다. */
   rows=rows.filter(x=>x.job_no!==job);apply();
@@ -301,12 +369,12 @@ function goScreen(name){
  msg(`${name} 화면을 좌측 메뉴에서 열어주세요.`);
 }
 function exportCsv(){
- const head=['제번','품명','고객사','설계구분','진척률','T/O예정','납기예정','다음담당','다음화면','다음할일',
+ const head=['관리제번','공정 제번','대표 공정','품명','고객사','설계구분','진척률(평균)','T/O예정','납기예정','다음담당','다음화면','다음할일',
   ...STAGES.map(s=>s.n)];
- const out=[head,...view.map(r=>[r.job_no,r.product_name||r.item_name,r.customer_name,
-  r.design_outsourced?'외주':'사내',n0(r.progress_pct)+'%',r.s1_planned_date||'',r.delivery_planned_date||'',
+ const out=[head,...groups.map(g=>{const r=g.rep;return [g.base,g.jobs.map(x=>x.job_no).join(' '),r.job_no,g.item,g.cust,
+  r.design_outsourced?'외주':'사내',g.pct+'%',r.s1_planned_date||'',r.delivery_planned_date||'',
   r.next_owner||'',r.next_screen||'',r.next_step||'',
-  ...STAGES.map(s=>({done:'완료',run:'진행',wait:'대기'}[r['st_'+s.k]||'wait']))])];
+  ...STAGES.map(s=>({done:'완료',run:'진행',wait:'대기'}[r['st_'+s.k]||'wait']))]})];
  const csv='\ufeff'+out.map(a=>a.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\n');
  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
  a.download='job_progress_board.csv';a.click();URL.revokeObjectURL(a.href);msg('CSV 파일을 생성했습니다.');
