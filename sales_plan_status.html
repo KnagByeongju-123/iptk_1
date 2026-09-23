@@ -74,7 +74,7 @@ table.sheet tbody tr.sel td,table.sheet tbody tr.sel th.rl{background:#d6e7f8!im
 table.sheet tbody tr.sel td.ev.late{background:#ffd34d!important}
 .sw{display:inline-block;width:10px;height:10px;border:1px solid #9aa7b1;vertical-align:-1px;margin:0 2px 0 4px}.sw.late{background:#ffe45c}.sw.early{background:#e6f6e6}
 .sheet small.wd{font-size:10px;color:#6b7a87;margin-left:1px}.sheet small.wd.sat{color:#1d5da3}.sheet small.wd.sun{color:#c0392b}
-</style></head><body><div class="screen"><div class="title"><h1>제작진행현황</h1><small>영업관리 · 제작계획</small></div><section class="filt"><div class="f2"><div class="lb">제 번</div><div><input id="q_job" class="field" oninput="search()" placeholder="제번 일부 입력"></div><div class="lb">품 명</div><div><input id="q_item" class="field" oninput="search()"></div><div></div><div style="display:flex;gap:12px;align-items:center;white-space:nowrap"><label style="display:flex;gap:4px;align-items:center" title="가능일정이 목표보다 늦은 제번만"><input type="checkbox" id="q_late" onchange="search()"> 지연만</label><label style="display:flex;gap:4px;align-items:center" title="완료 목표일이 지난 제번은 숨깁니다"><input type="checkbox" id="q_hideDone" onchange="search()"> 완료 숨김</label><span style="color:#6b7a86;font-size:11px">칸 색: <i class="sw late"></i>목표보다 늦음 <i class="sw early"></i>앞당김 · 행 더블클릭 → 상세</span></div></div></section><div class="gridbox"><table class="sheet" style="min-width:1860px">
+</style></head><body><div class="screen"><div class="title"><h1>제작진행현황</h1><small>영업관리 · 제작계획</small></div><section class="filt"><div class="f2"><div class="lb">제 번</div><div><input id="q_job" class="field" oninput="search()" placeholder="제번 일부 입력"></div><div class="lb">품 번</div><div><input id="q_model" class="field" oninput="search()" placeholder="품번 입력/선택"></div><div></div><div style="display:flex;gap:12px;align-items:center;white-space:nowrap"><label style="display:flex;gap:4px;align-items:center" title="가능일정이 목표보다 늦은 제번만"><input type="checkbox" id="q_late" onchange="search()"> 지연만</label><label style="display:flex;gap:4px;align-items:center" title="완료 목표일이 지난 제번은 숨깁니다"><input type="checkbox" id="q_hideDone" onchange="search()"> 완료 숨김</label><span style="color:#6b7a86;font-size:11px">칸 색: <i class="sw late"></i>목표보다 늦음 <i class="sw early"></i>앞당김 · 행 더블클릭 → 상세</span></div></div></section><div class="gridbox"><table class="sheet" style="min-width:1860px">
 <thead>
  <tr><th rowspan="2" style="width:40px">NO</th><th rowspan="2" style="width:112px">제작제번</th><th rowspan="2" style="width:190px">품번 · 도번 · 품명</th><th rowspan="2" style="width:76px">제품형상</th><th rowspan="2" style="width:70px">제작<br>구분</th><th rowspan="2" style="width:46px">조수</th>
   <th colspan="7" class="grp">금형제작 EVENT</th><th rowspan="2" style="width:300px">진척현황</th><th rowspan="2" style="width:210px">특기사항</th><th rowspan="2" style="width:100px">수주가</th><th rowspan="2" style="width:100px">목표가</th><th rowspan="2" style="width:56px">이익률</th></tr>
@@ -149,7 +149,7 @@ function render(){
 function pick(i,tr){sel=i;document.querySelectorAll('#body tr').forEach(x=>x.classList.toggle('sel',Number(x.dataset.i)===i));}
 /* v169: 표 밖(다른 곳)을 클릭하면 행 선택 해제 */
 document.addEventListener('mousedown',e=>{if(sel<0)return;if(e.target.closest('#body tr')||e.target.closest('.foot,.mask,.toolbar'))return;pick(-1)},true);
-function search(){const j=(q_job.value||'').trim().toLowerCase(),it=(q_item.value||'').trim().toLowerCase();
+function search(){const j=(q_job.value||'').trim().toLowerCase(),it=(q_model.value||'').trim().toLowerCase();
  const onlyLate=!!(document.getElementById('q_late')||{}).checked,hide=!!(document.getElementById('q_hideDone')||{}).checked,today=new Date().toLocaleDateString('sv-SE');
  view=data.filter(r=>{const pl=planOf(r.job_no);
   if(j&&!String(r.job_no??'').toLowerCase().includes(j))return false;
@@ -157,7 +157,7 @@ function search(){const j=(q_job.value||'').trim().toLowerCase(),it=(q_item.valu
   if(onlyLate&&!lateOf(pl))return false;
   if(hide&&pl&&pl.delivery_planned_date&&pl.delivery_planned_date<today)return false;
   return true});
- sel=-1;render();msg(j||it?`조회결과 ${view.length}건입니다. (제번 "${q_job.value.trim()}"${it?` · 품명 "${q_item.value.trim()}"`:''})`:`전체 ${view.length}건입니다.`);}
+ sel=-1;render();msg(j||it?`조회결과 ${view.length}건입니다. (제번 "${q_job.value.trim()}"${it?` · 품번 "${q_model.value.trim()}"`:''})`:`전체 ${view.length}건입니다.`);}
 function detail(){
  if(sel<0){msg('목록에서 행을 선택하세요.');return}
  const r=view[sel];const pl=plans.find(x=>x.job_no===r.job_no)||null;   /* v62: 다른 제번 폴백 제거 */
@@ -291,5 +291,5 @@ MESDB.master({page:"sales_plan_status:plans",table:"sales_plans",pk:"row_no",map
 /* 표가 다시 그려질 때마다 합계 갱신 */
 (function(){const tb=document.querySelector('tbody');if(!tb||typeof renderTotal!=='function')return;new MutationObserver(()=>renderTotal()).observe(tb,{childList:true});renderTotal()})();
 </script>
-<script src="mes_ctx.js?v=162"></script>
+<script src="mes_ctx.js?v=169"></script>
 </body></html>
