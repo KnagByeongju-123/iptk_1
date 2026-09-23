@@ -26,7 +26,7 @@ tfoot th{position:sticky;bottom:0;background:linear-gradient(#e6eef5,#d3e0ea)}
   <div class="title"><h1>외주가공 발주현황</h1></div>
   <section class="filters">
     <div class="frow">
-      <span class="label">구 분</span>
+      <span class="label">구분</span>
       <div class="radios">
         <label><input type="radio" name="st" value="전체" checked onchange="search()"> 전체</label>
         <label><input type="radio" name="st" value="발주" onchange="search()"> 발주</label>
@@ -38,8 +38,8 @@ tfoot th{position:sticky;bottom:0;background:linear-gradient(#e6eef5,#d3e0ea)}
       <span class="label">입고확정일</span><input id="cd1" class="field" type="date"><span>~</span><input id="cd2" class="field" type="date">
     </div>
     <div class="frow">
-      <span class="label">제 번</span><input id="jobQ" class="field" style="width:180px" placeholder="제번 입력/선택" autocomplete="off">
-      <span class="label">품 번</span><input id="pnQ" class="field" style="width:180px" placeholder="품번 입력/선택" list="pnDL" autocomplete="off"><datalist id="pnDL"></datalist>
+      <span class="label">제번</span><input id="jobQ" class="field" style="width:180px" placeholder="제번 입력/선택" autocomplete="off">
+      <span class="label">품번</span><input id="pnQ" class="field" style="width:180px" placeholder="품번 입력/선택" list="pnDL" autocomplete="off"><datalist id="pnDL"></datalist>
       <span class="label">협력업체</span><select id="vendorQ" class="field" data-combo style="width:180px"><option value="">전체</option></select>
       <button class="btn" onclick="search()">⌕ 조회</button>
     </div>
@@ -48,7 +48,7 @@ tfoot th{position:sticky;bottom:0;background:linear-gradient(#e6eef5,#d3e0ea)}
     <colgroup><col style="width:44px"><col style="width:76px"><col style="width:110px"><col style="width:120px"><col style="width:180px"><col style="width:48px"><col style="width:58px"><col style="width:70px"><col style="width:140px"><col style="width:52px"><col style="width:52px"><col style="width:84px"><col style="width:92px"><col style="width:96px"><col style="width:92px"><col style="width:96px"><col style="width:100px"><col style="width:100px"><col style="width:62px"></colgroup>
     <thead><tr><th style="width:34px" title="전체 선택 / 해제"><input type="checkbox" id="chkAll" onclick="checkAll(this.checked)"></th><th>No</th><th>구분</th><th>협력업체</th><th>제번</th><th title="수주등록의 품번(제품)">품번(제품)</th><th>공정</th><th>공정명</th><th>품번</th><th>부품명</th><th title="발주수량">발주<br>수량</th><th title="입고수량">입고<br>수량</th><th>가공공정</th><th>발주일</th><th>입고예정일</th><th>입고일</th><th>입고확정일</th><th>견적가</th><th>확정가</th><th>수정</th></tr></thead>
     <tbody id="body"></tbody>
-    <tfoot><tr><th colspan="17" class="r">합 계</th><th class="r" id="sumQuote">0</th><th class="r" id="sumFix">0</th><th></th></tr></tfoot>
+    <tfoot><tr><th colspan="17" class="r">합계</th><th class="r" id="sumQuote">0</th><th class="r" id="sumFix">0</th><th></th></tr></tfoot>
   </table></div></div>
   <footer class="foot"><button class="btn" onclick="search()">⌕ 검색</button><button class="btn" onclick="editChecked()" title="체크한 한 행을 수정합니다">✎ 수정</button><button class="btn danger" onclick="delChecked()" title="체크한 발주를 삭제합니다 (입고 이력도 함께 삭제)">✕ 삭제</button><button class="btn primary" onclick="exportCsv()">▤ EXCEL</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫 기</button><span class="msg" id="message">외주가공 발주현황을 조회했습니다. (행을 더블클릭하면 수정)</span><span class="right" id="countText"></span></footer>
 </div>

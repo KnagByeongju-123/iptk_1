@@ -80,7 +80,7 @@ input.cell,tr.sel input.cell,tr:hover input.cell{color:#22303a;background:#fff;-
     <colgroup><col style="width:40px"><col style="width:38px"><col style="width:104px"><col style="width:104px"><col style="width:48px"><col style="width:70px"><col style="width:130px"><col style="width:64px"><col style="width:130px"><col style="width:56px"><col style="width:72px"><col style="width:86px"><col style="width:150px"><col style="width:56px"><col style="width:74px"><col style="width:84px"><col style="width:84px"><col style="width:92px"></colgroup>
     <thead><tr><th>No</th><th><input type="checkbox" id="reqAll" onclick="reqAllToggle(this)" title="전체선택 / 전체해제"></th><th>협력업체</th><th>제번</th><th>공정</th><th>품번</th><th>부품명</th><th>재질</th><th>규격</th><th>수량</th><th>발주수량</th><th>발주월</th><th>입고요구일</th><th>첨부</th><th>담당자</th><th>기준단가</th><th>매입단가</th><th>매입금액</th></tr></thead>
     <tbody id="reqBody"></tbody>
-    <tfoot><tr><th colspan="9" class="r">합 계</th><th class="r" id="sumQty">0</th><th class="r" id="sumOrd">0</th><th colspan="5"></th><th class="r" id="sumBuy">0</th><th class="r" id="sumAmt">0</th></tr></tfoot>
+    <tfoot><tr><th colspan="9" class="r">합계</th><th class="r" id="sumQty">0</th><th class="r" id="sumOrd">0</th><th colspan="5"></th><th class="r" id="sumBuy">0</th><th class="r" id="sumAmt">0</th></tr></tfoot>
   </table></div></div>
   <footer class="foot"><button class="btn" onclick="search()">⌕ 검색</button><button class="btn" onclick="save()">▣ 저장</button><button class="btn primary" onclick="printOrder()">⎙ PRINT</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">제번과 협력업체를 선택하고 자재표에서 발주할 품번을 내려주세요.</span><span class="right" id="countText"></span></footer>
 </div>
@@ -303,8 +303,8 @@ preview.classList.add('on');
 const n=a4Build(docArea,{title:'구매품 발주서',cols:8,
  head:`<h2>구매품 발주서</h2>
 <table class="info"><tr><td>발　신 : (주)일평기연</td></tr><tr><td>작성자 : ${OWNER}</td></tr><tr><td>수　신 : ${r0.vendor}</td></tr></table>
-<table class="info"><tr><th>제 번</th><td>${r0.job}_${r0.proc}</td><th>품 명</th><td>${j.item||''}</td><th>발주일</th><td>${today}</td></tr></table>`,
- contHead:`<table class="info"><tr><th>제 번</th><td>${r0.job}_${r0.proc}</td><th>수 신</th><td>${r0.vendor}</td><th>발주일</th><td>${today}</td></tr></table>`,
+<table class="info"><tr><th>제번</th><td>${r0.job}_${r0.proc}</td><th>품명</th><td>${j.item||''}</td><th>발주일</th><td>${today}</td></tr></table>`,
+ contHead:`<table class="info"><tr><th>제번</th><td>${r0.job}_${r0.proc}</td><th>수신</th><td>${r0.vendor}</td><th>발주일</th><td>${today}</td></tr></table>`,
  colgroup:'<colgroup><col style="width:6%"><col style="width:11%"><col style="width:20%"><col style="width:10%"><col style="width:17%"><col style="width:9%"><col style="width:12%"><col style="width:15%"></colgroup>',
  thead:'<tr><th>순번</th><th>품번</th><th>부품명</th><th>재질</th><th>규격</th><th>발주수량</th><th>납기일</th><th>비고</th></tr>',
  rows:REQ.map((r,i)=>`<tr><td class="c">${i+1}</td><td class="c">${r.part}</td><td>${r.name}</td><td class="c">${r.mat}</td><td class="c">${r.spec}</td><td class="r">${r.ord}</td><td class="c">${r.rdate}</td><td>${r.remark}</td></tr>`)});

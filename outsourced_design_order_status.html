@@ -23,11 +23,11 @@ tfoot th{position:sticky;bottom:0;background:linear-gradient(#e6eef5,#d3e0ea)}
   <div class="title"><h1>설계외주현황</h1><small>영업관리 · 설계외주</small></div>
   <section class="filters">
     <div class="frow">
-      <span class="label">구 분</span>
+      <span class="label">구분</span>
       <div class="radios"><label><input type="radio" name="st" value="전체" checked onchange="search()"> 전체</label><label><input type="radio" name="st" value="발주" onchange="search()"> 발주</label><label><input type="radio" name="st" value="입고" onchange="search()"> 입고</label></div>
-      <span class="label">제 번</span><input id="jobQ" class="field" style="width:170px">
-      <span class="label">품 명</span><input id="itemQ" class="field" style="width:170px">
-      <span class="label">품 번</span><input id="modelQ" class="field" style="width:150px">
+      <span class="label">제번</span><input id="jobQ" class="field" style="width:170px">
+      <span class="label">품명</span><input id="itemQ" class="field" style="width:170px">
+      <span class="label">품번</span><input id="modelQ" class="field" style="width:150px">
     </div>
     <div class="frow">
       <span class="label">발주일</span><input id="od1" class="field" type="date"><span>~</span><input id="od2" class="field" type="date">
@@ -40,7 +40,7 @@ tfoot th{position:sticky;bottom:0;background:linear-gradient(#e6eef5,#d3e0ea)}
     <colgroup><col style="width:44px"><col style="width:110px"><col style="width:130px"><col style="width:110px"><col style="width:74px"><col style="width:110px"><col style="width:108px"><col style="width:50px"><col style="width:74px"><col style="width:90px"><col style="width:90px"><col style="width:90px"><col style="width:96px"><col style="width:86px"><col style="width:92px"><col style="width:100px"><col style="width:92px"></colgroup>
     <thead><tr><th>No</th><th>제번</th><th>품명</th><th>품번</th><th>국내/해외</th><th>거래처</th><th>수주가</th><th>공정</th><th>유상사급</th><th>견적가</th><th>네고가</th><th>차액</th><th>협력업체</th><th>진행률</th><th>발주일</th><th>입고예정일</th><th>입고일</th></tr></thead>
     <tbody id="body"></tbody>
-    <tfoot><tr><th colspan="9" class="r">합 계</th><th class="r" id="sumQuote">0</th><th class="r" id="sumNego">0</th><th class="r" id="sumDiff">0</th><th colspan="5"></th></tr></tfoot>
+    <tfoot><tr><th colspan="9" class="r">합계</th><th class="r" id="sumQuote">0</th><th class="r" id="sumNego">0</th><th class="r" id="sumDiff">0</th><th colspan="5"></th></tr></tfoot>
   </table></div></div>
   <footer class="foot"><button class="btn" onclick="search()">⌕ 검색</button><button class="btn primary" onclick="exportCsv()">▤ EXCEL</button><button class="btn danger" onclick="cancelOrder()" title="오발주 건을 선택하고 누르면 발주요청이 취소됩니다">✕ 발주취소</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">행을 더블클릭하면 입고(진척) 이력을 볼 수 있습니다. · 오발주는 행 선택 후 [✕ 발주취소]</span><span class="right" id="countText"></span></footer>
 </div>

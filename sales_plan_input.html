@@ -115,11 +115,11 @@ table.ev td .dcell .wd.late{background:#ffe45c;color:#5a4400;font-weight:700}
  <div class="lb">고객사</div><div><input id="customer_name" class="field cbo" list="dl_cust" autocomplete="off" placeholder="입력 또는 선택"></div>
  <div class="lb">아이템</div><div><input id="item_name" class="field cbo" list="dl_item" autocomplete="off" placeholder="입력 또는 선택"></div>
  <div class="lb">금형타입</div><div><input id="mold_type_name" class="field cbo" list="dl_mold" autocomplete="off" placeholder="입력 또는 선택"></div>
+ <div class="lb">도번</div><div><input id="drawing_no" class="field" placeholder="예) MAZ30224301"></div>
+ <div class="lb">품명</div><div><input id="product_name" class="field" placeholder="예) BRACKET,MOTOR"></div>
  <div class="lb">품번</div><div><input id="model" class="field" placeholder="예) Sliding door IDX27"></div>
- <div class="lb">도 번</div><div><input id="drawing_no" class="field" placeholder="예) MAZ30224301"></div>
- <div class="lb">품 명</div><div><input id="product_name" class="field" placeholder="예) BRACKET,MOTOR"></div>
  <div class="lb">제작구분</div><div><input id="make_type" class="field cbo" list="dl_make" autocomplete="off" placeholder="신규제작 / 수정 / 추가"></div>
- <div class="lb">조 수</div><div><input id="process_set_qty" class="field" placeholder="예) 1"></div>
+ <div class="lb">조수</div><div><input id="process_set_qty" class="field" placeholder="예) 1"></div>
  <div class="lb">수주일</div><div><input id="order_date" type="date" class="field"></div>
  <div class="lb" title="재질과 두께 (예: GI 2.0T)">재질·두께</div><div><input id="material_spec" class="field" placeholder="예) GI 2.0T"></div>
  <div class="lb" title="제품 크기 (예: W150 · P46)">사이즈</div><div><input id="size_spec" class="field" placeholder="예) W150 · P46"></div>
@@ -192,7 +192,7 @@ table.ev td .dcell .wd.late{background:#ffe45c;color:#5a4400;font-weight:700}
   <div></div><div class="hd">설계 사내</div><div class="hd">설계 사외</div><div class="hd">원재료</div><div class="hd">구매</div><div class="hd">가공 사내</div><div class="hd">가공 사외</div><div class="hd">조립 사내</div><div class="hd">조립 사외</div>
   <div class="lb ad">비율(%)</div>
   <input id="r1" class="adr"><input id="r2" class="adr"><input id="r3" class="adr"><input id="r4" class="adr"><input id="r5" class="adr"><input id="r6" class="adr"><input id="r7" class="adr"><input id="r8" class="adr">
-  <div class="lb">금 액</div>
+  <div class="lb">금액</div>
   <div><input id="a1" oninput="recalc()"><div class="pct" id="p1">0%</div></div>
   <div><input id="a2" oninput="recalc()"><div class="pct" id="p2">0%</div></div>
   <div><input id="a3" oninput="recalc()"><div class="pct" id="p3">0%</div></div>
@@ -334,8 +334,8 @@ document.querySelectorAll('table.ev input[type=date]').forEach(inp=>{
  inp.addEventListener('change',()=>wdSet(inp));inp.addEventListener('input',()=>wdSet(inp));wdSet(inp)});
 const _markLate=markLate;markLate=function(){_markLate();wdAll()};
 document.querySelector('table.ev').addEventListener('wheel',wheelDate,{passive:false});
-/* v169: 목표 접수일 = 수주등록의 수주일. 수주일이 바뀌면 접수(목표)도 따라간다 */
-document.getElementById('order_date').addEventListener('change',()=>{const r=document.getElementById('receipt_date');if(order_date.value){r.value=order_date.value;r.dispatchEvent(new Event('change',{bubbles:true}))}});
+/* v169: 목표 접수일이 비어 있으면 수주일로 채운다 (직접 입력한 값은 유지) */
+document.getElementById('order_date').addEventListener('change',()=>{const r=document.getElementById('receipt_date');if(order_date.value&&(!r.value||r.value===r.__fromOrder)){r.value=order_date.value;r.__fromOrder=r.value;r.dispatchEvent(new Event('change',{bubbles:true}))}});
 /* 시작일 줄은 일수 재계산 */
 ['design','machining','assembly'].forEach(p=>['_start_date','_end_date'].forEach(k=>{const el=document.getElementById(p+k);if(el&&!el.__cd){el.__cd=1;el.addEventListener('change',()=>calcDays(p))}}));
 
@@ -381,7 +381,7 @@ function load(o){
   setSel(k,o[k]);
  }
  PLOG=Array.isArray(o.progress_log)?o.progress_log.slice():(typeof o.progress_log==='string'?(function(){try{return JSON.parse(o.progress_log)||[]}catch(e){return []}})():[]);
- {const r=document.getElementById('receipt_date');if(o.order_date)r.value=String(o.order_date).slice(0,10)}
+ {const r=document.getElementById('receipt_date');if(!r.value&&o.order_date)r.value=String(o.order_date).slice(0,10)}
  plRender();shapeShow(o.image_url||'');markLate();
  document.getElementById('remark').value=o.remark||'';
  /* v119: 설계·조립 외주 항목은 화면에서 삭제 — 값은 외주설계발주·SET외주발주 화면이 sales_plans 에 기록한다 */
