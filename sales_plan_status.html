@@ -75,11 +75,11 @@ table.sheet tbody tr.sel td.ev.late{background:#ffd34d!important}
 .sw{display:inline-block;width:10px;height:10px;border:1px solid #9aa7b1;vertical-align:-1px;margin:0 2px 0 4px}.sw.late{background:#ffe45c}.sw.early{background:#e6f6e6}
 .sheet small.wd{font-size:10px;color:#6b7a87;margin-left:1px}.sheet small.wd.sat{color:#1d5da3}.sheet small.wd.sun{color:#c0392b}
 
-/* v190: 열 고정 — NO · 관리제번 · 도번·품명·품번 · 제품형상 (가로 스크롤해도 남는다) */
-.sheet thead tr:first-child th:nth-child(-n+4),.sheet tbody tr.g1>td:nth-child(-n+4){position:sticky;z-index:3;background-clip:padding-box}
-.sheet tbody tr.g1>td:nth-child(-n+4){background:#fff;z-index:2}
-.sheet thead tr:first-child th:nth-child(-n+4){top:0;z-index:5;background:linear-gradient(#dbe9f5,#b9d2e6)}
-.sheet tbody tr.g1.sel>td:nth-child(-n+4){background:#2d75b7}
+/* v190/v192: 열 고정 — NO · 관리제번 · 도번·품명·품번 · 제품형상 · 제작구분 · 조수 (가로 스크롤해도 남는다) */
+.sheet thead tr:first-child th:nth-child(-n+6),.sheet tbody tr.g1>td:nth-child(-n+6){position:sticky;z-index:3;background-clip:padding-box}
+.sheet tbody tr.g1>td:nth-child(-n+6){background:#fff;z-index:2}
+.sheet thead tr:first-child th:nth-child(-n+6){top:0;z-index:5;background:linear-gradient(#dbe9f5,#b9d2e6)}
+.sheet tbody tr.g1.sel>td:nth-child(-n+6){background:#2d75b7}
 .sheet .frz-last{box-shadow:3px 0 4px -2px rgba(0,0,0,.22)}
 /* 고정 열 사이로 뒤 칸 글자가 비치지 않게 — 테두리를 칸마다 따로 그린다 */
 table.sheet{border-collapse:separate;border-spacing:0}
@@ -181,13 +181,13 @@ function fillBaseDL(){
 }
 /* v190: 고정 열 위치 — 실제 머리글 폭을 재서 left 를 맞춘다 */
 function freezeCols(){
- const ths=[...document.querySelectorAll('.sheet thead tr:first-child th')].slice(0,4);if(ths.length<4)return;
- const cells=[...ths];document.querySelectorAll('.sheet tbody tr.g1').forEach(tr=>cells.push(...[...tr.children].slice(0,4)));
+ const ths=[...document.querySelectorAll('.sheet thead tr:first-child th')].slice(0,6);if(ths.length<6)return;
+ const cells=[...ths];document.querySelectorAll('.sheet tbody tr.g1').forEach(tr=>cells.push(...[...tr.children].slice(0,6)));
  cells.forEach(el=>el.style.left='');   /* 먼저 풀고 재야 자연 위치가 나온다 (열폭이 바뀐 뒤에도 정확) */
  const x0=ths[0].offsetLeft,L=ths.map(t=>t.offsetLeft-x0);
- const set=(el,k)=>{el.style.left=L[k]+'px';el.classList.toggle('frz-last',k===3)};
+ const set=(el,k)=>{el.style.left=L[k]+'px';el.classList.toggle('frz-last',k===5)};
  ths.forEach(set);
- document.querySelectorAll('.sheet tbody tr.g1').forEach(tr=>[...tr.children].slice(0,4).forEach(set));
+ document.querySelectorAll('.sheet tbody tr.g1').forEach(tr=>[...tr.children].slice(0,6).forEach(set));
 }
 window.addEventListener('resize',()=>{try{freezeCols()}catch(e){}});
 function render(){
