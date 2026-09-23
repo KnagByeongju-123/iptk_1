@@ -57,7 +57,7 @@ table{border-collapse:collapse;min-width:1040px;width:100%;table-layout:fixed}th
 </section>
 <div class="split">
  <div class="gridbox"><table style="min-width:1320px">
-  <thead><tr><th style="width:34px" title="전체 선택 / 해제"><input type="checkbox" class="cbx" id="chkAll" onclick="checkAll(this.checked)"></th><th style="width:70px">수주유형</th><th style="width:96px" title="그 제번으로 나간 외주가공 발주 중 가장 빠른 발주일 — 눌러서 정렬" class="sortable" onclick="sortBy('mac_order_date')">외주가공 발주일<span class="sar" data-k="mac_order_date"></span></th><th style="width:96px" title="정산까지 끝나 제번을 종결한 날 — 눌러서 정렬" class="sortable" onclick="sortBy('completion_date')">정산완료일<span class="sar" data-k="completion_date"></span></th><th style="width:100px">제번</th><th style="width:44px" title="공정 (관리제번별 합계에서는 공정 수)">공정</th><th style="width:84px">카테고리</th><th style="width:94px" title="눌러서 정렬" class="sortable" onclick="sortBy('model')">품번<span class="sar" data-k="model"></span></th><th style="width:180px">품명</th><th style="width:110px">도번</th><th style="width:52px">조수</th><th style="width:72px">개발유형</th><th style="width:112px">수주가</th><th style="width:100px" title="가격 협상으로 조정된 금액(+는 감액, −는 증액). 행을 체크하고 [네고조정]에서 입력">네고조정</th><th style="width:112px" title="수주가 − 네고조정">실수주가</th><th style="width:112px">목표가</th><th style="width:78px">목표가대비</th><th style="width:106px">SET외주</th><th style="width:100px">경비</th><th style="width:112px">제조원가</th><th style="width:112px">이윤</th><th style="width:68px">이익률</th></tr></thead>
+  <thead><tr><th style="width:34px" title="전체 선택 / 해제"><input type="checkbox" class="cbx" id="chkAll" onclick="checkAll(this.checked)"></th><th style="width:70px">수주유형</th><th style="width:96px" title="그 제번으로 나간 외주가공 발주 중 가장 빠른 발주일 — 눌러서 정렬" class="sortable" onclick="sortBy('mac_order_date')">외주가공 발주일<span class="sar" data-k="mac_order_date"></span></th><th style="width:96px" title="정산까지 끝나 제번을 종결한 날 — 눌러서 정렬" class="sortable" onclick="sortBy('completion_date')">정산완료일<span class="sar" data-k="completion_date"></span></th><th style="width:100px">제번</th><th style="width:44px" title="공정 (관리제번별 합계에서는 공정 수)">공정</th><th style="width:84px">카테고리</th><th style="width:94px" title="눌러서 정렬" class="sortable" onclick="sortBy('model')">품번<span class="sar" data-k="model"></span></th><th style="width:180px">품명</th><th style="width:110px">도번</th><th style="width:52px">조수</th><th style="width:72px">개발유형</th><th style="width:112px">수주가</th><th style="width:100px" title="가격 협상으로 조정된 금액(+는 감액, −는 증액). 행을 체크하고 [네고조정]에서 입력">네고조정</th><th style="width:112px" title="수주가 − 네고조정">실수주가</th><th style="width:112px">목표가</th><th style="width:78px" title="목표가 ÷ 수주가 (%)">수주가대비</th><th style="width:106px">SET외주</th><th style="width:100px">경비</th><th style="width:112px">제조원가</th><th style="width:112px">이윤</th><th style="width:68px">이익률</th></tr></thead>
   <tbody id="obody"></tbody>
   <tfoot><tr class="gtot"><td colspan="22" class="c" id="totline">조회 0건</td></tr></tfoot>
  </table></div>
@@ -234,7 +234,7 @@ function markSort(){document.querySelectorAll('.sar').forEach(el=>{
  const on=el.dataset.k===sortKey;el.className='sar'+(on?' on':'');el.textContent=on?(sortDir>0?'▲':'▼'):'⇅'})}
 const inRange=(v,a,b)=>{if(!a&&!b)return true;if(!v)return false;const s=String(v).slice(0,10);return (!a||s>=a)&&(!b||s<=b)};
 /* ── v120 (회의록 1-1): 관리제번별 합계 ─────────────────────────────
- * 제번(공정)별 행을 관리제번으로 묶어 금액을 합치고, 이익률·목표가대비는 합계로 다시 계산한다. */
+ * 제번(공정)별 행을 관리제번으로 묶어 금액을 합치고, 이익률·수주가대비는 합계로 다시 계산한다. */
 const JS=j=>window.MESDB&&MESDB.jobSplit?MESDB.jobSplit(j):{base:String(j||''),seq:''};
 const SUMK=['order_price','nego_amount','net_price','target_price','set_outsourcing_cost','expense_cost','manufacturing_cost','profit'];
 function groupByBase(rows){
@@ -260,7 +260,7 @@ function search(){
  dbody.innerHTML='';dfoot.innerHTML='';render();syncChkAll();renderTotal();message.textContent=`조회결과 ${view.length}건입니다.`;
 }
 function exportCsv(){
- const h=['수주유형','외주가공 발주일','정산완료일','제번','공정','카테고리','품번','품명','도번','조수','개발유형','수주가','네고조정','실수주가','목표가','목표가대비','SET외주','경비','제조원가','이윤','이익률'];
+ const h=['수주유형','외주가공 발주일','정산완료일','제번','공정','카테고리','품번','품명','도번','조수','개발유형','수주가','네고조정','실수주가','목표가','수주가대비','SET외주','경비','제조원가','이윤','이익률'];
  const rows=view.map(r=>[r.order_type,r.mac_order_date,r.completion_date,r.job_no,r._grp?r._cnt:JS(r.job_no).seq,r.process_category||'',r.model,r.item_name,r.drawing_no,r.set_qty,r.development_type,r.order_price,r.nego_amount,r.net_price,r.target_price,r.target_ratio_pct,r.set_outsourcing_cost,r.expense_cost,r.manufacturing_cost,r.profit,r.profit_rate_pct]);
  const csv='\ufeff'+[h,...rows].map(a=>a.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\n');
  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='manufacturing_cost_orders.csv';a.click();
