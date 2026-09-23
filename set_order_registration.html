@@ -55,7 +55,10 @@ table{border-collapse:collapse;min-width:1040px;width:100%;table-layout:fixed}th
 
 /* v78: 제번리스트·공정(조)수 매칭 리스트는 행을 촘촘하게 (설계외주발주와 동일한 24px) */
 #hbody td,#mbody td,#vbody td{height:24px;padding:0 5px}
-</style></head><body><div class="screen"><div class="title"><h1>조립외주발주</h1><small>영업관리 · 조립외주</small></div><section class="filt"><div class="f2"><div class="lb">제번</div><div><input id="q_job" class="field"></div><div class="lb">품명</div><div><input id="q_item" class="field"></div><div></div><div></div></div></section><div class="panes" style="grid-template-rows:190px 1fr"><div class="panes" style="grid-template-columns:1.9fr .9fr;grid-template-rows:1fr;padding:0;gap:8px"><div class="pane"><div class="ph">제번리스트</div><div class="pb"><table style="min-width:520px"><thead><tr><th style="width:150px">제번</th><th style="width:200px">품명</th><th style="width:120px">완료예정일</th><th></th></tr></thead><tbody id="hbody"></tbody></table></div></div><div class="pane"><div class="ph">공정(조)수 매칭 리스트</div><div class="pb"><table style="min-width:0"><thead><tr><th style="width:36px"></th><th style="width:90px">공정코드</th><th>공정명</th></tr></thead><tbody id="mbody"></tbody></table></div></div></div><div class="panes" style="grid-template-columns:.72fr 2.1fr;grid-template-rows:1fr;padding:0;gap:8px"><div class="pane"><div class="ph">협력업체리스트</div><div style="display:flex;gap:4px;padding:5px"><input id="pq" class="field" placeholder="Enter text to search..." oninput="renderP()"><button class="btn" onclick="renderP()">찾기</button><button class="btn" onclick="pq.value='';renderP()">지우기</button></div><div class="pb"><table style="min-width:0"><thead><tr><th style="width:36px"></th><th>협력업체</th></tr></thead><tbody id="vbody"></tbody></table></div></div><div class="pane"><div class="ph">조수공정 리스트</div><div style="display:flex;gap:4px;padding:5px;align-items:center;flex-wrap:wrap"><span class="lb" style="width:40px">조수</span><input id="fSeq" class="field" style="width:70px" value="A" readonly title="공정(조)수 매칭 리스트에서 고른 조수"><span class="lb" style="width:52px">공정명</span><input id="fProc" class="field" style="width:70px" value="1/1" readonly><span class="lb" style="width:52px">발주일</span><input id="fOdate" class="field" type="date" style="width:140px"><span class="lb" style="width:74px">입고요구일</span><input id="fRdate" class="field" type="date" style="width:140px"><span class="lb" style="width:52px">견적가</span><input id="fQuote" class="field" style="width:110px" placeholder="0"><span class="lb" style="width:52px">네고가</span><input id="fNego" class="field" style="width:110px" placeholder="0"><button class="btn" onclick="pushDown()" title="선택한 조수 × 협력업체를 요청 리스트에 담습니다">⬇ 요청추가</button><button class="btn" onclick="pullUp()" title="아직 저장하지 않은 요청행을 뺍니다">⬆ 요청삭제</button></div><div class="pb"><table style="min-width:900px"><thead><tr><th style="width:36px"></th><th style="width:120px">협력업체</th><th style="width:56px">조수</th><th style="width:80px">공정명</th><th style="width:100px">발주일</th><th style="width:110px">입고요구일</th><th style="width:110px">견적가</th><th style="width:110px">네고가</th><th style="width:90px">작성자</th><th style="width:96px">상태</th></tr></thead><tbody id="dbody"></tbody></table></div></div></div></div><footer class="foot"><button class="btn" onclick="search()">⌕ 검색</button><button class="btn" onclick="loadHeads()">⟳ 새로고침</button><button class="btn" onclick="save()">▤ 저장</button><button class="btn" onclick="cancelOrder()">✕ 발주취소</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">제번·협력업체 선택 후 저장. 취소는 조수공정 리스트에서 체크 후 발주취소.</span><span class="right" id="countText"></span></footer></div><script>const heads=[];const partners=[];  /* v39: 하드코딩 → set_order_partners 마스터 로드 */const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* v193: 선택 행의 (A~F) 표시가 파란 바탕에 묻히지 않게 */
+tr.sel td span{color:#fff!important}
+</style></head><body><div class="screen"><div class="title"><h1>조립외주발주</h1><small>영업관리 · 조립외주</small></div><section class="filt"><div class="f2"><div class="lb" title="관리제번 또는 공정 제번">관리제번</div><div><input id="q_job" class="field" placeholder="관리제번 입력/선택"></div><div class="lb">품명</div><div><input id="q_item" class="field"></div><div></div><div></div></div></section><div class="panes" style="grid-template-rows:190px 1fr"><div class="panes" style="grid-template-columns:1.9fr .9fr;grid-template-rows:1fr;padding:0;gap:8px"><div class="pane"><div class="ph">제번리스트</div><div class="pb"><table style="min-width:520px"><thead><tr><th style="width:170px">관리제번</th><th style="width:200px">품명</th><th style="width:120px">완료예정일</th><th></th></tr></thead><tbody id="hbody"></tbody></table></div></div><div class="pane"><div class="ph">공정(조)수 매칭 리스트</div><div class="pb"><table style="min-width:0"><thead><tr><th style="width:36px"></th><th style="width:90px">공정(조)</th><th>공정 제번</th></tr></thead><tbody id="mbody"></tbody></table></div></div></div><div class="panes" style="grid-template-columns:.72fr 2.1fr;grid-template-rows:1fr;padding:0;gap:8px"><div class="pane"><div class="ph">협력업체리스트</div><div style="display:flex;gap:4px;padding:5px"><input id="pq" class="field" placeholder="Enter text to search..." oninput="renderP()"><button class="btn" onclick="renderP()">찾기</button><button class="btn" onclick="pq.value='';renderP()">지우기</button></div><div class="pb"><table style="min-width:0"><thead><tr><th style="width:36px"></th><th>협력업체</th></tr></thead><tbody id="vbody"></tbody></table></div></div><div class="pane"><div class="ph">조수공정 리스트</div><div style="display:flex;gap:4px;padding:5px;align-items:center;flex-wrap:wrap"><span class="lb" style="width:40px">조수</span><input id="fSeq" class="field" style="width:70px" value="" readonly title="공정(조)수 매칭 리스트에서 고른 조수"><span class="lb" style="width:52px">공정명</span><input id="fProc" class="field" style="width:110px" value="" readonly title="공정 제번"><span class="lb" style="width:52px">발주일</span><input id="fOdate" class="field" type="date" style="width:140px"><span class="lb" style="width:74px">입고요구일</span><input id="fRdate" class="field" type="date" style="width:140px"><span class="lb" style="width:52px">견적가</span><input id="fQuote" class="field" style="width:110px" placeholder="0"><span class="lb" style="width:52px">네고가</span><input id="fNego" class="field" style="width:110px" placeholder="0"><button class="btn" onclick="pushDown()" title="선택한 조수 × 협력업체를 요청 리스트에 담습니다">⬇ 요청추가</button><button class="btn" onclick="pullUp()" title="아직 저장하지 않은 요청행을 뺍니다">⬆ 요청삭제</button></div><div class="pb"><table style="min-width:900px"><thead><tr><th style="width:36px"></th><th style="width:120px">협력업체</th><th style="width:56px">조수</th><th style="width:80px">공정명</th><th style="width:100px">발주일</th><th style="width:110px">입고요구일</th><th style="width:110px">견적가</th><th style="width:110px">네고가</th><th style="width:90px">작성자</th><th style="width:96px">상태</th></tr></thead><tbody id="dbody"></tbody></table></div></div></div></div><footer class="foot"><button class="btn" onclick="search()">⌕ 검색</button><button class="btn" onclick="loadHeads()">⟳ 새로고침</button><button class="btn" onclick="save()">▤ 저장</button><button class="btn" onclick="cancelOrder()">✕ 발주취소</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">제번·협력업체 선택 후 저장. 취소는 조수공정 리스트에서 체크 후 발주취소.</span><span class="right" id="countText"></span></footer></div><script>const heads=[];const partners=[];  /* v39: 하드코딩 → set_order_partners 마스터 로드 */const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const n=v=>v==null?'':Number(v).toLocaleString();const p=v=>v==null?'':Number(v).toFixed(2)+'%';
 const msg=t=>message.textContent=t;
 let view=[...heads],sel=null,pv=null;
@@ -70,8 +73,22 @@ const me=()=>{try{
   return a.name||a.user_name||(em?String(em).split('@')[0]:'')||'';
  }catch(e){return ''}};
 const online=()=>!!(window.MESDB&&MESDB.online);
+/* v193: 관리제번 → 공정(조). 제번리스트는 관리제번 1줄(A~F), 매칭 리스트는 공정 제번이 곧 조수 */
+const JSPL=j=>{const m=/^(.*\d)([A-Z])$/.exec(String(j||'').trim());return m?{base:m[1],seq:m[2]}:{base:String(j||'').trim(),seq:''}};
+const seqRange=q=>{q=q.filter(Boolean);if(!q.length)return '';const c=q.map(x=>x.charCodeAt(0));const run=c.every((v,i)=>!i||v===c[i-1]+1);
+ return q.length===1?`(${q[0]})`:run?`(${q[0]}~${q[q.length-1]})`:`(${q.join('·')})`};
+function groupHeads(rows){
+ const mp=new Map();
+ rows.forEach(r=>{const s=JSPL(r.job_no);let g=mp.get(s.base);
+  if(!g){g={...r,job_no:s.base,base:s.base,jobs:[]};mp.set(s.base,g)}
+  g.jobs.push({job:r.job_no,seq:s.seq,row:r});if(!g.item_name&&r.item_name)g.item_name=r.item_name;
+  if(String(r.completion_planned_date||'')>String(g.completion_planned_date||''))g.completion_planned_date=r.completion_planned_date});
+ const out=[...mp.values()];out.forEach(g=>g.jobs.sort((a,b)=>a.job.localeCompare(b.job)));return out;
+}
+const headLabel=g=>g?g.base+(g.jobs.some(x=>x.seq)?' '+seqRange(g.jobs.map(x=>x.seq)):''):'';
+const jobsOf=g=>g?g.jobs.map(x=>x.job):[];
 
-function render(){hbody.innerHTML=view.map((r,i)=>`<tr onclick="pick(${i},this)"><td>${esc(r.job_no)}</td><td>${esc(r.item_name||'')}</td><td class="c">${esc(r.completion_planned_date||'')}</td><td></td></tr>`).join('');countText.textContent=view.length+'건';renderP();}
+function render(){hbody.innerHTML=view.map((r,i)=>`<tr onclick="pick(${i},this)" title="${esc(jobsOf(r).join(', '))}"><td><b>${esc(r.base||r.job_no)}</b>${r.jobs&&r.jobs.some(x=>x.seq)?` <span style="color:#2a6191;font-weight:700">${esc(seqRange(r.jobs.map(x=>x.seq)))}</span>`:''}</td><td>${esc(r.item_name||'')}</td><td class="c">${esc(r.completion_planned_date||'')}</td><td></td></tr>`).join('');countText.textContent=view.length+'건';renderP();}
 function renderP(){const q=pq.value.trim().toLowerCase();
  vbody.innerHTML=partners.filter(p=>!q||p.partner_vendor_name.toLowerCase().includes(q))
   .map(p=>`<tr class="${p.partner_vendor_name===pv?'sel':''}" onclick="pickP('${p.partner_vendor_name}')"><td class="c"><input type="checkbox" ${p.partner_vendor_name===pv?'checked':''}></td><td>${esc(p.partner_vendor_name)}</td></tr>`).join('');}
@@ -81,15 +98,18 @@ async function pick(i,tr){sel=view[i];document.querySelectorAll('#hbody tr').for
  REQ.length=0;
  renderSeq();
  await loadDets();
- msg(`${sel.job_no} · 조수 ${SEQ.length}조 · 발주 ${dets.length}건`);}
+ msg(`${headLabel(sel)} · 공정(조) ${SEQ.length} · 발주 ${dets.length}건`);}
 /* v73: 공정(조)수 매칭 리스트 — 제번의 공정(조)수만큼 A,B,C… 로 전개한다.
    (v72 까지는 'A / 1/1' 한 줄이 하드코딩돼 3조짜리도 1조분만 발주됐다) */
 let SEQ=[];
 /* v82: 공정(조)는 A,B,C 대신 1,2,3 (저장값 '1','2','3', 표시 1조·2조·3조) */
 const seqCode=i=>String(i+1);
 function renderSeq(){
- const q=Math.max(1,Math.trunc(Number(sel&&sel.set_qty)||1));
- SEQ=Array.from({length:q},(_,i)=>({code:seqCode(i),name:`${i+1}조 (${i+1}/${q})`}));
+ const procs=(sel&&sel.jobs||[]).filter(x=>x.seq);
+ if(procs.length)SEQ=procs.map(x=>({code:x.seq,name:x.job,job:x.job}));   /* 공정 제번 = 조 */
+ else{const one=(sel&&sel.jobs&&sel.jobs[0]&&sel.jobs[0].job)||(sel&&sel.job_no);
+  const q=Math.max(1,Math.trunc(Number(sel&&sel.set_qty)||1));
+  SEQ=Array.from({length:q},(_,i)=>({code:seqCode(i),name:`${i+1}조 (${i+1}/${q})`,job:one}))}
  mbody.innerHTML=SEQ.map((x,i)=>`<tr onclick="toggleSeq(${i})" class="${i===0?'sel':''}">`
   +`<td class="c"><input type="checkbox" data-i="${i}" ${i===0?'checked':''} onclick="event.stopPropagation();syncSeq()"></td>`
   +`<td>${x.code}</td><td>${x.name}</td></tr>`).join('');
@@ -120,23 +140,23 @@ async function loadHeads(){
  try{
   await loadPartners();
   const rs=await MESDB.table('set_order_job_pool').select('select=*&order=row_no');
-  heads.length=0;heads.push(...rs);
+  heads.length=0;heads.push(...groupHeads(rs||[]));
   view=[...heads];sel=null;dets=[];render();renderD();
-  msg(heads.length?`수주 제번 ${heads.length}건`:'등록된 수주가 없습니다. 영업관리 > 수주등록에서 먼저 수주를 등록하세요.');
+  msg(heads.length?`관리제번 ${heads.length}건`:'등록된 수주가 없습니다. 영업관리 > 수주등록에서 먼저 수주를 등록하세요.');
  }catch(e){msg('제번리스트 조회 실패: '+String(e.message||e).slice(0,110));render()}
 }
 /* ── DB 로드 ───────────────────────────────────────── */
 async function loadDets(){
  dets=[];
  if(sel&&online()){
-  try{dets=await MESDB.table(TBL).select(`select=*&job_no=eq.${encodeURIComponent(sel.job_no)}&order=line_id`)}
+  try{dets=await MESDB.table(TBL).select(`select=*&job_no=in.(${jobsOf(sel).map(x=>encodeURIComponent(x)).join(',')})&order=job_no,line_id`)}
   catch(e){msg('조회 실패: '+String(e.message||e).slice(0,110))}
  }
  renderD();markSeq();
 }
 /* 이미 발주된 조수는 리스트에서 회색 처리 */
 function markSeq(){document.querySelectorAll('#mbody tr').forEach((tr,i)=>{const x=SEQ[i];if(!x)return;
- const used=dets.some(d=>d.set_seq===x.code);tr.style.color=used?'#8a97a2':'';
+ const used=dets.some(d=>d.set_seq===x.code&&(!x.job||d.job_no===x.job));tr.style.color=used?'#8a97a2':'';
  tr.title=used?'이미 발주된 조수입니다':''});}
 /* v73: 원재료 발주와 같은 '요청 → 저장' 방식. REQ 는 아직 DB 에 없는 대기 행 */
 const REQ=[];
@@ -150,9 +170,10 @@ function pushDown(){
  if(nego>quote&&quote>0)return msg('네고가는 견적가를 넘을 수 없습니다.');
  let add=0,dup=0;
  for(const x of ps){
-  if(dets.some(d=>d.partner_vendor_name===pv&&d.set_seq===x.code)||REQ.some(r=>r.partner_vendor_name===pv&&r.set_seq===x.code)){dup++;continue}
+  const jb=x.job||sel.job_no;
+  if(dets.some(d=>d.partner_vendor_name===pv&&d.set_seq===x.code&&d.job_no===jb)||REQ.some(r=>r.partner_vendor_name===pv&&r.set_seq===x.code&&r.job_no===jb)){dup++;continue}
   REQ.push({_no:(REQ.length?Math.max(...REQ.map(r=>r._no))+1:1),
-   job_no:sel.job_no,partner_vendor_name:pv,set_seq:x.code,process_name:x.name,
+   job_no:jb,partner_vendor_name:pv,set_seq:x.code,process_name:x.name,
    order_date:fOdate.value||today(),receipt_planned_date:fRdate.value||null,
    quote_price:quote,nego_price:nego,writer:me()});
   add++;
@@ -185,7 +206,7 @@ function pickD(tr){document.querySelectorAll('#dbody tr').forEach(x=>x.classList
  const cb=tr.querySelector('input[type=checkbox]');if(cb&&!cb.disabled)cb.checked=!cb.checked;}
 
 function search(){const j=q_job.value.trim().toLowerCase(),it=q_item.value.trim().toLowerCase();
- view=heads.filter(r=>(!j||r.job_no.toLowerCase().includes(j))&&(!it||String(r.item_name??'').toLowerCase().includes(it)));
+ view=heads.filter(r=>(!j||r.base.toLowerCase().includes(JSPL(j.toUpperCase()).base.toLowerCase())||jobsOf(r).some(x=>x.toLowerCase().includes(j)))&&(!it||String(r.item_name??'').toLowerCase().includes(it)));
  sel=null;dets=[];render();renderD();msg(`조회결과 ${view.length}건입니다.`);}
 
 /* ── 발주 등록 ─────────────────────────────────────── */
@@ -197,16 +218,16 @@ async function save(){
  if(!REQ.length){msg('요청 리스트가 비어 있습니다. 조수·협력업체를 고르고 [⬇ 요청추가] 하세요.');return}
  const sum=REQ.reduce((a,r)=>a+(Number(r.nego_price)||0),0);
  const lines=REQ.map(r=>`· ${r.partner_vendor_name} ${r.set_seq}(${r.process_name}) ${Number(r.nego_price||0).toLocaleString()}원`).join('\n');
- if(!confirm(`${sel.job_no} SET외주 발주 ${REQ.length}건\n${lines}\n\n네고가 합계 ${sum.toLocaleString()}원\n등록하시겠습니까?`))return;
+ if(!confirm(`${headLabel(sel)} SET외주 발주 ${REQ.length}건\n${lines}\n\n네고가 합계 ${sum.toLocaleString()}원\n등록하시겠습니까?`))return;
  try{
   await MESDB.table(TBL).upsert(REQ.map(r=>({job_no:r.job_no,partner_vendor_name:r.partner_vendor_name,
    set_seq:r.set_seq,process_name:r.process_name,status:'발주',
    order_date:r.order_date||today(),receipt_planned_date:r.receipt_planned_date||null,
    quote_price:r.quote_price,nego_price:r.nego_price,unit_price:r.nego_price,writer:r.writer||me()})));
-  try{await MESDB.syncPlanOut(sel.job_no,'assembly')}catch(e){}   /* v119: 제작계획 조립외주 여부 기록 */
+  for(const jb of [...new Set(REQ.map(r=>r.job_no))]){try{await MESDB.syncPlanOut(jb,'assembly')}catch(e){}}   /* v119: 제작계획 조립외주 여부 기록 */
   const cnt=REQ.length;REQ.length=0;
   await loadDets();
-  msg(`${sel.job_no} SET외주 발주 ${cnt}건을 등록했습니다. (네고가 합계 ${sum.toLocaleString()}원)`);
+  msg(`${headLabel(sel)} SET외주 발주 ${cnt}건을 등록했습니다. (네고가 합계 ${sum.toLocaleString()}원)`);
  }catch(e){
   const m=String(e.message||e);
   msg(/duplicate|unique/i.test(m)?'이미 발주된 조수가 포함되어 있습니다. 요청 리스트를 확인하세요.':'등록 실패: '+m.slice(0,110));
@@ -222,15 +243,15 @@ async function cancelOrder(){
  if(!ids.length){msg('취소할 발주내역을 체크하세요. (입고된 건은 입고취소 후 가능)');return}
  const tg=dets.filter(d=>ids.includes(d.line_id));
  const names=tg.map(d=>d.partner_vendor_name).join(', ');
- if(!confirm(`${sel.job_no}\n협력업체: ${names}\n발주를 취소하시겠습니까?`))return;
+ if(!confirm(`${headLabel(sel)}\n협력업체: ${names}\n발주를 취소하시겠습니까?`))return;
  const fail=[];
  for(const d of tg){
   try{await MESDB.table(TBL).delete({line_id:d.line_id})}
   catch(e){fail.push(d.partner_vendor_name+'('+String(e.message||e).slice(0,60)+')')}
  }
- try{await MESDB.syncPlanOut(sel.job_no,'assembly')}catch(e){}   /* v119 */
+ for(const jb of [...new Set(tg.map(d=>d.job_no))]){try{await MESDB.syncPlanOut(jb,'assembly')}catch(e){}}   /* v119 */
  await loadDets();
- msg(fail.length?`일부 취소 실패: ${fail.join(', ')}`:`${sel.job_no} / ${names} 발주를 취소했습니다.`);
+ msg(fail.length?`일부 취소 실패: ${fail.join(', ')}`:`${headLabel(sel)} / ${names} 발주를 취소했습니다.`);
 }
 window.MES={search,save,cancelOrder,loadHeads,setMessage:msg};render();</script><script src="mes_sample.js?v=169"></script><script src="mes_scene.js?v=66"></script><script src="mes_demo.js?v=66"></script><script src="mes_db.js?v=171"></script>
 <script>
