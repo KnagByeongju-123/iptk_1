@@ -60,6 +60,22 @@ td.route.s-out{background:#ffe9d1!important;color:#7a4a12;font-weight:700}td.rou
 #ctxPop .cf .btn.go.k-order{border-color:#3f7a2c;background:linear-gradient(#5e9e46,#3f7a2c)}
 #ctxPop .cf .btn.go.k-in{border-color:#b8681a;background:linear-gradient(#e08a2b,#b8681a)}
 #ctxPop .cf .btn.go:disabled{opacity:.5}
+/* v178: 입고이력(회차) · 발주건 선택 · 함께 입고 목록 */
+#ctxPop .cf .btn.k-cancel{color:#8a2a1e;border-color:#c9847a;background:linear-gradient(#fff4f2,#f6dcd8)}
+#ctxPop .hist{width:100%;border-collapse:collapse;margin-top:6px;font-size:11px}
+#ctxPop .hist th,#ctxPop .hist td{border:1px solid #dfe6ea;padding:2px 5px;overflow:visible;text-overflow:clip;max-width:none}
+#ctxPop .hist th{white-space:nowrap}
+#ctxPop .hist th{background:#eef3f6;color:#4d5c69;font-weight:700}
+#ctxPop .hist td.r{text-align:right}
+#ctxPop .hist td.c{text-align:center}
+#ctxPop .hist .xb{border:1px solid #c9847a;background:#fff;color:#8a2a1e;cursor:pointer;font:inherit;font-size:11px;padding:0 5px;height:19px;line-height:17px}
+#ctxPop .hist .xb:disabled{opacity:.4;cursor:default}
+#ctxPop .hist tr.cur td{background:#fff8e6;color:#22303a}
+#ctxPop .ttl{font-weight:700;color:#4d5c69;margin-top:8px;display:flex;align-items:center;gap:6px;white-space:nowrap}
+#ctxPop .ttl .cnt{white-space:normal;flex:1 1 auto;line-height:1.35}
+#ctxPop .ttl .cnt{font-weight:400;color:#7a8794}
+#ctxPop .ttl label{font-weight:400;margin-left:auto;display:flex;align-items:center;gap:4px;cursor:pointer;flex:0 0 auto}
+#ctxPop .sel1{width:100%;height:25px;border:1px solid #b9c3cb;font:inherit;background:#fff;color:#22303a;margin-bottom:6px}
 #ctxPop .info{display:grid;grid-template-columns:76px 1fr;gap:3px 8px}#ctxPop .info b{color:#4d5c69;text-align:right}
 /* v143: 연속 공정 묶음 발주 — 공정별 단가/금액 표 */
 #ctxPop table.stp{width:100%;border-collapse:collapse;margin-top:8px}
@@ -119,7 +135,7 @@ tr.rdone td{color:#8b98a3}
     <span class="label">품번</span><input id="pnQ" class="field" style="width:190px" placeholder="품번 입력/선택" list="pnDL" autocomplete="off"><datalist id="pnDL"></datalist>
     <span class="label">업체</span><input id="venF" class="field" style="width:190px">
     <button class="btn" onclick="search()">⌕ 조회</button>
-    <button class="btn" id="btnRefresh" onclick="refreshAll()" title="DB에서 제번·부품별 가공공정을 다시 불러옵니다 (다른 화면의 발주·입고 반영)">⟳ 새로고침</button><span class="ctxhint" title="공정 칸에서 마우스 오른쪽 버튼을 누르면 상태에 맞는 처리 창이 열립니다 (더블클릭도 같은 창).&#10;연속 공정을 한 업체에 맡길 때는 마지막 공정 칸을 우클릭하면 그 사이 공정이 한꺼번에 발주됩니다.&#10;부품 행(부품코드·부품명)을 우클릭하면 기준공정 선택, 공정 추가·삭제·순서, 사내가공 표시를 바로 고쳐 가공계획으로 저장할 수 있습니다.">※ <b style="color:#7a4a12">외주 칸</b> 우클릭 → 발주 · 입고 · 확정 · 묶음 <b>|</b> <b style="color:#8a6d3b">사내 칸</b> 우클릭 → <b>가공완료 등록</b> <b>|</b> 부품 행 우클릭 → <b>공정 편집</b></span>
+    <button class="btn" id="btnRefresh" onclick="refreshAll()" title="DB에서 제번·부품별 가공공정을 다시 불러옵니다 (다른 화면의 발주·입고 반영)">⟳ 새로고침</button><span class="ctxhint" title="공정 칸에서 마우스 오른쪽 버튼을 누르면 상태에 맞는 처리 창이 열립니다 (더블클릭도 같은 창).&#10;입고·완료 칸에서는 회차별 입고취소 · 입고 전체취소 · 확정취소, 같은 업체 발주건 함께 입고(다중입고)가 됩니다.&#10;연속 공정을 한 업체에 맡길 때는 마지막 공정 칸을 우클릭하면 그 사이 공정이 한꺼번에 발주됩니다.&#10;부품 행(부품코드·부품명)을 우클릭하면 기준공정 선택, 공정 추가·삭제·순서, 사내가공 표시를 바로 고쳐 가공계획으로 저장할 수 있습니다.">※ <b style="color:#7a4a12">외주 칸</b> 우클릭 → 발주 · 입고 · 확정 · 묶음 · <b>취소</b> <b>|</b> <b style="color:#8a6d3b">사내 칸</b> 우클릭 → <b>가공완료 등록</b> <b>|</b> 부품 행 우클릭 → <b>공정 편집</b></span>
   </section>
   <section class="panes">
     <div class="box"><div class="box-title">제번리스트</div><div class="tablewrap"><table id="jobListTable">
@@ -571,6 +587,7 @@ function ctxDragInit(){
 }
 function ctxOpen(ev,title,kind,bodyHtml,footHtml){
  const pop=document.getElementById('ctxPop');ctxDragInit();
+ pop.classList.toggle('wide',/class="hist"|id="cxHist"/.test(String(bodyHtml||'')));   /* v178: 입고이력·함께입고 표가 있는 창은 넓게 */
  document.getElementById('ctxTitle').textContent=title;
  document.getElementById('ctxHead').className='ch '+(kind||'');
  document.getElementById('ctxBody').innerHTML=bodyHtml;
@@ -902,26 +919,101 @@ function ctxWork(ri,i){const r=ROUTES[ri];if(!r)return;const j=jobView[jobIdx]||
  if(!window.MESMAIL)return msg('발주서 모듈(mes_mail.js)이 없습니다.');
  MESMAIL.workSheet({job:j.job,part:r.part,name:r.name,qty:r.qty,proc:`공정${i+1} ${procName(c)} (사내)`,by:OWNER})}
 const SHEET_BTN='<button class="btn" onclick="ctxSheet()" title="이 발주건이 포함된 발주서(A4)를 새 창에 엽니다 — 인쇄·PDF 저장">🧾 발주서</button>';
+/* ════ v178: 입고 · 입고확정 · 완료 창 — 다중입고(발주건 여러 건 · 같은 업체 함께 입고) ·
+ *        회차별 입고취소 · 전체 입고취소 · 확정취소 · 완료(입고확정) 상태에서도 취소
+ *  DB 는 fn_osp_receive_cancel / fn_osp_receive_cancel_all RPC(sql_v178)를 쓰고,
+ *  RPC 가 아직 없으면 outsourcing_moves 삭제 + order_lines 갱신으로 같은 결과를 만든다.
+ *  (종전 v115 입고취소는 order_lines 만 되돌려 outsourcing_moves 의 입고 회차가 남았고,
+ *   다시 입고하면 "누적 입고가 발주수량을 초과" 오류가 났다 → 이번에 함께 정리)      */
+const _dt=v=>String(v||'').slice(0,10);
+const _noFn=e=>/PGRST202|Could not find the function|does not exist|404/i.test(String(e&&e.message||e));
+async function ospRpcOr(fn,body,fallback){
+ try{return await ospRpc(fn,body)}
+ catch(e){if(fallback&&_noFn(e))return fallback();throw e}
+}
+/* 공정의 모든 발주건(추가발주 포함) — CTX.o.lines. 선택 발주건은 CTX.o.line */
+const ctxLines=()=>((CTX&&CTX.o&&CTX.o.lines)||[]).slice();
+function ctxLineOpt(l,cur){
+ const ord=_n(l.order_qty)||1,got=_n(l.receipt_qty);
+ const st=ST_DB[String(l.status||'')]||l.status||'';
+ return `<option value="${l.line_id}"${Number(l.line_id)===Number(cur)?' selected':''}>#${l.line_id} · ${_esc(l.vendor_name||'')} · 발주 ${ord} / 입고 ${got}${ord-got>0?` / 미입고 ${ord-got}`:''} · ${_esc(st)} · ${_dt(l.order_date)}</option>`;
+}
+/* 발주건이 여러 건이면 고르는 칸을 보여 준다 (고르면 같은 창을 그 발주건으로 다시 연다) */
+function ctxLineSel(lines,cur,reopen){
+ if(!lines||lines.length<2)return '';
+ window.__ctxReopen=reopen;
+ return `<div class="ttl">발주건 선택 <span class="cnt">(이 공정 ${lines.length}건)</span></div>
+  <select class="sel1" id="cxLine" onchange="ctxPickLine(this.value)">${lines.map(l=>ctxLineOpt(l,cur)).join('')}</select>`;
+}
+function ctxPickLine(id){
+ if(!CTX)return;const l=ctxLines().find(x=>Number(x.line_id)===Number(id));if(!l)return;
+ CTX.o=Object.assign({},CTX.o,{line:l});
+ const ev=window.__ctxLastEv||{clientX:200,clientY:200};
+ const pop=document.getElementById('ctxPop');const rc=pop.getBoundingClientRect();
+ const fn=window.__ctxReopen;if(typeof fn==='function')fn({clientX:rc.left-6,clientY:rc.top-6},CTX.head||'');
+}
+/* 입고이력(회차) — outsourcing_moves 의 입고/사내입고 행. 각 회차를 따로 취소할 수 있다 */
+async function ctxHistLoad(ids,canCancel){
+ const box=document.getElementById('cxHist');if(!box)return;
+ if(!_online()||!ids.length){box.innerHTML='';return}
+ let rows=[];
+ try{rows=await MESDB.table('outsourcing_moves').select(`select=move_id,line_id,io,move_date,in_qty,short_qty,source,remark,worker&line_id=in.(${ids.map(Number).join(',')})&io=in.(${encodeURIComponent('입고')},${encodeURIComponent('사내입고')})&order=move_date,move_id`,{fresh:true})||[]}
+ catch(e){box.innerHTML=`<div class="note">입고이력을 읽지 못했습니다: ${_esc(String(e.message||e).slice(0,80))}</div>`;return}
+ if(!rows.length){box.innerHTML='';return}
+ const many=ids.length>1;
+ box.innerHTML=`<div class="ttl">입고이력 <span class="cnt">${rows.length}회차</span></div>
+ <table class="hist"><thead><tr><th>회차</th>${many?'<th>발주건</th>':''}<th>입고일</th><th>입고</th><th>마감</th><th>경로</th><th>비고</th>${canCancel?'<th></th>':''}</tr></thead><tbody>${
+  rows.map((m,k)=>`<tr${CTX&&CTX.o&&CTX.o.line&&Number(m.line_id)===Number(CTX.o.line.line_id)?' class="cur"':''}><td class="c">${k+1}</td>${many?`<td class="c">#${m.line_id}</td>`:''}<td class="c">${_dt(m.move_date)}</td><td class="r">${_n(m.in_qty)}</td><td class="r">${_n(m.short_qty)||''}</td><td class="c">${_esc(m.source||'')}</td><td>${_esc(m.remark||'')}</td>${
+   canCancel?`<td class="c"><button class="xb" onclick="ctxRoundCancel(${Number(m.line_id)},${Number(m.move_id)})" title="이 회차 입고만 취소합니다 (입고수량이 그만큼 줄고, 전량 입고가 아니게 되면 발주(출고) 상태로 돌아갑니다)">✖ 회차취소</button></td>`:''}</tr>`).join('')}</tbody></table>`;
+}
+/* 뒤 공정이 이미 진행 중이면 이 공정의 입고를 되돌릴 수 없다 (사내가공 칸은 건너뜀) */
+function ctxLaterBusy(r,i){
+ const n=(r.steps||[]).map(stepCode).filter(Boolean).length;
+ for(let k=i+1;k<n;k++){if(isHouse(r,k))continue;const st=stepState(r,k);
+  if(st&&st!=='요청')return `공정${k+1} ${procName(stepCode(r.steps[k]))} 이(가) 이미 ${st} 상태입니다. 뒤 공정부터 취소하세요.`}
+ return '';
+}
+/* 같은 업체·같은 제번의 다른 미입고 발주건 (함께 입고 후보) */
+function ctxSameVendorOpen(){
+ const {r,i,o}=CTX;const l=o.line||{};const v=String(l.vendor_name||o.vendor||'');
+ const cur=new Set(ctxLines().map(x=>Number(x.line_id)));const out=[];
+ ORDERED.forEach(agg=>{(agg.openLines||[]).forEach(x=>{
+  if(cur.has(Number(x.line_id)))return;
+  if(v&&String(x.vendor_name||'')!==v)return;
+  out.push(x)})});
+ return out.sort((a,b)=>String(a.part_no).localeCompare(String(b.part_no))||(Number(a.step_no)||0)-(Number(b.step_no)||0));
+}
 function ctxReceive(ev,head){
- const {i,c,o}=CTX;const l=o.line||{};
+ const {i,c,o}=CTX;const l=o.line||{};CTX.head=head;window.__ctxLastEv={clientX:ev.clientX,clientY:ev.clientY};
  const ord=_n(l.order_qty)||1,got=_n(l.receipt_qty),rem=Math.max(ord-got,0);
- const openN=(o.openLines||[]).length,totalOrd=Number(o.orderQty)||ord,totalGot=Number(o.receiptQty)||got,totalRem=Math.max(totalOrd-totalGot,0);
- ctxOpen(ev,`공정${i+1} ${procName(c)} — 입고`,'k-in',head+`
-  <div class="info" style="margin-bottom:8px"><b>공정 합계</b><span>발주 ${totalOrd} / 입고 ${totalGot} / 미입고 ${totalRem}</span><b>현재 발주건</b><span>${openN>1?`미입고 발주 ${openN}건 중 1건 처리`: '미입고 발주 처리'}</span><b>발주일</b><span>${_esc(String(l.order_date||'').slice(0,10))}</span><b>입고요구일</b><span>${_esc(String(l.required_date||'').slice(0,10))}</span><b>발주/기입고</b><span>${ord} / ${got} (잔량 ${rem})</span><b>발주금액</b><span>${_won(l.quote_price)}원</span></div>
+ const open=(o.openLines||[]),openN=open.length,totalOrd=Number(o.orderQty)||ord,totalGot=Number(o.receiptQty)||got,totalRem=Math.max(totalOrd-totalGot,0);
+ const others=open.filter(x=>Number(x.line_id)!==Number(l.line_id));
+ const same=ctxSameVendorOpen();
+ const anyGot=ctxLines().some(x=>_n(x.receipt_qty)>0);
+ ctxOpen(ev,`공정${i+1} ${procName(c)} — 입고`,'k-in',head+
+  ctxLineSel(open,l.line_id,ctxReceive)+`
+  <div class="info" style="margin-bottom:8px"><b>공정 합계</b><span>발주 ${totalOrd} / 입고 ${totalGot} / 미입고 ${totalRem}</span><b>현재 발주건</b><span>#${l.line_id||''} ${openN>1?`(미입고 발주 ${openN}건 중 1건)`:'(미입고 발주 처리)'}</span><b>발주일</b><span>${_dt(l.order_date)}</span><b>입고요구일</b><span>${_dt(l.required_date)}</span><b>발주/기입고</b><span>${ord} / ${got} (잔량 ${rem})</span><b>발주금액</b><span>${_won(l.quote_price)}원</span></div>
   <div class="g">
    <label>입고수량</label><input id="cxInQty" class="r" value="${rem}" inputmode="numeric">
    <label>입고일</label><input id="cxInDate" type="date" value="${T0()}">
    <label></label><label class="chk"><input type="checkbox" id="cxShort" style="width:auto;height:auto"> 잔량은 입고하지 않음 (부족분 마감)</label>
+   ${others.length?`<label></label><label class="chk"><input type="checkbox" id="cxAllOpen" style="width:auto;height:auto"> 이 공정의 다른 미입고 발주건 <b>${others.length}건</b>도 잔량 전부 함께 입고 (${others.map(x=>`#${x.line_id} ${Math.max((_n(x.order_qty)||1)-_n(x.receipt_qty),0)}개`).join(', ')})</label>`:''}
    <label>비고</label><input id="cxInRemark" class="full" placeholder="선택">
-  </div>`,
+  </div>
+  ${same.length?`<div class="ttl">함께 입고 <span class="cnt">같은 업체(${_esc(l.vendor_name||o.vendor||'')}) 미입고 발주건 ${same.length}건 — 체크한 건은 잔량 전부를 같은 입고일로 입고</span><label><input type="checkbox" onchange="document.querySelectorAll('#cxSame input[data-id]').forEach(x=>x.checked=this.checked)">전체</label></div>
+  <table class="hist" id="cxSame"><thead><tr><th></th><th>품번</th><th>공정</th><th>발주건</th><th>발주</th><th>기입고</th><th>잔량</th><th>입고요구일</th></tr></thead><tbody>${
+   same.map(x=>{const xo=_n(x.order_qty)||1,xg=_n(x.receipt_qty);return `<tr><td class="c"><input type="checkbox" data-id="${x.line_id}" style="width:auto;height:auto"></td><td>${_esc(x.part_no||'')}</td><td class="c">공정${x.step_no||''} ${_esc(procName(x.machining_process_code)||'')}</td><td class="c">#${x.line_id}</td><td class="r">${xo}</td><td class="r">${xg}</td><td class="r">${Math.max(xo-xg,0)}</td><td class="c">${_dt(x.required_date)}</td></tr>`}).join('')}</tbody></table>`:''}
+  <div id="cxHist"></div>`,
   `<button class="btn go k-in" id="cxGo" onclick="ctxReceiveNow(false)">▣ 입고 처리</button>
    <button class="btn go" id="cxGo2" onclick="ctxReceiveNow(true)" title="입고 처리와 입고확정(견적가 그대로, 네고 0%)을 한 번에 끝냅니다. 잔량이 남으면 입고만 됩니다">▣ 입고+확정</button>
+   ${anyGot?`<button class="btn k-cancel" onclick="ctxRecvCancel()" title="이 공정의 입고 회차를 모두 지우고 발주(출고) 상태로 되돌립니다">✖ 입고 전체취소</button>`:''}
    <button class="btn k-cancel" onclick="ctxOrderCancel()" title="이 발주건(미입고)을 삭제합니다 — 사내외가공 발주 화면에서 다시 발주할 수 있습니다">✖ 발주취소</button>
    ${SHEET_BTN}<button class="btn" onclick="ctxClose()">닫기</button>`);
+ ctxHistLoad(ctxLines().map(x=>x.line_id),true);
  return false;
 }
 /* v177: 이 창의 발주취소·입고취소·완료취소는 자체 확인문(품번·공정·업체·수량)을 띄우므로 공용 삭제확인창(mes_ctx)은 건너뛴다 */
-(function(){try{const opt=window.MES_CTX_OPT||{};const mine=/ctxOrderCancel|ctxRecvCancel|ctxHouseUndo/;const prev=opt.noGuard;
+(function(){try{const opt=window.MES_CTX_OPT||{};const mine=/ctxOrderCancel|ctxRecvCancel|ctxRoundCancel|ctxConfirmCancel|ctxHouseUndo/;const prev=opt.noGuard;
  opt.noGuard=prev?{test:s=>prev.test(s)||mine.test(String(s))}:mine;window.MES_CTX_OPT=opt}catch(e){}})();
 /* v177: 미입고 발주건 취소(삭제) — 뒤 공정이 이미 진행 중이면 막는다 */
 async function ctxOrderCancel(){
@@ -929,14 +1021,19 @@ async function ctxOrderCancel(){
  if(!l.line_id)return msg('발주 라인을 찾을 수 없습니다. [새로고침] 후 다시 시도하세요.');
  if(!_online())return msg('DB 미연결 - 발주취소를 할 수 없습니다.');
  if(/입고/.test(String(l.status||'')))return msg('이미 입고된 발주건입니다. 입고취소를 먼저 하세요.');
- const n=(r.steps||[]).map(stepCode).filter(Boolean).length;
- for(let k=i+1;k<n;k++){const st=stepState(r,k);
-  if(st&&st!=='요청')return msg(`공정${k+1} ${procName(stepCode(r.steps[k]))} 이(가) 이미 ${st} 상태입니다. 뒤 공정부터 취소하세요.`);}
+ if(_n(l.receipt_qty)>0)return msg(`이 발주건은 이미 ${_n(l.receipt_qty)}개가 부분입고됐습니다. 입고이력의 [회차취소] 또는 [입고 전체취소]를 먼저 하세요.`);
+ const busy=ctxLaterBusy(r,i);if(busy)return msg(busy);
  if(!confirm(`${r.part} 공정${i+1} ${procName(c)} → ${l.vendor_name||o.vendor||''} 발주 ${Number(l.order_qty)||0}개 (${_won(l.quote_price)}원) 를 취소(삭제)합니다.\n되돌릴 수 없습니다. 계속할까요?`))return;
  try{
   await MESDB.delLines([Number(l.line_id)]);
   await ctxAfter(job.job,`${r.part} 공정${i+1} ${procName(c)} 발주를 취소(삭제)했습니다. 다시 발주할 수 있습니다.`);
  }catch(e){msg('발주취소 실패: '+String(e.message||e).slice(0,120))}
+}
+/* 한 발주건 입고 — RPC 결과 {closed} 반환 */
+async function ctxRecvOne(line,q,d,short,remark){
+ const res=await ospRpc('fn_osp_receive',{p_line_id:Number(line.line_id),p_qty:q,p_date:d,p_short:short||0,p_source:'발주화면',p_remark:remark||null});
+ const o=Array.isArray(res)?res[0]:res;
+ return (o&&typeof o.closed==='boolean')?o.closed:((_n(line.order_qty)||1)-_n(line.receipt_qty)-q-(short||0)<=0);
 }
 async function ctxReceiveNow(withConfirm){
  const {r,i,c,o,job}=CTX;const l=o.line||{};
@@ -946,19 +1043,33 @@ async function ctxReceiveNow(withConfirm){
  if(!(q>0))return msg('입고수량을 입력하세요.');
  if(q>rem)return msg(`잔량 ${rem}을 초과했습니다.`);
  const rest=Math.max(rem-q,0),short=document.getElementById('cxShort').checked&&rest>0?rest:0;
+ /* v178: 함께 입고 — 이 공정의 다른 미입고 발주건(체크) + 같은 업체 다른 부품 발주건(체크) 은 잔량 전부 */
+ const extra=[];
+ const allOpen=document.getElementById('cxAllOpen');
+ if(allOpen&&allOpen.checked)(o.openLines||[]).forEach(x=>{if(Number(x.line_id)!==Number(l.line_id))extra.push(x)});
+ document.querySelectorAll('#cxSame input[data-id]:checked').forEach(cb=>{const id=Number(cb.dataset.id);
+  ORDERED.forEach(agg=>(agg.openLines||[]).forEach(x=>{if(Number(x.line_id)===id&&!extra.some(y=>Number(y.line_id)===id))extra.push(x)}))});
  const b=document.getElementById(withConfirm?'cxGo2':'cxGo'),b0=b?b.textContent:'';if(b){b.disabled=true;b.textContent='처리 중…'}
+ const d=_v('cxInDate')||T0(),remark=_v('cxInRemark')||null,ts=new Date().toISOString();
+ const fixRows=[],doneTx=[],fails=[];
  try{
-  const d=_v('cxInDate')||T0();
-  const res=await ospRpc('fn_osp_receive',{p_line_id:Number(l.line_id),p_qty:q,p_date:d,p_short:short,p_source:'발주화면',p_remark:_v('cxInRemark')||null});
+  const closed=await ctxRecvOne(l,q,d,short,remark);
   /* v152: 입고+확정 — 전량 입고(잔량 0 또는 잔량 마감)일 때만 확정한다. 견적가 그대로, 네고 0% */
-  const closed=(res&&typeof res.closed==='boolean')?res.closed:(rest===0||short>0);
+  if(withConfirm&&closed)fixRows.push({line_id:Number(l.line_id),status:'입고확정',confirm_date:d,confirm_price:_n(l.quote_price)||null,nego_rate:0,updated_at:ts});
+  for(const x of extra){
+   const xq=Math.max((_n(x.order_qty)||1)-_n(x.receipt_qty),0);if(!(xq>0))continue;
+   try{const xc=await ctxRecvOne(x,xq,d,0,remark);
+    if(withConfirm&&xc)fixRows.push({line_id:Number(x.line_id),status:'입고확정',confirm_date:d,confirm_price:_n(x.quote_price)||null,nego_rate:0,updated_at:ts});
+    doneTx.push(`${x.part_no===r.part?'':x.part_no+' '}공정${x.step_no||''} #${x.line_id} ${xq}개`)}
+   catch(e){fails.push(`#${x.line_id}: ${String(e.message||e).slice(0,60)}`)}
+  }
+  if(fixRows.length)await MESDB.table('order_lines').upsert(fixRows,'line_id');
+  const more=(doneTx.length?` · 함께 입고 ${doneTx.length}건: ${doneTx.join(', ')}`:'')+(fails.length?` · 실패 ${fails.length}건: ${fails.join(' / ')}`:'');
   if(withConfirm&&closed){
-   const quote=_n(l.quote_price);
-   await MESDB.table('order_lines').upsert([{line_id:Number(l.line_id),status:'입고확정',confirm_date:d,confirm_price:quote||null,nego_rate:0,updated_at:new Date().toISOString()}],'line_id');
-   await ctxAfter(job.job,`${r.part} 공정${i+1} ${procName(c)} 입고 ${q}개 + 입고확정 (확정가 ${_won(quote)}원, 네고 0%). 공정 전체 미입고수량이 0이 되면 다음 공정을 발주할 수 있습니다.`);
+   await ctxAfter(job.job,`${r.part} 공정${i+1} ${procName(c)} 입고 ${q}개 + 입고확정 (확정가 ${_won(l.quote_price)}원, 네고 0%).`+more+` 공정 전체 미입고수량이 0이 되면 다음 공정을 발주할 수 있습니다.`);
   }else{
-   await ctxAfter(job.job,`${r.part} 공정${i+1} ${procName(c)} 입고 ${q}개${rest&&!short?` (현재 발주건 잔량 ${rest} 대기)`:''}`+
-    (withConfirm?` — 잔량이 남아 <b>입고만</b> 처리했습니다. 잔량을 입고하거나 「잔량은 입고하지 않음」을 체크하면 확정됩니다.`.replace(/<\/?b>/g,'')
+   await ctxAfter(job.job,`${r.part} 공정${i+1} ${procName(c)} 입고 ${q}개${rest&&!short?` (현재 발주건 잔량 ${rest} 대기)`:''}`+more+
+    (withConfirm?` — 잔량이 남아 입고만 처리했습니다. 잔량을 입고하거나 「잔량은 입고하지 않음」을 체크하면 확정됩니다.`
                 :` — 미입고수량이 남아 있으면 같은 공정 칸을 다시 우클릭해 계속 입고할 수 있습니다. 공정 전체 입고가 끝나면 다음 공정이 열립니다.`));
   }
  }catch(e){msg('입고 실패: '+String(e.message||e).slice(0,120));if(b){b.disabled=false;b.textContent=b0}}
@@ -966,19 +1077,25 @@ async function ctxReceiveNow(withConfirm){
 
 /* ── 입고확정 ── */
 function ctxConfirm(ev,head){
- const {i,c,o}=CTX;const l=o.line||{};
+ const {i,c,o}=CTX;const l=o.line||{};CTX.head=head;window.__ctxLastEv={clientX:ev.clientX,clientY:ev.clientY};
  const quote=_n(l.quote_price),fix=_n(l.confirm_price)||quote;
- ctxOpen(ev,`공정${i+1} ${procName(c)} — 입고확정`,'k-cfm',head+`
-  <div class="info" style="margin-bottom:8px"><b>입고일</b><span>${_esc(String(l.receipt_date||'').slice(0,10))}</span><b>입고수량</b><span>${_n(l.receipt_qty)||_n(l.order_qty)||1}</span></div>
+ const recv=(o.recvLines||[]),others=recv.filter(x=>Number(x.line_id)!==Number(l.line_id));
+ ctxOpen(ev,`공정${i+1} ${procName(c)} — 입고확정`,'k-cfm',head+
+  ctxLineSel(recv,l.line_id,ctxConfirm)+`
+  <div class="info" style="margin-bottom:8px"><b>발주건</b><span>#${l.line_id||''} · ${_esc(l.vendor_name||o.vendor||'')}</span><b>입고일</b><span>${_dt(l.receipt_date)}</span><b>입고수량</b><span>${_n(l.receipt_qty)||_n(l.order_qty)||1}</span></div>
   <div class="g">
    <label>확정일</label><input id="cxCdate" type="date" value="${T0()}">
    <label>견적가</label><input id="cxQuote" class="r" value="${_won(quote)}" readonly>
    <label>네고율(%)</label><input id="cxRate" class="r" value="${quote?((1-fix/quote)*100).toFixed(1):'0'}" inputmode="decimal" onchange="ctxFixFromRate()">
    <label>확정가</label><input id="cxFix" class="r" value="${_won(fix)}" inputmode="numeric" onchange="ctxRateFromFix()">
+   ${others.length?`<label></label><label class="chk"><input type="checkbox" id="cxAllCfm" style="width:auto;height:auto"> 이 공정의 다른 입고 발주건 <b>${others.length}건</b>도 같은 확정일·네고율로 함께 확정</label>`:''}
   </div>
-  <div class="note">확정가는 제조원가(외주가공비)에 반영됩니다. 네고율을 입력하면 확정가가, 확정가를 고치면 네고율이 맞춰집니다.</div>`,
-  `<button class="btn" onclick="ctxRecvCancel()" title="현품 입고를 취소하고 발주(출고) 상태로 되돌립니다">✖ 입고취소</button>
-   <button class="btn go" id="cxGo" onclick="ctxConfirmNow()">▣ 입고확정</button>${SHEET_BTN}<button class="btn" onclick="ctxClose()">취소</button>`);
+  <div class="note">확정가는 제조원가(외주가공비)에 반영됩니다. 네고율을 입력하면 확정가가, 확정가를 고치면 네고율이 맞춰집니다.</div>
+  <div id="cxHist"></div>`,
+  `<button class="btn go" id="cxGo" onclick="ctxConfirmNow()">▣ 입고확정</button>
+   <button class="btn k-cancel" onclick="ctxRecvCancel()" title="이 공정의 입고 회차를 모두 지우고 발주(출고) 상태로 되돌립니다. 회차별로 취소하려면 아래 입고이력의 [회차취소]">✖ 입고 전체취소</button>
+   ${SHEET_BTN}<button class="btn" onclick="ctxClose()">닫기</button>`);
+ ctxHistLoad(ctxLines().map(x=>x.line_id),true);
  return false;
 }
 function ctxFixFromRate(){const q=_n(_v('cxQuote')),rt=_n(_v('cxRate'));document.getElementById('cxFix').value=_won(Math.round(q*(1-rt/100)))}
@@ -988,43 +1105,105 @@ async function ctxConfirmNow(){
  if(!l.line_id)return msg('발주 라인을 찾을 수 없습니다. [새로고침] 후 다시 시도하세요.');
  if(!_online())return msg('DB 미연결 - 입고확정을 할 수 없습니다.');
  const fix=_n(_v('cxFix')),quote=_n(l.quote_price);
+ const rate=quote?Number(((1-fix/quote)*100).toFixed(2)):null,cd=_v('cxCdate')||T0(),ts=new Date().toISOString();
  const b=document.getElementById('cxGo');if(b){b.disabled=true;b.textContent='처리 중…'}
  try{
-  await MESDB.table('order_lines').upsert([{line_id:Number(l.line_id),status:'입고확정',confirm_date:_v('cxCdate')||T0(),confirm_price:fix||null,nego_rate:quote?Number(((1-fix/quote)*100).toFixed(2)):null,updated_at:new Date().toISOString()}],'line_id');
-  await ctxAfter(job.job,`${r.part} 공정${i+1} ${procName(c)} 입고확정 (확정가 ${_won(fix)}원) — 제조원가에 반영됩니다.`);
+  const rows=[{line_id:Number(l.line_id),status:'입고확정',confirm_date:cd,confirm_price:fix||null,nego_rate:rate,updated_at:ts}];
+  const all=document.getElementById('cxAllCfm'),done=[];
+  if(all&&all.checked)(o.recvLines||[]).forEach(x=>{if(Number(x.line_id)===Number(l.line_id))return;
+   const xq=_n(x.quote_price),xf=Math.round(xq*(1-(rate||0)/100));
+   rows.push({line_id:Number(x.line_id),status:'입고확정',confirm_date:cd,confirm_price:xf||null,nego_rate:xq?rate:null,updated_at:ts});done.push(`#${x.line_id} ${_won(xf)}원`)});
+  await MESDB.table('order_lines').upsert(rows,'line_id');
+  await ctxAfter(job.job,`${r.part} 공정${i+1} ${procName(c)} 입고확정 (확정가 ${_won(fix)}원)${done.length?` · 함께 확정 ${done.length}건: ${done.join(', ')}`:''} — 제조원가에 반영됩니다.`);
  }catch(e){msg('입고확정 실패: '+String(e.message||e).slice(0,120));if(b){b.disabled=false;b.textContent='▣ 입고확정'}}
 }
 
-/* v115: 입고취소 — 잘못 입고 처리한 공정을 발주(출고) 상태로 되돌린다.
-   뒤 공정이 이미 발주·입고됐다면 순서가 깨지므로 막는다. */
-async function ctxRecvCancel(){
- const {r,i,c,o,job}=CTX;const l=o.line||{};
- if(!l.line_id)return msg('발주 라인을 찾을 수 없습니다. [새로고침] 후 다시 시도하세요.');
+/* ── v178: 입고취소 (회차 · 전체) · 확정취소 ──
+ *  fn_osp_receive_cancel(line,move) : 회차 1건 삭제 → 입고수량 재집계 → 발주 상태
+ *  fn_osp_receive_cancel_all(line)  : 입고 회차 전부 삭제 → 발주 상태 · 확정 정보도 지움
+ *  RPC 가 없으면 같은 일을 화면에서 직접 한다 (outsourcing_moves 삭제 + order_lines 갱신) */
+const CLR_CFM={confirm_date:null,confirm_price:null,nego_rate:null};
+async function _movesSum(lineId){
+ const rs=await MESDB.table('outsourcing_moves').select(`select=in_qty,short_qty&line_id=eq.${Number(lineId)}&io=in.(${encodeURIComponent('입고')},${encodeURIComponent('사내입고')})`,{fresh:true})||[];
+ return rs.reduce((s,m)=>s+_n(m.in_qty)+_n(m.short_qty),0);
+}
+async function _cancelRoundDirect(lineId,moveId){
+ await MESDB.table('outsourcing_moves').delete({move_id:Number(moveId)});
+ const sum=await _movesSum(lineId);
+ await MESDB.table('order_lines').upsert([Object.assign({line_id:Number(lineId),status:'발주',receipt_qty:sum||null,receipt_date:null,updated_at:new Date().toISOString()},CLR_CFM)],'line_id');
+ return {in_qty:sum};
+}
+async function _cancelAllDirect(lineId){
+ for(const io of ['입고','사내입고']){try{await MESDB.table('outsourcing_moves').delete({line_id:Number(lineId),io})}catch(e){}}
+ await MESDB.table('order_lines').upsert([Object.assign({line_id:Number(lineId),status:'발주',receipt_qty:null,receipt_date:null,updated_at:new Date().toISOString()},CLR_CFM)],'line_id');
+ return {in_qty:0};
+}
+/* 회차 1건 취소 (입고이력의 [회차취소]) */
+async function ctxRoundCancel(lineId,moveId){
+ const {r,i,c,job}=CTX;
  if(!_online())return msg('DB 미연결 - 입고취소를 할 수 없습니다.');
- const n=(r.steps||[]).map(stepCode).filter(Boolean).length;
- for(let k=i+1;k<n;k++){const st=stepState(r,k);
-  if(st)return msg(`공정${k+1} ${procName(stepCode(r.steps[k]))} 이(가) 이미 ${st} 상태입니다. 뒤 공정부터 취소하세요.`);}
- if(!confirm(`${r.part} 공정${i+1} ${procName(c)} 의 입고를 취소합니다.\n발주(출고) 상태로 되돌아가며, 입고수량·입고일이 지워집니다. 계속할까요?`))return;
+ const busy=ctxLaterBusy(r,i);if(busy)return msg(busy);
+ const l=ctxLines().find(x=>Number(x.line_id)===Number(lineId))||{};
+ if(!confirm(`${r.part} 공정${i+1} ${procName(c)} 발주건 #${lineId} 의 입고 회차 1건을 취소합니다.\n입고수량이 그만큼 줄고 발주(출고) 상태로 돌아갑니다.${String(l.status||'')==='입고확정'?'\n(입고확정도 함께 풀립니다 — 확정일·확정가가 지워집니다)':''}\n계속할까요?`))return;
  try{
-  await MESDB.table('order_lines').upsert([{line_id:Number(l.line_id),status:'발주',
-    receipt_qty:0,receipt_date:null,updated_at:new Date().toISOString()}],'line_id');
-  await ctxAfter(job.job,`${r.part} 공정${i+1} ${procName(c)} 입고를 취소했습니다. (발주 상태로 복귀 — 다시 입고 처리할 수 있습니다)`);
+  await ospRpcOr('fn_osp_receive_cancel',{p_line_id:Number(lineId),p_move_id:Number(moveId)},()=>_cancelRoundDirect(lineId,moveId));
+  /* 기존 RPC(v1)는 확정 정보를 남긴다 → 발주 상태에 확정가가 남지 않게 정리 */
+  if(l.confirm_date||l.confirm_price!=null)await MESDB.table('order_lines').upsert([Object.assign({line_id:Number(lineId),updated_at:new Date().toISOString()},CLR_CFM)],'line_id');
+  await ctxAfter(job.job,`${r.part} 공정${i+1} ${procName(c)} 발주건 #${lineId} 입고 1회차를 취소했습니다. (발주 상태 — 다시 입고 처리할 수 있습니다)`);
  }catch(e){msg('입고취소 실패: '+String(e.message||e).slice(0,120))}
 }
+/* 입고 전체취소 — 이 공정의 모든 발주건에서 입고 회차를 지우고 발주(출고) 상태로 되돌린다 */
+async function ctxRecvCancel(){
+ const {r,i,c,o,job}=CTX;
+ if(!_online())return msg('DB 미연결 - 입고취소를 할 수 없습니다.');
+ const tg=ctxLines().filter(x=>_n(x.receipt_qty)>0||/입고/.test(String(x.status||'')));
+ if(!tg.length)return msg('취소할 입고가 없습니다.');
+ const busy=ctxLaterBusy(r,i);if(busy)return msg(busy);
+ const fixed=tg.filter(x=>String(x.status||'')==='입고확정').length;
+ if(!confirm(`${r.part} 공정${i+1} ${procName(c)} 의 입고를 모두 취소합니다. (발주건 ${tg.length}건, 입고 ${tg.reduce((s,x)=>s+_n(x.receipt_qty),0)}개)\n발주(출고) 상태로 되돌아가며 입고수량·입고일이 지워집니다.${fixed?`\n입고확정된 ${fixed}건은 확정일·확정가도 지워집니다 (제조원가에서 빠집니다).`:''}\n계속할까요?`))return;
+ let ok=0,ng=[];
+ for(const x of tg){
+  try{await ospRpcOr('fn_osp_receive_cancel_all',{p_line_id:Number(x.line_id)},()=>_cancelAllDirect(x.line_id));ok++}
+  catch(e){ng.push(`#${x.line_id}: ${String(e.message||e).slice(0,60)}`)}
+ }
+ await ctxAfter(job.job,`${r.part} 공정${i+1} ${procName(c)} 입고를 취소했습니다. (발주건 ${ok}건 → 발주 상태로 복귀 — 다시 입고 처리할 수 있습니다)`+(ng.length?` · 실패 ${ng.length}건: ${ng.join(' / ')}`:''));
+}
+/* 확정취소 — 입고는 그대로 두고 「입고」 상태로 되돌린다 (확정가를 다시 잡을 수 있다) */
+async function ctxConfirmCancel(all){
+ const {r,i,c,o,job}=CTX;const l=o.line||{};
+ if(!_online())return msg('DB 미연결 - 확정취소를 할 수 없습니다.');
+ const tg=all?ctxLines().filter(x=>String(x.status||'')==='입고확정'):[l].filter(x=>x.line_id);
+ if(!tg.length)return msg('취소할 입고확정이 없습니다.');
+ if(!confirm(`${r.part} 공정${i+1} ${procName(c)} 의 입고확정을 취소합니다. (발주건 ${tg.length}건)\n확정일·확정가가 지워지고 「입고」 상태로 돌아갑니다. 제조원가(외주가공비)에서 빠지며, 다시 확정할 수 있습니다.\n계속할까요?`))return;
+ try{
+  const ts=new Date().toISOString();
+  await MESDB.table('order_lines').upsert(tg.map(x=>Object.assign({line_id:Number(x.line_id),status:'입고',updated_at:ts},CLR_CFM)),'line_id');
+  await ctxAfter(job.job,`${r.part} 공정${i+1} ${procName(c)} 입고확정 ${tg.length}건을 취소했습니다. (입고 상태로 복귀 — 우클릭해 다시 확정할 수 있습니다)`);
+ }catch(e){msg('확정취소 실패: '+String(e.message||e).slice(0,120))}
+}
 
-/* ── 완료 내역 ── */
+/* ── 완료 내역 (입고확정) — v178: 확정취소 · 입고취소 가능 ── */
 function ctxDone(ev,head){
- const {i,c,o}=CTX;const l=o.line||{};
- ctxOpen(ev,`공정${i+1} ${procName(c)} — 완료`,'',head+`<div class="info"><b>업체</b><span>${_esc(l.vendor_name||o.vendor||'')}</span><b>발주일</b><span>${_esc(String(l.order_date||'').slice(0,10))}</span><b>입고일</b><span>${_esc(String(l.receipt_date||'').slice(0,10))}</span><b>확정일</b><span>${_esc(String(l.confirm_date||'').slice(0,10))}</span><b>견적가</b><span>${_won(l.quote_price)}원</span><b>확정가</b><span>${_won(l.confirm_price)}원</span></div>
-  <div class="note">입고취소가 필요하면 외주가공 입고확정 화면에서 처리하세요.</div>`,
-  `${SHEET_BTN}<button class="btn" onclick="ctxClose()">닫기</button>`);
+ const {i,c,o}=CTX;const l=o.line||{};CTX.head=head;window.__ctxLastEv={clientX:ev.clientX,clientY:ev.clientY};
+ const all=ctxLines(),fixed=all.filter(x=>String(x.status||'')==='입고확정');
+ ctxOpen(ev,`공정${i+1} ${procName(c)} — 완료`,'',head+
+  ctxLineSel(all,l.line_id,ctxDone)+`
+  <div class="info"><b>발주건</b><span>#${l.line_id||''}</span><b>업체</b><span>${_esc(l.vendor_name||o.vendor||'')}</span><b>발주일</b><span>${_dt(l.order_date)}</span><b>입고일</b><span>${_dt(l.receipt_date)}</span><b>입고수량</b><span>${_n(l.receipt_qty)||_n(l.order_qty)||1}</span><b>확정일</b><span>${_dt(l.confirm_date)}</span><b>견적가</b><span>${_won(l.quote_price)}원</span><b>확정가</b><span>${_won(l.confirm_price)}원${l.nego_rate?` (네고 ${Number(l.nego_rate)}%)`:''}</span></div>
+  <div class="note"><b>확정취소</b>는 입고는 그대로 두고 「입고」 상태로 돌아가 확정가를 다시 잡을 수 있습니다. <b>입고 전체취소</b>는 입고 회차까지 모두 지우고 발주(출고) 상태로 되돌립니다. 회차별로 지우려면 아래 입고이력의 [회차취소]. 뒤 공정이 이미 발주됐으면 입고취소는 막힙니다.</div>
+  <div id="cxHist"></div>`,
+  `<button class="btn k-cancel" onclick="ctxConfirmCancel(false)" title="이 발주건의 입고확정만 취소합니다 (입고 상태로 복귀)">✖ 확정취소</button>
+   ${fixed.length>1?`<button class="btn k-cancel" onclick="ctxConfirmCancel(true)" title="이 공정의 입고확정 ${fixed.length}건을 모두 취소합니다">✖ 확정 전체취소 (${fixed.length})</button>`:''}
+   <button class="btn k-cancel" onclick="ctxRecvCancel()" title="이 공정의 입고 회차를 모두 지우고 발주(출고) 상태로 되돌립니다">✖ 입고 전체취소</button>
+   ${SHEET_BTN}<button class="btn" onclick="ctxClose()">닫기</button>`);
+ ctxHistLoad(all.map(x=>x.line_id),true);
  return false;
 }
 
 /* 처리 후 공통: 캐시 비우고 → 알림 → 공정 리스트 재조회 */
 async function ctxAfter(job,text){
- try{MESDB.dropCache&&MESDB.dropCache('order_lines')}catch(e){}
- try{MESDB.notify&&MESDB.notify(['order_lines'])}catch(e){}
+ try{MESDB.dropCache&&MESDB.dropCache('order_lines');MESDB.dropCache&&MESDB.dropCache('outsourcing_moves');MESDB.dropCache&&MESDB.dropCache('v_outsourcing_position')}catch(e){}
+ try{MESDB.notify&&MESDB.notify(['order_lines','outsourcing_moves'])}catch(e){}
+ try{window.MESMOVE&&MESMOVE.invalidate()}catch(e){}
  ctxClose();
  await loadOrdered(job);renderRoutes();PICK.clear();
  msg(text);
