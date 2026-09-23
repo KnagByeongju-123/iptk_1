@@ -131,7 +131,7 @@ table.ev .mrow{display:flex;gap:3px;align-items:center}
    <tr><th>요구일정</th>
     <td><input type="date" id="req_receipt_date"></td><td><input type="date" id="req_design_date"></td><td><input type="date" id="req_machining_date"></td>
     <td><input type="date" id="req_assembly_date"></td><td><input type="date" id="req_tryout_date"></td><td><input type="date" id="req_complete_date"></td>
-    <td class="c" style="color:#8b98a3">고객 요구</td></tr>
+    <td class="c" style="color:#8b98a3">고객 요구 <button type="button" class="btn" style="height:20px;min-width:0;padding:0 6px;font-size:11px;margin-left:4px" onclick="const n=fillTodayAll();markLate();msg(n?`빈 날짜 ${n}칸을 오늘로 채웠습니다 — 휠로 조절하세요.`:`빈 날짜 칸이 없습니다.`)" title="비어 있는 날짜 칸을 전부 오늘로 채웁니다">오늘로</button></td></tr>
    <tr class="goal"><th>목표일정</th>
     <td><input type="date" id="receipt_date"></td><td><input type="date" id="design_end_date"></td><td><input type="date" id="machining_end_date"></td>
     <td><input type="date" id="assembly_end_date"></td><td><input type="date" id="s1_planned_date"></td><td><input type="date" id="delivery_planned_date"></td>
@@ -309,6 +309,12 @@ EV.forEach(k=>{document.getElementById(GOAL[k]).addEventListener('change',markLa
 
 /* v168: 날짜 칸 위에서 휠 → ±1일. 같은 줄의 오른쪽(이후 공정) 날짜도 같은 만큼 밀린다.
    Shift = ±7일, Alt = 그 칸만. 빈 칸은 오늘부터 시작한다. */
+function fillTodayAll(){
+ const t=new Date().toLocaleDateString('sv-SE');let n=0;
+ document.querySelectorAll('table.ev input[type=date]').forEach(i=>{if(!i.value){i.value=t;n++}});
+ ['design','machining','assembly'].forEach(calcDays);
+ return n;
+}
 const addDays=(ymd,n)=>{const d=new Date(ymd+'T00:00:00');if(isNaN(d))return '';d.setDate(d.getDate()+n);return d.toLocaleDateString('sv-SE')};
 function wheelDate(e){
  const inp=e.target.closest&&e.target.closest('table.ev input[type=date]');if(!inp)return;
@@ -477,8 +483,8 @@ async function loadJob(j){
   setSel('delivery_planned_date',s.delivery_planned_date);setSel('mold_type_name',s.mold_type_name);
   setSel('process_set_qty',s.process_set_qty);
   setSel('drawing_no',s.drawing_no);setSel('receipt_date',s.order_date);
-  if(!req_receipt_date.value)setSel('req_receipt_date',new Date().toLocaleDateString('sv-SE'));   /* v168: 요구 접수일은 오늘로 시작 */
-  markLate();
+  /* v168: 새 계획은 EVENT 표의 빈 날짜 칸을 전부 오늘로 채운다 — 휠로 밀어 가며 잡기 쉽게 */
+  fillTodayAll();markLate();
   order_price.value=num(s.order_price)?fmt(num(s.order_price)):'';
   recalc();msg(`${job} 수주정보를 불러왔습니다. (신규 제작계획)`);
  }catch(e){msg('조회 실패: '+String(e.message||e).slice(0,120))}
