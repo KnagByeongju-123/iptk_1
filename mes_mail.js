@@ -76,6 +76,7 @@ window.MESMAIL={
   $('mlNote').className='note'+(v.email?'':' warn');
   $('mlNote').innerHTML=(v.email?`업체 이메일: <b>${esc(v.email)}</b>${v.contact_name?' ('+esc(v.contact_name)+')':''}`:`<b>${esc(O.vendor)}</b> 의 이메일이 기준정보 › 협력업체관리에 없습니다. 받는 사람을 직접 넣거나 업체관리에 등록하세요.`)
    +` · 부품 그림 ${ni}장 ${ni?'본문 아래에 A4 로 첨부':'(PartList [📷 이미지]로 등록하면 함께 갑니다)'}`;
+  {const sb=$('mlSend');sb.disabled=false;sb.textContent='✉ 보내기'}   /* v172: 직전 전송의 '보내는 중…' 상태가 남지 않게 */
   $('mlMask').classList.add('on');$('mlPop').classList.add('on');say('');
  },
  close(){if($('mlMask'))$('mlMask').classList.remove('on');if($('mlPop'))$('mlPop').classList.remove('on');O=null},
@@ -102,7 +103,7 @@ window.MESMAIL={
    }
    if(!res||res.ok===false)throw new Error((res&&(res.error||res.raw))||'구글 스크립트 응답 오류');
    try{await MESDB.table('mail_log').upsert([{kind:'발주서',category:O.category,vendor_name:O.vendor,job_no:O.job,to_addr:to,subject:$('mlSubj').value,sent_by:O.by||null,lines:O.lines.length}])}catch(e){}
-   say(res.unverified?`${to} 로 보냈습니다 (응답 확인 불가 — 받은편지함을 확인하세요).`:`${to} 로 발주서를 보냈습니다.`);setTimeout(MESMAIL.close,1200);
+   say(res.unverified?`${to} 로 보냈습니다 (응답 확인 불가 — 받은편지함을 확인하세요).`:`${to} 로 발주서를 보냈습니다.`);b.disabled=false;b.textContent='✉ 보내기';setTimeout(MESMAIL.close,1200);
   }catch(e){say('전송 실패: '+String(e.message||e).slice(0,140)+' — [📨 메일 앱]으로 보내세요.');b.disabled=false;b.textContent='✉ 보내기'}
  },
  sheet:sheetHtml,
