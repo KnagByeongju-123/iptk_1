@@ -54,8 +54,8 @@ td.route.s-out{background:#ffe9d1!important;color:#7a4a12;font-weight:700}td.rou
 #ctxPop .g .full{grid-column:2/5}
 #ctxPop .g .chk{grid-column:2/5;font-weight:400;text-align:left;display:flex;align-items:center;gap:5px}
 #ctxPop .note{font-size:11px;color:#6d7b88;margin-top:6px;line-height:1.45}
-#ctxPop .cf{display:flex;gap:6px;justify-content:flex-end;padding:8px 11px 10px;border-top:1px solid #e3e9ed;background:#f7f9fa}
-#ctxPop .cf .btn{height:27px;min-width:72px}
+#ctxPop .cf{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;padding:8px 11px 10px;border-top:1px solid #e3e9ed;background:#f7f9fa}
+#ctxPop .cf .btn{height:27px;min-width:0;padding:0 9px;white-space:nowrap}
 #ctxPop .cf .btn.go{font-weight:700;color:#fff;border-color:#2a5d95;background:linear-gradient(#4a8ad0,#2f6fb0)}
 #ctxPop .cf .btn.go.k-order{border-color:#3f7a2c;background:linear-gradient(#5e9e46,#3f7a2c)}
 #ctxPop .cf .btn.go.k-in{border-color:#b8681a;background:linear-gradient(#e08a2b,#b8681a)}
@@ -655,10 +655,10 @@ function ctxHouse(ev,ri,i){
     <tbody>${rows}</tbody>
     <tfoot><tr><th colspan="3" class="r">누계</th><th class="r">${Hh(hi.min)}h</th><th class="r">${_won(hi.cost)}</th><th></th></tr></tfoot></table>
    <div class="note">이 공정은 <b>사내</b>에서 처리하므로 발주가 아니라 <b>완료 등록</b>을 합니다. 가공시간을 넣고 [✔ 가공완료 등록]을 누르면 <b>가공비가 자동 계산</b>되어 제조원가·금형원가 내역에 사내가공비로 잡힙니다. 단가는 기준정보 › 단가관리 › 작업단가(MCH 또는 설비코드)에서 가져옵니다.</div>`,
-  `<button class="btn go" onclick="ctxHouseSave()">✔ ${done?'추가 완료등록':'가공완료 등록'}</button>`+
+  `<button class="btn go" onclick="ctxHouseSave()">✔ ${done?'완료등록(추가)':'가공완료 등록'}</button>`+
   (done?`<button class="btn k-cancel" onclick="ctxHouseUndo(${ri},${i})" title="이 공정의 사내가공 완료 기록을 모두 지웁니다">↺ 완료취소</button>`:'')+
-  `<button class="btn" onclick="ctxWork(${ri},${i})" title="이 부품의 작업도면(PartList 부품 그림)을 A4 로 엽니다">🧾 작업도면</button>`+
-  `<button class="btn" onclick="ctxClose();window.MESROUTE&&MESROUTE.open(null,${ri})">✎ 공정 편집</button>`+
+  `<button class="btn" onclick="ctxWork(${ri},${i})" title="이 부품의 작업도면(PartList 부품 그림)을 A4 로 엽니다">🧾 도면</button>`+
+  `<button class="btn" onclick="ctxClose();window.MESROUTE&&MESROUTE.open(null,${ri})">✎ 공정편집</button>`+
   `<button class="btn" onclick="ctxClose()">닫기</button>`);
  ctxHouseRate();
  return false;
@@ -916,8 +916,27 @@ function ctxReceive(ev,head){
   </div>`,
   `<button class="btn go k-in" id="cxGo" onclick="ctxReceiveNow(false)">▣ 입고 처리</button>
    <button class="btn go" id="cxGo2" onclick="ctxReceiveNow(true)" title="입고 처리와 입고확정(견적가 그대로, 네고 0%)을 한 번에 끝냅니다. 잔량이 남으면 입고만 됩니다">▣ 입고+확정</button>
+   <button class="btn k-cancel" onclick="ctxOrderCancel()" title="이 발주건(미입고)을 삭제합니다 — 사내외가공 발주 화면에서 다시 발주할 수 있습니다">✖ 발주취소</button>
    ${SHEET_BTN}<button class="btn" onclick="ctxClose()">닫기</button>`);
  return false;
+}
+/* v177: 이 창의 발주취소·입고취소·완료취소는 자체 확인문(품번·공정·업체·수량)을 띄우므로 공용 삭제확인창(mes_ctx)은 건너뛴다 */
+(function(){try{const opt=window.MES_CTX_OPT||{};const mine=/ctxOrderCancel|ctxRecvCancel|ctxHouseUndo/;const prev=opt.noGuard;
+ opt.noGuard=prev?{test:s=>prev.test(s)||mine.test(String(s))}:mine;window.MES_CTX_OPT=opt}catch(e){}})();
+/* v177: 미입고 발주건 취소(삭제) — 뒤 공정이 이미 진행 중이면 막는다 */
+async function ctxOrderCancel(){
+ const {r,i,c,o,job}=CTX;const l=o.line||{};
+ if(!l.line_id)return msg('발주 라인을 찾을 수 없습니다. [새로고침] 후 다시 시도하세요.');
+ if(!_online())return msg('DB 미연결 - 발주취소를 할 수 없습니다.');
+ if(/입고/.test(String(l.status||'')))return msg('이미 입고된 발주건입니다. 입고취소를 먼저 하세요.');
+ const n=(r.steps||[]).map(stepCode).filter(Boolean).length;
+ for(let k=i+1;k<n;k++){const st=stepState(r,k);
+  if(st&&st!=='요청')return msg(`공정${k+1} ${procName(stepCode(r.steps[k]))} 이(가) 이미 ${st} 상태입니다. 뒤 공정부터 취소하세요.`);}
+ if(!confirm(`${r.part} 공정${i+1} ${procName(c)} → ${l.vendor_name||o.vendor||''} 발주 ${Number(l.order_qty)||0}개 (${_won(l.quote_price)}원) 를 취소(삭제)합니다.\n되돌릴 수 없습니다. 계속할까요?`))return;
+ try{
+  await MESDB.delLines([Number(l.line_id)]);
+  await ctxAfter(job.job,`${r.part} 공정${i+1} ${procName(c)} 발주를 취소(삭제)했습니다. 다시 발주할 수 있습니다.`);
+ }catch(e){msg('발주취소 실패: '+String(e.message||e).slice(0,120))}
 }
 async function ctxReceiveNow(withConfirm){
  const {r,i,c,o,job}=CTX;const l=o.line||{};
@@ -1050,7 +1069,7 @@ window.MESLOOK_RELOAD_VENDORS=async()=>{MESLOOK.invalidate('vendor_outsourcing')
  if(typeof renderRoutes==='function')renderRoutes();};
 </script>
 <script src="mes_price.js?v=162"></script>
-<script src="mes_mail.js?v=174"></script>
+<script src="mes_mail.js?v=175"></script>
 <script src="mes_route_edit.js?v=168"></script>
 <script src="mes_vendorcheck.js?v=92"></script>
 <script>
