@@ -999,13 +999,16 @@ function ctxReceive(ev,head){
    <label></label><label class="chk"><input type="checkbox" id="cxShort" style="width:auto;height:auto"> 잔량은 입고하지 않음 (부족분 마감)</label>
    ${others.length?`<label></label><label class="chk"><input type="checkbox" id="cxAllOpen" style="width:auto;height:auto"> 이 공정의 다른 미입고 발주건 <b>${others.length}건</b>도 잔량 전부 함께 입고 (${others.map(x=>`#${x.line_id} ${Math.max((_n(x.order_qty)||1)-_n(x.receipt_qty),0)}개`).join(', ')})</label>`:''}
    <label>비고</label><input id="cxInRemark" class="full" placeholder="선택">
+   <label title="[입고+확정]일 때만 쓰입니다">네고율(%)</label><input id="cxInRate" class="r" value="0" inputmode="decimal" onchange="ctxInFixFromRate()" title="[입고+확정]일 때 적용 — 견적가에서 깎는 비율">
+   <label title="[입고+확정]일 때만 쓰입니다">확정가</label><input id="cxInFix" class="r" value="${_won(_n(l.quote_price))}" inputmode="numeric" onchange="ctxInRateFromFix()" title="[입고+확정]일 때 제조원가에 반영되는 금액. 함께 입고하는 다른 발주건은 같은 네고율을 적용">
   </div>
+  <div class="note">[입고 처리]는 입고까지만, <b>[입고+확정]</b>은 위 <b>확정가</b>로 입고확정까지 끝냅니다 (함께 입고하는 발주건은 같은 네고율). 확정가는 나중에 입고 칸을 우클릭해 다시 잡을 수 있습니다.</div>
   ${same.length?`<div class="ttl">함께 입고 <span class="cnt">같은 업체(${_esc(l.vendor_name||o.vendor||'')}) 미입고 발주건 ${same.length}건 — 체크한 건은 잔량 전부를 같은 입고일로 입고</span><label><input type="checkbox" onchange="document.querySelectorAll('#cxSame input[data-id]').forEach(x=>x.checked=this.checked)">전체</label></div>
   <table class="hist" id="cxSame"><thead><tr><th></th><th>품번</th><th>공정</th><th>발주건</th><th>발주</th><th>기입고</th><th>잔량</th><th>입고요구일</th></tr></thead><tbody>${
    same.map(x=>{const xo=_n(x.order_qty)||1,xg=_n(x.receipt_qty);return `<tr><td class="c"><input type="checkbox" data-id="${x.line_id}" style="width:auto;height:auto"></td><td>${_esc(x.part_no||'')}</td><td class="c">공정${x.step_no||''} ${_esc(procName(x.machining_process_code)||'')}</td><td class="c">#${x.line_id}</td><td class="r">${xo}</td><td class="r">${xg}</td><td class="r">${Math.max(xo-xg,0)}</td><td class="c">${_dt(x.required_date)}</td></tr>`}).join('')}</tbody></table>`:''}
   <div id="cxHist"></div>`,
   `<button class="btn go k-in" id="cxGo" onclick="ctxReceiveNow(false)">▣ 입고 처리</button>
-   <button class="btn go" id="cxGo2" onclick="ctxReceiveNow(true)" title="입고 처리와 입고확정(견적가 그대로, 네고 0%)을 한 번에 끝냅니다. 잔량이 남으면 입고만 됩니다">▣ 입고+확정</button>
+   <button class="btn go" id="cxGo2" onclick="ctxReceiveNow(true)" title="입고 처리와 입고확정(위의 확정가·네고율)을 한 번에 끝냅니다. 잔량이 남으면 입고만 됩니다">▣ 입고+확정</button>
    ${anyGot?`<button class="btn k-cancel" onclick="ctxRecvCancel()" title="이 공정의 입고 회차를 모두 지우고 발주(출고) 상태로 되돌립니다">✖ 입고 전체취소</button>`:''}
    <button class="btn k-cancel" onclick="ctxOrderCancel()" title="이 발주건(미입고)을 삭제합니다 — 사내외가공 발주 화면에서 다시 발주할 수 있습니다">✖ 발주취소</button>
    ${SHEET_BTN}<button class="btn" onclick="ctxClose()">닫기</button>`);
@@ -1054,19 +1057,22 @@ async function ctxReceiveNow(withConfirm){
  const fixRows=[],doneTx=[],fails=[];
  try{
   const closed=await ctxRecvOne(l,q,d,short,remark);
-  /* v152: 입고+확정 — 전량 입고(잔량 0 또는 잔량 마감)일 때만 확정한다. 견적가 그대로, 네고 0% */
-  if(withConfirm&&closed)fixRows.push({line_id:Number(l.line_id),status:'입고확정',confirm_date:d,confirm_price:_n(l.quote_price)||null,nego_rate:0,updated_at:ts});
+  /* v201: 입고+확정 — 전량 입고(잔량 0 또는 잔량 마감)일 때만 확정. 확정가는 입고 창의 네고율/확정가 (함께 입고 건은 같은 네고율) */
+  const fixIn=_n(_v('cxInFix')),quoteIn=_n(l.quote_price);
+  const rate=withConfirm?(quoteIn?Number(((1-(fixIn||quoteIn)/quoteIn)*100).toFixed(2)):0):0;
+  const fixOf=x=>{const qx=_n(x.quote_price);return qx?Math.round(qx*(1-rate/100)):null};
+  if(withConfirm&&closed)fixRows.push({line_id:Number(l.line_id),status:'입고확정',confirm_date:d,confirm_price:(fixIn||quoteIn)||null,nego_rate:rate,updated_at:ts});
   for(const x of extra){
    const xq=Math.max((_n(x.order_qty)||1)-_n(x.receipt_qty),0);if(!(xq>0))continue;
    try{const xc=await ctxRecvOne(x,xq,d,0,remark);
-    if(withConfirm&&xc)fixRows.push({line_id:Number(x.line_id),status:'입고확정',confirm_date:d,confirm_price:_n(x.quote_price)||null,nego_rate:0,updated_at:ts});
+    if(withConfirm&&xc)fixRows.push({line_id:Number(x.line_id),status:'입고확정',confirm_date:d,confirm_price:fixOf(x),nego_rate:rate,updated_at:ts});
     doneTx.push(`${x.part_no===r.part?'':x.part_no+' '}공정${x.step_no||''} #${x.line_id} ${xq}개`)}
    catch(e){fails.push(`#${x.line_id}: ${String(e.message||e).slice(0,60)}`)}
   }
   if(fixRows.length)await MESDB.table('order_lines').upsert(fixRows,'line_id');
   const more=(doneTx.length?` · 함께 입고 ${doneTx.length}건: ${doneTx.join(', ')}`:'')+(fails.length?` · 실패 ${fails.length}건: ${fails.join(' / ')}`:'');
   if(withConfirm&&closed){
-   await ctxAfter(job.job,`${r.part} 공정${i+1} ${procName(c)} 입고 ${q}개 + 입고확정 (확정가 ${_won(l.quote_price)}원, 네고 0%).`+more+` 공정 전체 미입고수량이 0이 되면 다음 공정을 발주할 수 있습니다.`);
+   await ctxAfter(job.job,`${r.part} 공정${i+1} ${procName(c)} 입고 ${q}개 + 입고확정 (확정가 ${_won(fixIn||quoteIn)}원, 네고 ${rate}%).`+more+` 공정 전체 미입고수량이 0이 되면 다음 공정을 발주할 수 있습니다.`);
   }else{
    await ctxAfter(job.job,`${r.part} 공정${i+1} ${procName(c)} 입고 ${q}개${rest&&!short?` (현재 발주건 잔량 ${rest} 대기)`:''}`+more+
     (withConfirm?` — 잔량이 남아 입고만 처리했습니다. 잔량을 입고하거나 「잔량은 입고하지 않음」을 체크하면 확정됩니다.`
@@ -1098,6 +1104,8 @@ function ctxConfirm(ev,head){
  ctxHistLoad(ctxLines().map(x=>x.line_id),true);
  return false;
 }
+function ctxInFixFromRate(){const {o}=CTX;const q=_n((o.line||{}).quote_price),rt=_n(_v('cxInRate'));const el=document.getElementById('cxInFix');if(el)el.value=_won(Math.round(q*(1-rt/100)))}
+function ctxInRateFromFix(){const {o}=CTX;const q=_n((o.line||{}).quote_price),f=_n(_v('cxInFix'));const el=document.getElementById('cxInRate');if(el)el.value=q?((1-f/q)*100).toFixed(1):'0'}
 function ctxFixFromRate(){const q=_n(_v('cxQuote')),rt=_n(_v('cxRate'));document.getElementById('cxFix').value=_won(Math.round(q*(1-rt/100)))}
 function ctxRateFromFix(){const q=_n(_v('cxQuote')),f=_n(_v('cxFix'));document.getElementById('cxRate').value=q?((1-f/q)*100).toFixed(1):'0'}
 async function ctxConfirmNow(){
