@@ -29,7 +29,7 @@ input.cell{width:100%;height:20px;border:1px solid #cbd4dc;padding:0 3px;text-al
   <section class="filters">
     <span class="label">발주일</span><input id="fromQ" class="field" type="date" value="2025-01-01"><span>~</span><input id="toQ" class="field" type="date" value="2026-12-31">
     <span class="label">협력업체</span><select id="venQ" class="field"><option value="">전체</option></select>
-    <span class="label">제번</span><input id="jobQ" class="field" style="width:160px" placeholder="제번/품명">
+    <span class="label" title="관리제번을 고르면 A~F 공정 발주가 모두 나옵니다. 공정 제번·품명으로도 찾습니다">관리제번</span><input id="jobQ" class="field" list="dl_base" autocomplete="off" style="width:200px" placeholder="관리제번 입력/선택"><datalist id="dl_base"></datalist>
     <label><input type="checkbox" id="onlyOpen" checked> 미입고만</label>
     <button class="btn" onclick="search()">⌕ 조회</button>
   </section>
@@ -80,7 +80,19 @@ function pick(i){sel=i;const o=view[i];fJob.value=o.job_no;fSeq.value=`${o.set_s
  const done=RCP.filter(r=>Number(r.line_id)===Number(o.line_id)).reduce((s,r)=>s+(Number(r.amount)||0),0);
  fAmt.value=Math.max(0,(Number(o.nego_price)||0)-done);
  renderOrd();renderRcp();msg(`${o.job_no} ${o.set_seq} (${o.partner_vendor_name}) 선택 - 현재 진척 ${rate(o)}%`)}
-function search(){const f=fromQ.value,t=toQ.value,v=venQ.value,q=jobQ.value.trim().toLowerCase(),open=onlyOpen.checked;
+
+/* v197: 관리제번 드롭다운 — 발주 행의 제번을 관리제번으로 묶어 「26DSA057 (A~F) · 품명」 */
+const JSPL=j=>{const m=/^(.*\d)([A-Z])$/.exec(String(j||'').trim());return m?{base:m[1],seq:m[2]}:{base:String(j||'').trim(),seq:''}};
+const seqRange=q=>{q=[...new Set(q.filter(Boolean))].sort();if(!q.length)return '';const c=q.map(x=>x.charCodeAt(0));const run=c.every((v,i)=>!i||v===c[i-1]+1);
+ return q.length===1?`(${q[0]})`:run?`(${q[0]}~${q[q.length-1]})`:`(${q.join('·')})`};
+let _dlKey='';
+function fillBaseDL(list){
+ const dl=document.getElementById('dl_base');if(!dl)return;const e=v=>String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+ const mp=new Map();list.forEach(o=>{const s=JSPL(o.job_no);let g=mp.get(s.base);if(!g){g={seqs:[],item:''};mp.set(s.base,g)}g.seqs.push(s.seq);if(!g.item&&o.item_name)g.item=o.item_name});
+ const key=[...mp.entries()].map(([b,g])=>b+g.seqs.join('')).join(',');if(key===_dlKey)return;_dlKey=key;
+ dl.innerHTML=[...mp.keys()].sort((a,b)=>b.localeCompare(a)).map(b=>{const g=mp.get(b);return `<option value="${e(b)}">${e([seqRange(g.seqs),g.item].filter(Boolean).join(' · '))}</option>`}).join('');
+}
+function search(){try{fillBaseDL(ORD)}catch(e){}const f=fromQ.value,t=toQ.value,v=venQ.value,q=jobQ.value.trim().toLowerCase(),open=onlyOpen.checked;
  view=ORD.filter(o=>(!f||!o.order_date||o.order_date>=f)&&(!t||!o.order_date||o.order_date<=t)&&(!v||o.partner_vendor_name===v)&&(!q||o.job_no.toLowerCase().includes(q)||(o.item_name||'').toLowerCase().includes(q))&&(!open||rate(o)<100));
  sel=-1;renderOrd();renderRcp();msg(`발주 ${view.length}건을 조회했습니다.`)}
 
