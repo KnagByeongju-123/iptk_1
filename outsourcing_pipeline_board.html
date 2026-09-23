@@ -98,6 +98,10 @@ button,input,select{font:inherit;color:inherit}button{cursor:pointer}
 .stp.req .bx{border-style:dashed;opacity:.72}
 .stp.plan .bx{border-style:dashed;border-color:#c7d1da;background:#fafbfc;opacity:.9}
 .stp.plan small{color:#a3aeb8}
+/* v175: 사내가공 공정 — 사내외가공 발주와 같은 갈색 */
+.stp.hs .bx{border:1.5px solid #c9a86b;background:repeating-linear-gradient(135deg,#f3e6c8 0 6px,#efe0bf 6px 12px);opacity:1}
+.stp.hs small{color:#8a6d3b}.stp.hs .bx b{color:#5a4118;font-weight:700}
+.stp.hs.hdone .bx{background:#cbb894;border-color:#6b5327}.stp.hs.hdone small,.stp.hs.hdone .bx b{color:#3d2f16}
 .stp.plan .bx b{color:#8d9aa8;font-weight:600}
 .stp.req small{color:var(--ink3)}
 .stp.ready .bx{border-color:var(--blue);border-style:solid;opacity:1;box-shadow:0 0 0 3px rgba(47,117,181,.14)}
@@ -205,7 +209,7 @@ async function waitDB(){
  for(let i=0;i<60&&!window.MESDB;i++)await new Promise(r=>setTimeout(r,50));
  if(window.MESDB&&MESDB.ready){try{await MESDB.ready}catch(e){}}
 }
-let PLAN=[];
+let PLAN=[],PLM=[],STD=null;const HOUSE=new Map();   /* v175: 사내가공 실적 (제번|품번|공정코드) */
 const stepCode=x=>String((x&&typeof x==='object')?(x.process_code||x.code||''):(x??'')).trim();
 const PROCN={};
 /* ── v125: 부품별 외주가공 진행삭제 — 그 부품의 발주·입고·확정 기록을 모두 지운다 ──
@@ -248,11 +252,15 @@ async function load(manual){
  if(!online()){setLive(false);if(!lines.length)lines=[...SAMPLE];booting=false;build();apply();return}
  const o=manual?{fresh:true}:undefined;
  try{
-  const [rs,pl]=await Promise.all([
+  const [rs,pl,pm,sd,dr]=await Promise.all([
    MESDB.table('order_lines').select('select=*&category=eq.외주가공&order=job_no,part_no,step_no,line_id',o),
-   MESDB.table('machining_plan_parts').select('select=job_no,part_no,part_name,process_code,steps,row_no,qty&order=job_no,row_no',o).catch(()=>[])
+   MESDB.table('machining_plan_parts').select('select=*&order=job_no,row_no',o).catch(()=>[]),
+   MESDB.table('partlist_materials').select('select=job_no,part_no,part_name,process_code,qty&order=job_no,row_no',o).catch(()=>[]),
+   MESDB.table('machining_standard_routes').select('select=*&order=standard_process_no&limit=1').catch(()=>[]),
+   MESDB.table('design_results').select('select=job_no,part_no,machining_process_code,work_minutes,labor_cost,work_date&work_type=eq.가공',o).catch(()=>[])
   ]);
-  lines=rs||[];PLAN=pl||[];booting=false;
+  lines=(rs||[]).filter(l=>String(l.status||'')!=='취소');PLAN=pl||[];PLM=pm||[];STD=(sd&&sd[0])||null;booting=false;
+  HOUSE.clear();(dr||[]).forEach(r=>{const k=(r.job_no||'')+'|'+(r.part_no||'')+'|'+stepCode(r.machining_process_code).toUpperCase();const h=HOUSE.get(k)||{min:0,cost:0,last:''};h.min+=n0(r.work_minutes);h.cost+=n0(r.labor_cost);if(String(r.work_date||'')>h.last)h.last=String(r.work_date||'');HOUSE.set(k,h)});
   if(!Object.keys(PROCN).length){
    try{(await MESDB.table('processes').select('select=process_code,process_name'))
      .forEach(p=>{const c=String(p.process_code||'').trim();if(c)PROCN[c.toUpperCase()]=p.process_name||''})}catch(e){}
@@ -274,14 +282,23 @@ function build(){
  const g=new Map();
  const key=(j,p)=>(j||'')+'|'+(p||'');
  /* 1) 가공계획의 전체 부품·공정 = 미발주(plan) 자리 */
- for(const pl of PLAN){
+ /* v175: 사내외가공 발주와 같은 기준 — 가공계획 + (계획 없는) PartList 부품 × 기준공정 01, 사내 공정 표시 */
+ const planRows=[...PLAN];
+ const planned=new Set(PLAN.map(pl=>key(pl.job_no,pl.part_no)));
+ const stdSteps=STD&&Array.isArray(STD.steps)?STD.steps:[],stdIn=STD&&Array.isArray(STD.inhouse)?STD.inhouse:[];
+ const jobsWithWork=new Set([...PLAN.map(x=>x.job_no),...lines.map(x=>x.job_no)]);
+ for(const pm of PLM){const k=key(pm.job_no,pm.part_no);if(planned.has(k)||!jobsWithWork.has(pm.job_no))continue;planned.add(k);
+  planRows.push({job_no:pm.job_no,part_no:pm.part_no,part_name:pm.part_name,process_code:pm.process_code,qty:pm.qty,steps:stdSteps,inhouse:stdIn})}
+ for(const pl of planRows){
   const codes=(Array.isArray(pl.steps)?pl.steps:[]).map(stepCode).filter(Boolean);
   if(!codes.length)continue;
   const k=key(pl.job_no,pl.part_no);
   if(!g.has(k))g.set(k,{job:pl.job_no||'',part:pl.part_no||'',partName:pl.part_name||'',proc:pl.process_code||'',qty:(pl.qty!=null?Number(pl.qty):1),steps:[],planned:true});
   const t=g.get(k);
-  codes.forEach((c,i)=>{t.steps[i]={plan:true,job_no:pl.job_no,part_no:pl.part_no,part_name:pl.part_name||'',
-    machining_process_code:c,step_no:i+1,status:'',vendor_name:'',required_date:null}});
+  codes.forEach((c,i)=>{const hs=!!(Array.isArray(pl.inhouse)&&pl.inhouse[i]);
+    const h=hs?HOUSE.get(k+'|'+c.toUpperCase()):null;
+    t.steps[i]={plan:!(h&&h.min>0),house:hs,hmin:h?h.min:0,hcost:h?h.cost:0,hdate:h?h.last:'',job_no:pl.job_no,part_no:pl.part_no,part_name:pl.part_name||'',
+    machining_process_code:c,step_no:i+1,status:(h&&h.min>0)?'입고확정':'',vendor_name:hs?'사내':'',required_date:null}});
  }
  /* 2) 실제 발주 라인으로 덮어쓴다 (순번 없으면 뒤에 붙인다) */
  for(const l of lines){
@@ -297,18 +314,20 @@ function build(){
  for(const p of parts){
   p.steps=p.steps.filter(Boolean);
   p.steps.sort((a,b)=>n0(a.step_no)-n0(b.step_no)||n0(a.line_id)-n0(b.line_id));
-  p.planN=p.steps.filter(l=>l.plan).length;          /* 아직 발주 안 한 공정 수 */
+  p.planN=p.steps.filter(l=>l.plan&&!l.house).length;          /* 아직 발주 안 한 (외주) 공정 수 */
   p.ordered=p.steps.length-p.planN;
   p.doneN=p.steps.filter(l=>stOf(l.status)==='done').length;
   p.allDone=p.steps.length>0&&p.doneN===p.steps.length;
   p.late=p.steps.some(isLate);
   /* 발주 가능 지점: 직전 공정이 입고/입고확정일 때만 다음 발주 (첫 공정은 항상 가능) */
   p.readyIdx=-1;
+  let prevSt='done';
   for(let i=0;i<p.steps.length;i++){
-   const st=stOf(p.steps[i].status);
-   if(st!=='req')continue;
-   const prev=i===0?'done':stOf(p.steps[i-1].status);
-   if(prev==='done'||prev==='in')p.readyIdx=i;   /* v112: 현품 입고되면 다음 공정 발주 가능 (입고확정은 나중에) */
+   const l=p.steps[i];
+   if(l.house)continue;                       /* v175: 사내 공정은 발주 순서 판정에서 건너뛴다 (사내외가공 발주와 동일) */
+   const st=stOf(l.status);
+   if(st!=='req'){prevSt=st;continue}
+   if(prevSt==='done'||prevSt==='in')p.readyIdx=i;   /* v112: 현품 입고되면 다음 공정 발주 가능 (입고확정은 나중에) */
    break;
   }
   const due=p.steps.map(l=>l.required_date).filter(Boolean).sort().pop();
@@ -382,9 +401,9 @@ function renderSum(){
  if(booting){document.getElementById('sum').innerHTML='<span class="pill">불러오는 중…</span>';return}
  const ls=parts.flatMap(p=>p.steps);
  const c=k=>ls.filter(l=>!l.plan&&stOf(l.status)===k).length;
- const planN=ls.filter(l=>l.plan).length;
+ const planN=ls.filter(l=>l.plan&&!l.house).length;
  const late=ls.filter(isLate).length;
- const amt=l=>l.plan?0:(n0(l.confirm_price)||n0(l.quote_price));
+ const amt=l=>(l.plan||l.house)?0:(n0(l.confirm_price)||n0(l.quote_price));
  const tot=ls.reduce((a,l)=>a+amt(l),0);
  const done=ls.filter(l=>stOf(l.status)==='done').reduce((a,l)=>a+amt(l),0);
  const rate=tot?Math.round(done*1000/tot)/10:0;
@@ -415,6 +434,12 @@ function stepBox(l,i,p){
   st==='in'?('입고 '+d5(l.receipt_date)):
   ('납기 '+(d5(l.required_date)||'-'));
  const code=l.machining_process_code||l.process_code||'-';
+ if(l.house){const dn=l.hmin>0;
+  return `<div class="stp hs${dn?' hdone':' plan'}"><div class="bx">
+  <small>공정${n0(l.step_no)||i+1} · 사내${dn?' 완료':''}</small>
+  <b>${esc(pName(code)||code)}</b>
+  <span class="vd">${dn?`사내 · ${(l.hmin/60).toFixed(1)}h · ${won(l.hcost)}원`:'사내가공'}</span>
+  <span class="dtx">${dn?'완료 '+d5(l.hdate):'미완료'}</span></div></div>`}
  return `<div class="stp ${ST[st].cls}${plan?' plan':''}${ready?' ready':''}${lt?' lt':''}"><div class="bx">
   <small>공정${n0(l.step_no)||i+1} · ${lt?'지연':ready?'발주가능':plan?'계획':ST[st].n}</small>
   <b>${esc(pName(code)||code)}</b>
@@ -433,7 +458,7 @@ function renderPipe(){
   html+=ps.map(p=>{
    const key=p.job+'|'+p.part;
    const segs=p.steps.map(l=>{const st=stOf(l.status);
-    const col=l.plan?'transparent':st==='done'?'var(--done)':st==='in'?'var(--in)':st==='out'?'var(--out)':'transparent';
+    const col=l.house?(l.hmin>0?'#8a6d3b':'#e8d9b5'):l.plan?'transparent':st==='done'?'var(--done)':st==='in'?'var(--in)':st==='out'?'var(--out)':'transparent';
     return `<i style="flex:1;background:${col}"></i>`}).join('');
    return `<div class="pcard${p.late?' late':''}">
     <div class="phead" onclick="toggle('${esc(key)}')">
