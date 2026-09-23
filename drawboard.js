@@ -17,10 +17,12 @@
  $('footL').textContent=(o.job||'')+' · '+(o.part||'')+' '+(o.name||'');
  /* 그림 */
  const fig=$('fig');
- if(o.image){const im=el('img');im.alt=o.part||'';im.addEventListener('load',()=>{if(im.naturalHeight>im.naturalWidth*1.15&&!ORI_SET)setOri('portrait')});im.src=o.image;fig.appendChild(im)}
+ if(o.image){const im=el('img');im.alt=o.part||'';im.addEventListener('load',()=>{if(!ORI_SET)setOri(bestOri(im.naturalWidth,im.naturalHeight))});im.src=o.image;fig.appendChild(im)}
  else fig.appendChild(el('div','none','PartList 에 등록된 부품 그림이 없습니다.'));
  /* 용지 방향: 세로 도면이면 자동 세로. @page 는 스타일을 바꿔 넣어 인쇄 방향을 맞춘다 */
  let ORI='landscape',ORI_SET=false;const pageSt=el('style');document.head.appendChild(pageSt);
+ /* 도면 화소 비율로 가로·세로 중 도면이 더 크게 실리는 쪽을 고른다 (머리글 약 48mm 제외한 도면 영역: 가로 285×150, 세로 198×237) */
+ function bestOri(w,h){if(!w||!h)return 'landscape';const L=Math.min(285/w,150/h),P=Math.min(198/w,237/h);return P>L*1.02?'portrait':'landscape'}
  function setOri(v){ORI=v;document.body.classList.toggle('portrait',v==='portrait');pageSt.textContent='@page{size:A4 '+v+';margin:6mm}';$('bOri').textContent='용지: '+(v==='portrait'?'세로':'가로')}
  $('bOri').addEventListener('click',()=>{ORI_SET=true;setOri(ORI==='portrait'?'landscape':'portrait')});
  /* 공정 버튼 */
