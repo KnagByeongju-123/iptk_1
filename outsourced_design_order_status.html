@@ -25,7 +25,7 @@ tfoot th{position:sticky;bottom:0;background:linear-gradient(#e6eef5,#d3e0ea)}
     <div class="frow">
       <span class="label">구분</span>
       <div class="radios"><label><input type="radio" name="st" value="전체" checked onchange="search()"> 전체</label><label><input type="radio" name="st" value="발주" onchange="search()"> 발주</label><label><input type="radio" name="st" value="입고" onchange="search()"> 입고</label></div>
-      <span class="label">제번</span><input id="jobQ" class="field" style="width:170px">
+      <span class="label" title="관리제번을 고르면 A~F 공정 발주가 모두 나옵니다. 공정 제번(26DSA057B)을 넣으면 그 공정만">관리제번</span><input id="jobQ" class="field" list="dl_base" autocomplete="off" style="width:200px" placeholder="관리제번 입력/선택"><datalist id="dl_base"></datalist>
       <span class="label">품명</span><input id="itemQ" class="field" style="width:170px">
       <span class="label">품번</span><input id="modelQ" class="field" style="width:150px">
     </div>
@@ -50,6 +50,16 @@ let view=[...rows];
 const money=v=>Number(v||0).toLocaleString('ko-KR');
 /* v30: page_state 스냅샷 → outsourced_design_status_view 실조회 */
 const online=()=>!!(window.MESDB&&MESDB.online);
+
+/* v194: 관리제번 드롭다운 — 발주 행의 제번을 관리제번으로 묶어 「26DSA057 (A~F) · 품명」 으로 고른다 */
+const JSPL=j=>{const m=/^(.*\d)([A-Z])$/.exec(String(j||'').trim());return m?{base:m[1],seq:m[2]}:{base:String(j||'').trim(),seq:''}};
+const seqRange=q=>{q=[...new Set(q.filter(Boolean))].sort();if(!q.length)return '';const c=q.map(x=>x.charCodeAt(0));const run=c.every((v,i)=>!i||v===c[i-1]+1);
+ return q.length===1?`(${q[0]})`:run?`(${q[0]}~${q[q.length-1]})`:`(${q.join('·')})`};
+function fillBaseDL(dlId,list){
+ const dl=document.getElementById(dlId);if(!dl)return;const e=v=>String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+ const mp=new Map();list.forEach(({job,item})=>{const s=JSPL(job);let g=mp.get(s.base);if(!g){g={seqs:[],item:''};mp.set(s.base,g)}g.seqs.push(s.seq);if(!g.item&&item)g.item=item});
+ dl.innerHTML=[...mp.keys()].sort((a,b)=>b.localeCompare(a)).map(b=>{const g=mp.get(b);return `<option value="${e(b)}">${e([seqRange(g.seqs),g.item].filter(Boolean).join(' · '))}</option>`}).join('');
+}
 async function loadRows(){
  for(let i=0;i<60&&!window.MESDB;i++)await new Promise(r=>setTimeout(r,50));
  if(window.MESDB&&MESDB.ready){try{await MESDB.ready}catch(e){}}
@@ -63,6 +73,7 @@ async function loadRows(){
    paid:r.paid_supply||'',quote:Number(r.quote_price||0),nego:Number(r.nego_price||0),
    diff:Number(r.difference||0),partner:r.vendor_name||'',rate:Number(r.progress_rate||0),
    idate:r.receipt_date||'',odate:r.order_date||'',edate:r.required_date||''}));
+  fillBaseDL('dl_base',rows.map(r=>({job:r.job,item:r.item})));
   view=[...rows];render();
   msg(`외주설계발주 ${rows.length}건 (입고 ${rs.filter(r=>r.status!=='발주').length} / 미입고 ${rs.filter(r=>r.status==='발주').length})`);
  }catch(e){msg('조회 실패: '+String(e.message||e).slice(0,120));render()}
