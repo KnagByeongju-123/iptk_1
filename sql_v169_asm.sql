@@ -11,3 +11,14 @@ where not exists (select 1 from public.processes where process_name like '%랩�
 -- design_results 에 source 열이 없으면 (v162 미실행 시)
 alter table public.design_results add column if not exists source text;
 alter table public.design_results add column if not exists remark text;
+
+-- ── 검사실적등록(격자형) ─────────────────────────────────────────
+-- 기준정보 가공공정에 「검사」 보장 (엑셀 열에 이미 있으면 그 코드를 이름으로 찾아 씀)
+insert into public.processes (process_code, process_name, sort_order)
+select 'IN', '검사', coalesce((select max(sort_order) from public.processes),0)+20
+where not exists (select 1 from public.processes where process_name like '%검사%');
+
+-- 작업단가 : 검사 공통 INS (조립 COM/ASM 과 같은 방식). 이미 있으면 건너뜀
+insert into public.labor_rates (rate_code, rate_name, rate_type, rate_per_hour, remark)
+select 'INS', '검사 공통', '검사', 30000, '검사실적등록 기본 단가'
+where not exists (select 1 from public.labor_rates where rate_code='INS');
