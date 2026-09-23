@@ -1313,7 +1313,10 @@ window.MESCTX={confirm:dlgConfirm};
 (function(){
  const DLID='mes_dl_job',DLITEM='mes_dl_item';
  const IDPAT=/^(q_?job|jobq|job_no|qjob|job)$/i;
- const ITEMPAT=/^(q_?item|qitem|item_?name|item|q_?item_?name|item_?no|part_?no|part_?name|q_?part)$/i;
+ const ITEMPAT=/^(q_?item|qitem|item_?name|item|q_?item_?name|item_?no|part_?no|part_?name|q_?part|q_?model|qmodel|model)$/i;
+ const DLMODEL='mes_dl_model';
+ /* v169: 품번(model) 칸 판정 — id 에 model 이 있거나, 라벨이 '품 번'이면서 부품(part) 칸이 아닐 때 */
+ function isModelBox(el){const id=(el.id||el.name||'');if(/model/i.test(id))return true;return /^품\s*번$/.test(labelText(el).replace(/\s+/g,' ').trim())&&!/part/i.test(id)}
  const isLab=n=>!!n&&n.nodeType===1&&/(^|\s)(label|lab|lb)(\s|$)/.test(n.className);
  function labelText(el){
   let n=el.previousElementSibling;if(isLab(n))return n.textContent.trim();
@@ -1353,11 +1356,11 @@ window.MESCTX={confirm:dlgConfirm};
     if(MESDB.ready){try{await MESDB.ready}catch(e){}}
     const [pool,so]=await Promise.all([
      MESDB.table('job_pool').select('select=job_no,item_name,customer_name,order_date&order=order_date.desc.nullslast'),
-     MESDB.table('sale_orders').select('select=job_no,completion_date')]);
+     MESDB.table('sale_orders').select('select=job_no,completion_date,model')]);
     const today=new Date().toISOString().slice(0,10);
-    const done=new Set();(so||[]).forEach(r=>{const d=String(r.completion_date||'').slice(0,10);if(d&&d<=today)done.add(r.job_no)});
-    JOBS=(pool||[]).filter(r=>!done.has(r.job_no)).map(r=>({job:r.job_no,item:r.item_name||'',
-      sub:[r.item_name,r.customer_name].filter(Boolean).join(' · ')}));
+    const done=new Set(),MODEL={};(so||[]).forEach(r=>{const d=String(r.completion_date||'').slice(0,10);if(d&&d<=today)done.add(r.job_no);if(r.model)MODEL[r.job_no]=r.model});
+    JOBS=(pool||[]).filter(r=>!done.has(r.job_no)).map(r=>({job:r.job_no,item:r.item_name||'',model:MODEL[r.job_no]||'',
+      sub:[MODEL[r.job_no],r.item_name,r.customer_name].filter(Boolean).join(' · ')}));
     return JOBS;
    }catch(e){JOBS=null;return []}
    finally{loading=null}
@@ -1372,7 +1375,13 @@ window.MESCTX={confirm:dlgConfirm};
   return dl;
  }
  /* v115: 품명 → 제번 목록 (같은 품명이 여러 제번에 있으면 제번을 모두 라벨에) */
- function itemMap(list){const m=new Map();list.forEach(r=>{if(!r.item)return;if(!m.has(r.item))m.set(r.item,[]);m.get(r.item).push(r.job)});return m}
+ function itemMap(list,key){key=key||'item';const m=new Map();list.forEach(r=>{const v=r[key];if(!v)return;if(!m.has(v))m.set(v,[]);m.get(v).push(r.job)});return m}
+ function ensureModelDL(list){
+  let dl=document.getElementById(DLMODEL);
+  if(!dl){dl=document.createElement('datalist');dl.id=DLMODEL;document.body.appendChild(dl)}
+  dl.innerHTML=[...itemMap(list,'model')].map(([it,js])=>`<option value="${e(it)}">${e(js.join(', '))}</option>`).join('');
+  return dl;
+ }
  function ensureItemDL(list){
   let dl=document.getElementById(DLITEM);
   if(!dl){dl=document.createElement('datalist');dl.id=DLITEM;document.body.appendChild(dl)}
@@ -1397,12 +1406,13 @@ window.MESCTX={confirm:dlgConfirm};
  /* v115: 품명 콤보 — 고르면 제번이 하나뿐일 때 제번 칸을 채우고 조회 */
  function attachItem(el,list){
   if(el.__mesItem)return;el.__mesItem=1;
-  ensureItemDL(list);
-  el.setAttribute('list',DLITEM);el.setAttribute('autocomplete','off');
-  if(!el.getAttribute('placeholder')||/^품\s*(명|번)$/.test(el.getAttribute('placeholder')))el.setAttribute('placeholder','품명 입력/선택');
-  if(!el.title)el.title='제작계획 제번의 품명 목록입니다. 글자를 입력하면 걸러집니다.';
+  const isM=isModelBox(el),key=isM?'model':'item';   /* v169: 품번 칸이면 품번 목록 */
+  if(isM)ensureModelDL(list);else ensureItemDL(list);
+  el.setAttribute('list',isM?DLMODEL:DLITEM);el.setAttribute('autocomplete','off');
+  if(!el.getAttribute('placeholder')||/^품\s*(명|번)$/.test(el.getAttribute('placeholder')))el.setAttribute('placeholder',isM?'품번 입력/선택':'품명 입력/선택');
+  if(!el.title)el.title=isM?'수주등록 제번의 품번 목록입니다. 글자를 입력하면 걸러집니다.':'제작계획 제번의 품명 목록입니다. 글자를 입력하면 걸러집니다.';
   el.addEventListener('change',()=>{const v=(el.value||'').trim();if(!v)return;
-   const js=itemMap(list).get(v);if(!js)return;
+   const js=itemMap(list,key).get(v);if(!js)return;
    if(js.length===1){const jb=[...document.querySelectorAll('input[list="'+DLID+'"],input[data-list="'+DLID+'"]')].find(x=>!x.value.trim());if(jb)jb.value=js[0]}
    try{if(window.MES&&typeof MES.search==='function')MES.search()}catch(e){}});
  }
