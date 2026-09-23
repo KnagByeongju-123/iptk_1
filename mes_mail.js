@@ -107,14 +107,26 @@ window.MESMAIL={
   }catch(e){say('전송 실패: '+String(e.message||e).slice(0,140)+' — [📨 메일 앱]으로 보내세요.');b.disabled=false;b.textContent='✉ 보내기'}
  },
  sheet:sheetHtml,
+ /* v173: 사내가공 작업도면 — 부품·공정 머리글 + PartList 부품 그림(A4) */
+ async workSheet(q){
+  let url=q.image_url||'';
+  try{if(!url&&MESDB.partImages){const im=await MESDB.partImages(q.job);url=im[q.part]||''}}catch(e){}
+  const w=window.open('','_blank');if(!w)return alert('팝업이 차단되었습니다.');
+  const st=`body{font-family:'Malgun Gothic','맑은 고딕',Arial,sans-serif;font-size:12px;color:#222;margin:0}.pg{padding:10mm 12mm}h1{font-size:20px;margin:0 0 8px;letter-spacing:3px;text-align:center}table{width:100%;border-collapse:collapse;margin-bottom:8px}th,td{border:1px solid #444;padding:4px 6px;font-size:12px}th{background:#eee;width:90px}img{width:100%;max-height:235mm;object-fit:contain;border:1px solid #999}.none{border:1px dashed #999;padding:60px;text-align:center;color:#888}@page{size:A4;margin:8mm}.bar{position:sticky;top:0;background:#f3f6f8;border-bottom:1px solid #cfd8df;padding:6px 10px}.bar button{height:26px;padding:0 10px;border:1px solid #8b9ba9;background:linear-gradient(#fff,#e9eef2);cursor:pointer;font:inherit}@media print{.bar{display:none}}`;
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>사내가공 작업도면 ${esc(q.job)} ${esc(q.part)}</title><style>${st}</style></head><body><div class="bar"><button onclick="print()">🖨 인쇄 / PDF 저장</button></div><div class="pg"><h1>사내가공 작업도면</h1>
+   <table><tr><th>제번</th><td>${esc(q.job)}</td><th>부품</th><td>${esc(q.part)} ${esc(q.name||'')}</td></tr><tr><th>공정</th><td>${esc(q.proc||'')}</td><th>소요수</th><td>${esc(q.qty??'')}</td></tr><tr><th>작업일</th><td>${esc(T0())}</td><th>지시자</th><td>${esc(q.by||'')}</td></tr></table>
+   ${url?`<img src="${esc(url)}">`:'<div class="none">등록된 부품 그림이 없습니다.<br>설계관리 › PartList 등록 [📷 이미지]에서 캐드 캡쳐를 붙여넣어 등록하세요.</div>'}</div></body></html>`);
+  w.document.close();
+ },
  /* 저장된 발주(order_lines)로 발주서 열기 — 같은 제번·업체·발주일 묶음 */
  async sheetFor(q){
   try{
    let f=`select=*&category=eq.${encodeURIComponent(q.category)}&job_no=eq.${encodeURIComponent(q.job)}`;
    if(q.vendor)f+=`&vendor_name=eq.${encodeURIComponent(q.vendor)}`;
-   if(q.order_date)f+=`&order_date=eq.${encodeURIComponent(String(q.order_date).slice(0,10))}`;
+   if(q.part)f+=`&part_no=eq.${encodeURIComponent(q.part)}`;   /* v173: 그 부품의 발주건만 (묶음 공정 포함) */
    let rs=await MESDB.table('order_lines').select(f+'&order=line_id',{fresh:true});
-   rs=(rs||[]).filter(l=>String(l.status||'')!=='취소');
+   const od=String(q.order_date||'').slice(0,10);
+   rs=(rs||[]).filter(l=>String(l.status||'')!=='취소'&&(!od||String(l.order_date||'').slice(0,10)===od)&&(!q.part||l.part_no===q.part));
    if(q.line_id&&!rs.some(l=>Number(l.line_id)===Number(q.line_id))){const one=await MESDB.table('order_lines').select(`select=*&line_id=eq.${Number(q.line_id)}`);rs=[...(one||[]),...rs]}
    if(!rs.length)return alert('발주서를 만들 발주 내역이 없습니다.');
    let im={};try{im=MESDB.partImages?await MESDB.partImages(q.job):{}}catch(e){}

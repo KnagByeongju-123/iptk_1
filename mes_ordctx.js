@@ -620,7 +620,7 @@ async function doOrder() {
 
 /* v170: 발주서 보기 — 같은 제번·업체·발주일 묶음 (mes_mail.js) */
 function sheetOf(l) { const { b, job } = CTX || {}; if (!window.MESMAIL) return say('발주서 모듈(mes_mail.js)이 없습니다.');
-  MESMAIL.sheetFor({ category: CFG.category, job: job.job, item: job.item || '', vendor: l.vendor_name || '', order_date: l.order_date || '', line_id: l.line_id, by: OWNER }); }
+  MESMAIL.sheetFor({ category: CFG.category, job: job.job, item: job.item || '', part: (b && b.part) || l.part_no || '', vendor: l.vendor_name || '', order_date: l.order_date || '', line_id: l.line_id, by: OWNER }); }
 const sheetBtn = l => ({ t: '🧾 발주서', title: '이 발주건이 포함된 발주서(A4)를 새 창에 엽니다 — 인쇄·PDF 저장', fn: () => sheetOf(l) });
 /* ── ② 입고 ────────────────────────────────────────────────── */
 const bN = () => ((CTX && CTX.batchIn) || []).reduce((n, x) => n + x.lines.length, 0);
