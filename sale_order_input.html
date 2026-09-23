@@ -1,5 +1,5 @@
 <!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>수주정보 등록</title><style>
+<title>수주등록</title><style>
 :root{--line:#98a6b2;--line2:#c5d0d8;--blue:#2f75b5;--ink:#344757;--head1:#e8f1f8;--head2:#c8dbe9}
 *{box-sizing:border-box}html,body{height:100%;margin:0}body{font-family:"Malgun Gothic","맑은 고딕",Arial,sans-serif;font-size:12px;color:var(--ink);background:#fff;overflow:hidden}
 button,input,select{font:inherit;color:inherit}.screen{height:100%;display:flex;flex-direction:column;background:#fff}
@@ -16,7 +16,7 @@ table{border-collapse:collapse;min-width:1040px;width:100%;table-layout:fixed}th
 .formgrid{display:grid;grid-template-columns:repeat(6,72px minmax(96px,1fr));gap:4px 5px;align-items:center;padding:8px 14px;background:#fafbfc;border-bottom:1px solid var(--line2)}
 .formgrid .label{font-weight:700;text-align:right;padding-right:4px}
 .formgrid .field{width:100%}
-.span2{grid-column:span 2}.span3{grid-column:span 3}.span4{grid-column:span 4}
+.span2{grid-column:span 3}.span3{grid-column:span 3}.span4{grid-column:span 4}
 .lk{display:flex;gap:3px;min-width:0}.lk input{flex:1;min-width:0;height:27px;border:1px solid #b5c0c9;padding:0 6px}
 .lk button{width:24px;height:27px;border:1px solid #9ba8b4;background:linear-gradient(#fff,#dfe6eb);cursor:pointer}
 .att{margin:0 14px;border:1px solid var(--line);flex:1;min-height:0;overflow:auto;background:#fff}
@@ -83,10 +83,11 @@ html[data-mw="xs"] .formgrid{grid-template-columns:84px minmax(0,1fr)}
 </style></head><body><div class="screen">
 <div class="title"><h1>수주등록</h1><small>영업관리 · 수주</small></div>
 <section class="formgrid">
- <div class="label" title="관리제번 + 공정 = 제번. 예) 26IPA001 + A → 26IPA001A (v120, 회의록 1-1)">관리제번</div><div><input id="base_job" class="field" placeholder="예) 26IPA001" style="text-transform:uppercase"></div>
- <div class="label" title="공정 구분 A~Z. 공정이 하나뿐이면 비워 둡니다">공정</div><div><select id="proc_seq" class="field"><option value=""></option></select></div>
- <div class="label">제번</div><div><input id="job_no" class="field" title="관리제번과 공정을 넣으면 자동으로 만들어집니다. 직접 고칠 수도 있습니다"></div>
- <div class="label" title="공정 성격 (기준정보 › 공정카테고리). 회의록 1-4">카테고리</div><div><select id="proc_cat" class="field"><option value=""></option></select></div>
+ <div class="label" title="관리제번. 공정수가 2 이상이면 저장할 때 관리제번 뒤에 A·B·C… 를 붙인 제번이 공정 수만큼 생깁니다 (v179)">관리제번</div><div><input id="base_job" class="field" placeholder="예) 26IPA001" style="text-transform:uppercase"></div>
+ <div class="label" title="공정(SET) 수. 2 이상이면 저장 시 관리제번+A·B·C… 제번이 공정 수만큼 만들어집니다. 원가 배부 단위가 됩니다.">공정수</div><div><input id="proc_cnt" class="field num" placeholder="1" inputmode="numeric"></div>
+ <div class="label" title="저장하면 만들어지는(또는 이미 있는) 제번">생성 제번</div><div class="span2"><input id="job_preview" class="field" readonly style="background:#f4f7f9;color:#2f5f8a;font-weight:700" title="관리제번 + 공정수로 정해집니다"></div>
+ <div class="label" title="공정 성격 (기준정보 › 공정카테고리). 회의록 1-4. 공정별로 다르게 두려면 [⚙ 공정 자동생성]">카테고리</div><div><select id="proc_cat" class="field"><option value=""></option></select></div>
+
  <div class="label">수주일</div><div><input id="order_date" type="date" class="field"></div>
  <div class="label">T/O 예정일</div><div><input id="s1p" type="date" class="field"></div>
 
@@ -106,7 +107,6 @@ html[data-mw="xs"] .formgrid{grid-template-columns:84px minmax(0,1fr)}
  <div class="label">양산처</div><div class="lk"><input id="mp_code"><input id="mp_name" readonly><button onclick="openLook('mass_production','mp_code','mp_name')">…</button></div>
  <div class="label">품명</div><div><input id="product_name" class="field"></div>
  <div class="label">품번</div><div><input id="model" class="field"></div>
- <div class="label">공정(조)수</div><div><input id="proc_cnt" class="field num" title="공정 SET 수(조수). 원가 배부 단위가 됩니다."></div>
 
  <div class="label">견적가</div><div><input id="quo_price" class="field num"></div>
  <div class="label">수주가</div><div><input id="order_price" class="field num"></div>
@@ -122,6 +122,7 @@ html[data-mw="xs"] .formgrid{grid-template-columns:84px minmax(0,1fr)}
  <div class="label">납기완료일</div><div><input id="dlvc" type="date" class="field"></div>
  <div class="label">정산완료일</div><div><input id="comp_date" type="date" class="field" title="납품 후 잔여 수정·검수·정산까지 끝나 이 제번을 종결한 날."></div>
 </section>
+<div style="display:none"><select id="proc_seq" data-nocombo="1"><option value=""></option></select><input id="job_no" type="hidden"></div>
 <div class="fillsp"></div>
 <div class="secthead" style="display:none">첨부파일</div>
 
@@ -142,7 +143,7 @@ html[data-mw="xs"] .formgrid{grid-template-columns:84px minmax(0,1fr)}
  <div style="color:#6b7a86;font-size:11.5px;margin-top:6px;line-height:1.6">지금 입력칸의 수주정보(고객사·품명·일자 등)를 공정마다 복사해 <b>관리제번+공정</b> 제번으로 저장합니다. 이미 저장된 공정 제번은 금액·카테고리·설비사양만 바뀝니다. 비율은 합이 100이 되도록 마지막 공정에서 맞춥니다.</div>
 </div>
 <div class="dlgfoot"><button class="btn" onclick="genApply()">▣ 공정 생성(저장)</button><button class="btn" onclick="genClose()">닫기</button><span class="msg" id="genMsg" style="margin-left:8px;color:#687784"></span></div></div></div>
-<footer class="foot"><button class="btn attbtn" id="attBtn" onclick="attShow()">📎 첨부파일<b id="attCnt"></b></button><button class="btn" onclick="genOpen()" title="관리제번 + 공정수로 A·B·C… 공정별 수주를 한 번에 만듭니다 (회의록 1-2·1-3)">⚙ 공정 자동생성</button><button class="btn" onclick="save()">▤ 저장</button><button class="btn" onclick="clearForm()">＋ 신규등록</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">제번 등 필수항목을 입력하고 저장하세요.</span></footer>
+<footer class="foot"><button class="btn attbtn" id="attBtn" onclick="attShow()">📎 첨부파일<b id="attCnt"></b></button><button class="btn" onclick="genOpen()" title="공정별로 카테고리·설비사양·금액을 다르게 나눠 A·B·C… 제번을 만듭니다. (그냥 [저장]하면 공정수만큼 균등 분할로 만들어집니다)">⚙ 공정별 나누기</button><button class="btn" onclick="save()">▤ 저장</button><button class="btn" onclick="clearForm()">＋ 신규등록</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">관리제번·공정수 등 필수항목을 입력하고 저장하세요. 공정수가 2 이상이면 A·B·C… 제번이 공정 수만큼 만들어집니다.</span></footer>
 </div>
 
 
@@ -172,7 +173,7 @@ function load(o){for(const[el,k]of Object.entries(MAP)){const n=document.getElem
 function clearForm(){for(const el of Object.keys(MAP)){const n=document.getElementById(el);if(n)n.value=''}document.getElementById('status').value='진행';otype.value='신작';dom.value='국내';ATT.length=0;renderAtt();msg('신규 입력 상태입니다.')}
 const NUMF=['quotation_price','order_price','nego_amount'];   /* v119: 네고조정(회의록 6-1) */   /* v62: 공정(process_set_qty)은 '1/1' 형식 text — 숫자변환 제외 */
 const DATEF=['order_date','s1_planned_date','delivery_planned_date','s1_completed_date','delivery_completed_date','completion_date'];
-async function save(mode){
+async function saveOne(mode){
  const ACT=(typeof mode==='string'&&mode)?mode:'저장';
  if(!job_no.value.trim()){msg('제번은 필수입니다.');return false}
  const o={};for(const[el,k]of Object.entries(MAP)){const n=document.getElementById(el);if(n)o[k]=n.value||null}
@@ -223,7 +224,62 @@ async function save(mode){
  }catch(e){msg(`DB ${ACT} 실패: `+e.message.slice(0,140));return false}
  return true;
 }
-const SAVE0=save;   /* v121: 공정 자동생성이 쓰는 원본 저장 (초기화 래퍼 이전) */
+const SAVE0=saveOne;   /* v121: 공정 자동생성이 쓰는 원본(제번 1건) 저장 */
+/* ── v179: 상단 공정·제번 칸을 없애고 관리제번 + 공정수로 저장한다 ──
+ *  공정수 1 → 제번 = 관리제번 그대로
+ *  공정수 n(2~26) → 관리제번+A, +B, … n건을 한 번에 저장 (공통 항목은 입력칸 값, 금액은 균등 분할)
+ *  이미 있는 공정 제번은 공통 항목만 덮어쓰고, 공정별 카테고리·설비사양·금액은
+ *  입력칸 합계가 기존 합계와 같으면 그대로 둔다 (공정별로 나눠 둔 값 보존).       */
+const PROC_N=()=>{const n=parseInt(String(proc_cnt.value||'').replace(/[^0-9]/g,''),10);return n>0?Math.min(26,n):1};
+const JOBS_OF=(b,n)=>{b=String(b||'').trim().toUpperCase();if(!b)return [];return n>=2?Array.from({length:n},(_,i)=>b+String.fromCharCode(65+i)):[b]};
+function jobPreview(){const b=(base_job.value||'').trim().toUpperCase(),n=PROC_N();const js=JOBS_OF(b,n);
+ const el=document.getElementById('job_preview');if(el)el.value=js.length?(n>=2?`${js.join(', ')}  (공정 ${n}개)`:js[0]):'';
+ job_no.value=js[0]||'';proc_seq.value='';return js}
+/* 기존 공정 제번(관리제번 기준) 읽기 — 공정별 값 보존용 */
+async function existingJobs(b){
+ if(!window.MESDB||!MESDB.online||!b)return [];
+ try{const rs=await MESDB.table('sale_orders').select(`select=*&job_no=like.${encodeURIComponent(b)}*&order=job_no`);
+  return (rs||[]).filter(r=>(MESDB.jobSplit?MESDB.jobSplit(r.job_no).base:r.job_no)===b)}catch(e){return []}
+}
+async function save(mode){
+ const ACT=(typeof mode==='string'&&mode)?mode:'저장';
+ const b=(base_job.value||'').trim().toUpperCase();
+ if(!b){msg('관리제번은 필수입니다.');base_job.focus();return false}
+ base_job.value=b;
+ const n=PROC_N(),jobs=jobPreview();
+ if(n<2){job_no.value=jobs[0];proc_seq.value='';return SAVE0(ACT)}
+ const ex=await existingJobs(b);const exMap=new Map(ex.map(r=>[r.job_no,r]));
+ const N=v=>{const x=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isNaN(x)?0:x};
+ const tq=N(quo_price.value),to=N(order_price.value),tn=N(nego_amount.value);
+ const sum=k=>jobs.reduce((s,j)=>s+N((exMap.get(j)||{})[k]),0);
+ const keepQ=ex.length&&sum('quotation_price')===tq,keepO=ex.length&&sum('order_price')===to,keepN=ex.length&&sum('nego_amount')===tn;
+ const part=(tot,i)=>{const each=Math.round(tot/n);return i===n-1?tot-each*(n-1):each};
+ const newJobs=jobs.filter(j=>!exMap.has(j)),extra=ex.map(r=>r.job_no).filter(j=>!jobs.includes(j));
+ if(!confirm(`관리제번 ${b} · 공정 ${n}개\n제번: ${jobs.join(', ')}${newJobs.length&&newJobs.length<jobs.length?`\n(새로 만드는 제번: ${newJobs.join(', ')})`:''}${extra.length?`\n※ 공정수보다 많은 기존 제번 ${extra.join(', ')} 은(는) 그대로 둡니다.`:''}\n\n${ACT}할까요?`))return false;
+ const snap={};for(const el of Object.keys(MAP)){const x=document.getElementById(el);if(x)snap[el]=x.value}
+ const snapAtt=ATT.slice();const catAll=proc_cat.value,specAll=ms_name.value,specCode=ms_code.value;
+ let ok=0,fail=[],lastMsg='';
+ for(let i=0;i<jobs.length;i++){
+  const j=jobs[i],e=exMap.get(j)||{};
+  for(const el of Object.keys(MAP)){const x=document.getElementById(el);if(x)x.value=snap[el]}
+  base_job.value=b;proc_seq.value=String.fromCharCode(65+i);job_no.value=j;
+  quo_price.value=keepQ?(e.quotation_price??''):part(tq,i)||'';
+  order_price.value=keepO?(e.order_price??''):part(to,i)||'';
+  nego_amount.value=keepN?(e.nego_amount??''):(part(tn,i)||'');
+  if(!catAll&&e.process_category){if(![...proc_cat.options].some(o=>o.value===e.process_category)){const o=document.createElement('option');o.value=o.textContent=e.process_category;proc_cat.appendChild(o)}proc_cat.value=e.process_category}
+  if(!specAll&&e.machine_spec_name){ms_name.value=e.machine_spec_name;ms_code.value=e.machine_spec_code||specCode}
+  proc_cnt.value=String(n);
+  ATT.length=0;ATT.push(...snapAtt);
+  try{const r=await SAVE0(ACT);if(r===true)ok++;else{fail.push(j);lastMsg=message.textContent}}catch(x){fail.push(j);lastMsg=String(x.message||x)}
+ }
+ for(const el of Object.keys(MAP)){const x=document.getElementById(el);if(x)x.value=snap[el]}
+ ATT.length=0;ATT.push(...snapAtt);renderAtt();
+ base_job.value=b;proc_seq.value='';job_no.value=jobs[0];jobPreview();
+ if(fail.length){msg(`${b} 공정 ${ok}건 ${ACT} · 실패 ${fail.join(', ')}${lastMsg?' — '+lastMsg.slice(0,80):''}`);return false}
+ msg(`${b} 공정 ${ok}건을 ${ACT}했습니다 (${jobs.join(', ')}). 수주현황은 관리제번 1줄로 보입니다.`);
+ try{(window.MESPOP||window.parent?.MESPOP)?.ok(`${b} 공정 ${ok}건 ${ACT}`,'수주등록')}catch(e){}
+ return true;
+}
 
 /* ── v46 첨부파일: Supabase Storage(mes-attach) 업로드 ─────────── */
 const ATT=[];   /* {name,path,size,ext,note} */
@@ -274,19 +330,32 @@ async function attDel(){const a=attSel();if(!a)return msg('삭제할 파일을 �
  *      기존 값이 통째로 지워지던 문제를 막는다.
  * quiet=true 면 미등록 제번일 때 조용히 넘어간다(제번 직접 입력 중일 때). */
 async function loadJob(job,quiet){
- job=String(job||'').trim();
- if(!job){clearForm();job_no.focus();msg('새 수주정보를 입력한 뒤 [등록]하세요.');return false}
- if(!window.MESDB||!MESDB.online){job_no.value=job;try{syncJobParts('job')}catch(e){}msg('DB 미연결 — 기존 수주정보를 불러올 수 없습니다.');return false}
+ job=String(job||'').trim().toUpperCase();
+ if(!job){clearForm();base_job.focus();msg('새 수주정보를 입력한 뒤 [저장]하세요.');return false}
+ const b=(window.MESDB&&MESDB.jobSplit)?MESDB.jobSplit(job).base:job;
+ if(!window.MESDB||!MESDB.online){base_job.value=b;jobPreview();msg('DB 미연결 — 기존 수주정보를 불러올 수 없습니다.');return false}
  try{
-  const rs=await MESDB.table('sale_orders').select(`select=*&job_no=eq.${encodeURIComponent(job)}&limit=1`);
-  if(rs&&rs[0]){
-   const o=rs[0];load(o);job_no.value=job;
-   ATT.length=0;ATT.push(...(o.attachments||[]));renderAtt();
-   msg(`${job} 수주정보를 불러왔습니다. (첨부 ${ATT.length}건) 내용을 고친 뒤 [수정]을 누르세요.`);
+  /* v179: 관리제번(공정 문자를 뺀 제번)으로 공정 제번을 모두 읽어 한 화면에 요약한다 */
+  const rows=await existingJobs(b);
+  if(rows.length){
+   const seqOf=r=>(MESDB.jobSplit?MESDB.jobSplit(r.job_no).seq:'');
+   const procs=rows.filter(r=>seqOf(r)),single=rows.find(r=>!seqOf(r));
+   const main=procs.length?procs[0]:single;
+   const o={...main};
+   const N=v=>{const x=Number(v);return Number.isNaN(x)?0:x};
+   if(procs.length){for(const k of ['quotation_price','order_price','nego_amount'])o[k]=procs.reduce((s,r)=>s+N(r[k]),0)||null;
+    o.process_set_qty=String(procs.length);
+    /* 공정별로 다른 값은 상단에 비워 둔다 (저장 시 기존 값 보존) */
+    if(new Set(procs.map(r=>r.process_category||'')).size>1)o.process_category='';
+    if(new Set(procs.map(r=>r.machine_spec_name||'')).size>1){o.machine_spec_name='';o.machine_spec_code=''}}
+   else o.process_set_qty=o.process_set_qty||'1';
+   load(o);base_job.value=b;proc_cnt.value=o.process_set_qty;jobPreview();
+   ATT.length=0;ATT.push(...(main.attachments||[]));renderAtt();
+   msg(`${b} 수주정보를 불러왔습니다. (공정 ${procs.length||1}개: ${rows.map(r=>r.job_no).join(', ')} · 첨부 ${ATT.length}건) 내용을 고친 뒤 [저장]하세요.`+(procs.length?' 견적가·수주가는 공정 합계입니다.':''));
    return true;
   }
-  if(!quiet){clearForm();job_no.value=job;try{syncJobParts('job')}catch(e){}}
-  msg(`${job} 은(는) 미등록 제번입니다. 입력 후 [등록]하세요.`);
+  if(!quiet){clearForm();base_job.value=b;jobPreview()}
+  msg(`${b} 은(는) 미등록 관리제번입니다. 입력 후 [저장]하세요.`);
  }catch(e){msg('불러오기 실패: '+String(e.message||e).slice(0,120))}
  return false;
 }
@@ -297,18 +366,17 @@ async function loadJob(job,quiet){
  'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;ps.appendChild(o)});
  const split=j=>window.MESDB&&MESDB.jobSplit?MESDB.jobSplit(j):(m=>m?{base:m[1],seq:m[2]}:{base:String(j||''),seq:''})(/^(.*\d)([A-Z])$/.exec(String(j||'').trim()));
  window.syncJobParts=function(from){
-  if(from==='job'){const p=split(job_no.value);base_job.value=p.base;ps.value=p.seq||''}
+  if(from==='job'){const p=split(job_no.value);if(p.base)base_job.value=p.base;ps.value=''}
   else{const b=base_job.value.trim().toUpperCase();base_job.value=b;job_no.value=b?(window.MESDB&&MESDB.jobJoin?MESDB.jobJoin(b,ps.value):b+(ps.value||'')):''}
  };
- base_job.addEventListener('input',()=>syncJobParts('parts'));
- ps.addEventListener('change',()=>{syncJobParts('parts');loadJob(job_no.value,true)});
- base_job.addEventListener('change',()=>loadJob(job_no.value,true));
- job_no.addEventListener('input',()=>syncJobParts('job'));
- const _load=window.load;window.load=function(o){const r=_load.apply(this,arguments);try{syncJobParts('job')}catch(e){}return r};
- const _clear=window.clearForm;window.clearForm=function(){const r=_clear.apply(this,arguments);base_job.value='';ps.value='';return r};
+ /* v179: 상단은 관리제번 + 공정수만. 입력할 때마다 생성 제번 미리보기, 관리제번을 바꾸면 기존 수주를 읽는다 */
+ base_job.addEventListener('input',()=>{base_job.value=base_job.value.toUpperCase();jobPreview()});
+ proc_cnt.addEventListener('input',jobPreview);
+ base_job.addEventListener('change',()=>loadJob(base_job.value,true));
+ const _load=window.load;window.load=function(o){const r=_load.apply(this,arguments);try{syncJobParts('job');jobPreview()}catch(e){}return r};
+ const _clear=window.clearForm;window.clearForm=function(){const r=_clear.apply(this,arguments);base_job.value='';ps.value='';proc_cnt.value='';const p=document.getElementById('job_preview');if(p)p.value='';return r};
  if(window.MES){window.MES.load=window.load;window.MES.clearForm=window.clearForm}
 })();
-job_no.addEventListener('change',()=>{syncJobParts('job');loadJob(job_no.value,true)});
 
 /* 수주현황에서 [수정]/[등록]으로 넘어온 경우 부모가 남긴 인계값을 읽는다 */
 (function(){
@@ -397,9 +465,9 @@ async function genApply(){
  }
  for(const el of Object.keys(MAP)){const n=document.getElementById(el);if(n)n.value=snap[el]}
  ATT.length=0;ATT.push(...snapAtt);renderAtt();
- base_job.value=b;proc_seq.value='';job_no.value=b;
+ base_job.value=b;proc_seq.value='';job_no.value=b;proc_cnt.value=String(plan.length);jobPreview();
  genClose();
- msg(`${b} 공정 ${ok}건을 생성했습니다 (${plan.map(p=>b+p.seq).join(', ')})`+(fail.length?` · 실패 ${fail.join(', ')}`:'')+'. 수주현황에서 「관리제번별 묶어보기」로 확인하세요.');
+ msg(`${b} 공정 ${ok}건을 생성했습니다 (${plan.map(p=>b+p.seq).join(', ')})`+(fail.length?` · 실패 ${fail.join(', ')}`:'')+'. 수주현황에서 관리제번 1줄로 확인하세요.');
  try{(window.MESPOP||window.parent?.MESPOP)?.ok(`${b} 공정 ${ok}건 생성`,'공정 자동생성')}catch(e){}
 }
 window.MES={save,clearForm,setMessage:msg,load,loadJob};
