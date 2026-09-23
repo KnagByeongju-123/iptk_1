@@ -95,7 +95,18 @@ function renderTotal(){
   el.textContent = src.length ? `관리제번 ${src.length}건 · ` + ['수주가 '+money(sum('order_price')),'목표가 '+money(sum('target_price')),'가공 '+money(sum('machining_amount')),'조립 '+money(sum('assembly_amount')),'기타 '+money(sum('etc_amount'))].join(' / ') : '조회된 자료가 없습니다.';
 }
 /* v68: 계획의 외주 체크(sales_plans)를 제번으로 찾아 사내/외주를 표시한다 */
-function planOf(job){return plans.find(x=>x.job_no===job)||null}
+/* v189: 화면 동기화(MESDB.master)는 지정한 컬럼만 싣기 때문에 제작구분·제품형상·도번·요구/가능일정·진척현황 등이
+   빠졌다 → 계획 전체 컬럼을 따로 읽어 덮어 쓴다 (읽기 전용, 저장 경로는 그대로) */
+const FULL=new Map();let _fullAt=0;
+async function loadFull(){
+ try{for(let i=0;i<80&&!(window.MESDB&&MESDB.online);i++)await new Promise(r=>setTimeout(r,100));
+  if(!(window.MESDB&&MESDB.online))return;
+  const rs=await MESDB.table('sales_plans').select('select=*',{fresh:true});
+  FULL.clear();(rs||[]).forEach(r=>FULL.set(r.job_no,r));_fullAt=Date.now();
+  if(typeof search==='function')search();
+ }catch(e){console.warn('sales_plans full',e.message)}
+}
+function planOf(job){const a=plans.find(x=>x.job_no===job),b=FULL.get(job);if(!a&&!b)return null;return {...(a||{}),...(b||{})}}
 function tags(job){
  const pl=planOf(job);if(!pl)return '<span style="color:#9aa7b1">-</span>';
  const t=(lab,v)=>`<span class="tag ${v===true?'out':'in'}" title="${lab} ${v===true?'외주':'사내'}">${lab}${v===true?'외':'사'}</span>`;
@@ -192,7 +203,7 @@ function search(){const j=(q_job.value||'').trim().toLowerCase(),it=(q_model.val
  sel=-1;render();msg(j||it?`조회결과 관리제번 ${view.length}건입니다. (관리제번 "${q_job.value.trim()}"${it?` · 품번 "${q_model.value.trim()}"`:''})`:`전체 관리제번 ${view.length}건입니다.`);}
 function detail(){
  if(sel<0){msg('목록에서 행을 선택하세요.');return}
- const r=view[sel];curGrp=r;const pl=plans.find(x=>x.job_no===r.job_no)||null;   /* v62: 다른 제번 폴백 제거 */
+ const r=view[sel];curGrp=r;const pl=planOf(r.job_no);   /* v62: 다른 제번 폴백 제거 */
  openPlan(pl,r);}
 function fld(l,v,cls){return `<div class="k">${l}</div><div class="v${cls?' '+cls:''}">${esc(v??'')}</div>`}
 /* v68 상세 팝업 재작성: 기본정보 / 금액(이익금 포함) / 기간 / 구성비 4개 섹션 */
@@ -314,7 +325,7 @@ async function reload(){
       target_price:Number(r.target_price??0)||null,profit_rate_pct:r.profit_rate_pct==null?null:Number(r.profit_rate_pct),
       design_days:r.design_days==null?null:Number(r.design_days),machining_amount:Number(r.machining_amount??0)||null,
       assembly_amount:Number(r.assembly_amount??0)||null,etc_amount:Number(r.etc_amount??0)||null})));
-    plans.length=0; plans.push(...pl);
+    plans.length=0; plans.push(...pl);FULL.clear();pl.forEach(r=>FULL.set(r.job_no,r));
     search(); msg(`제작계획이 갱신되었습니다. (${new Date().toLocaleTimeString('ko-KR')})`);
   }catch(e){console.warn('sales_plan_status reload',e.message)}
 }
@@ -322,6 +333,7 @@ async function reload(){
   const bind=()=>{if(window.MESDB&&MESDB.onChange){MESDB.onChange(['sales_plans','sales_plan_status_rows'],go);return true}return false};
   if(!bind()){let n=0;const iv=setInterval(()=>{if(bind()||++n>40)clearInterval(iv)},100)}})();
 window.MES=Object.assign(window.MES||{},{search,reload,setMessage:msg});
+loadFull();
 MESDB.master({page:"sales_plan_status:data",table:"sales_plan_status_rows",pk:"row_no",map:{"row_no": {"col": "row_no", "type": "num"}, "job_no": "job_no", "item_name": "item_name", "order_price": {"col": "order_price", "type": "num"}, "target_price": {"col": "target_price", "type": "num"}, "profit_rate_pct": {"col": "profit_rate_pct", "type": "num"}, "design_start_date": {"col": "design_start_date", "type": "date"}, "design_end_date": {"col": "design_end_date", "type": "date"}, "design_days": {"col": "design_days", "type": "num"}, "design_manager": "design_manager", "machining_amount": {"col": "machining_amount", "type": "num"}, "assembly_amount": {"col": "assembly_amount", "type": "num"}, "etc_amount": {"col": "etc_amount", "type": "num"}, "delivery_planned_date": {"col": "delivery_planned_date", "type": "date"}},get:()=>data,render:()=>{search()}});
 MESDB.master({page:"sales_plan_status:plans",table:"sales_plans",pk:"row_no",map:{"row_no": {"col": "row_no", "type": "num"}, "job_no": "job_no", "plant_name": "plant_name", "product_name": "product_name", "customer_name": "customer_name", "process_set_qty": "process_set_qty", "item_name": "item_name", "order_date": {"col": "order_date", "type": "date"}, "mold_type_name": "mold_type_name", "s1_planned_date": {"col": "s1_planned_date", "type": "date"}, "model": "model", "delivery_planned_date": {"col": "delivery_planned_date", "type": "date"}, "design_start_date": {"col": "design_start_date", "type": "date"}, "design_end_date": {"col": "design_end_date", "type": "date"}, "design_days": {"col": "design_days", "type": "num"}, "design_outsourced": {"col": "design_outsourced", "type": "bool"}, "design_set_outsourced": {"col": "design_set_outsourced", "type": "bool"}, "design_vendor": "design_vendor", "design_manager": "design_manager", "machining_start_date": {"col": "machining_start_date", "type": "date"}, "machining_end_date": {"col": "machining_end_date", "type": "date"}, "machining_outsourced": {"col": "machining_outsourced", "type": "bool"}, "machining_set_outsourced": {"col": "machining_set_outsourced", "type": "bool"}, "machining_vendor": "machining_vendor", "machining_manager": "machining_manager", "assembly_start_date": {"col": "assembly_start_date", "type": "date"}, "assembly_end_date": {"col": "assembly_end_date", "type": "date"}, "assembly_outsourced": {"col": "assembly_outsourced", "type": "bool"}, "assembly_set_outsourced": {"col": "assembly_set_outsourced", "type": "bool"}, "assembly_vendor": "assembly_vendor", "assembly_manager": "assembly_manager", "order_price": {"col": "order_price", "type": "num"}, "target_price": {"col": "target_price", "type": "num"}, "profit_rate_pct": {"col": "profit_rate_pct", "type": "num"}, "design_internal_amount": "design_internal_amount", "design_internal_pct": "design_internal_pct", "design_external_amount": "design_external_amount", "design_external_pct": "design_external_pct", "raw_material_amount": "raw_material_amount", "raw_material_pct": "raw_material_pct", "purchase_amount": {"col": "purchase_amount", "type": "num"}, "purchase_pct": "purchase_pct", "machining_internal_amount": "machining_internal_amount", "machining_internal_pct": "machining_internal_pct", "machining_external_amount": "machining_external_amount", "machining_external_pct": "machining_external_pct", "assembly_internal_amount": "assembly_internal_amount", "assembly_internal_pct": "assembly_internal_pct", "assembly_external_amount": "assembly_external_amount", "assembly_external_pct": "assembly_external_pct"},get:()=>plans,render:()=>{search()}});
 
