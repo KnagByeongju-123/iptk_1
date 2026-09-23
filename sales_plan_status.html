@@ -74,6 +74,15 @@ table.sheet tbody tr.sel td,table.sheet tbody tr.sel th.rl{background:#d6e7f8!im
 table.sheet tbody tr.sel td.ev.late{background:#ffd34d!important}
 .sw{display:inline-block;width:10px;height:10px;border:1px solid #9aa7b1;vertical-align:-1px;margin:0 2px 0 4px}.sw.late{background:#ffe45c}.sw.early{background:#e6f6e6}
 .sheet small.wd{font-size:10px;color:#6b7a87;margin-left:1px}.sheet small.wd.sat{color:#1d5da3}.sheet small.wd.sun{color:#c0392b}
+
+/* v190: 열 고정 — NO · 관리제번 · 도번·품명·품번 · 제품형상 (가로 스크롤해도 남는다) */
+.sheet thead tr:first-child th:nth-child(-n+4),.sheet tbody tr.g1>td:nth-child(-n+4){position:sticky;z-index:3;background-clip:padding-box}
+.sheet tbody tr.g1>td:nth-child(-n+4){background:#fff;z-index:2}
+.sheet thead tr:first-child th:nth-child(-n+4){top:0;z-index:5;background:linear-gradient(#dbe9f5,#b9d2e6)}
+.sheet tbody tr.g1.sel>td:nth-child(-n+4){background:#2d75b7}
+.sheet .frz-last{box-shadow:3px 0 4px -2px rgba(0,0,0,.22)}
+/* 고정 열 사이로 뒤 칸 글자가 비치지 않게 — 테두리를 칸마다 따로 그린다 */
+table.sheet{border-collapse:separate;border-spacing:0}
 </style></head><body><div class="screen"><div class="title"><h1>제작진행현황</h1><small>영업관리 · 제작계획</small></div><section class="filt"><div class="f2"><div class="lb" title="관리제번 또는 공정 제번(A·B·C) 일부">관리제번</div><div><input id="q_job" class="field" list="dl_base" autocomplete="off" oninput="search()" placeholder="관리제번 입력/선택"><datalist id="dl_base"></datalist></div><div class="lb">품번</div><div><input id="q_model" class="field" oninput="search()" placeholder="품번 입력/선택"></div><div></div><div style="display:flex;gap:12px;align-items:center;white-space:nowrap"><label style="display:flex;gap:4px;align-items:center" title="가능일정이 목표보다 늦은 제번만"><input type="checkbox" id="q_late" onchange="search()"> 지연만</label><label style="display:flex;gap:4px;align-items:center" title="완료 목표일이 지난 제번은 숨깁니다"><input type="checkbox" id="q_hideDone" onchange="search()"> 완료 숨김</label><span style="color:#6b7a86;font-size:11px">칸 색: <i class="sw late"></i>목표보다 늦음 <i class="sw early"></i>앞당김 · 행 더블클릭 → 상세</span></div></div></section><div class="gridbox"><table class="sheet" style="min-width:1860px">
 <thead>
  <tr><th rowspan="2" style="width:40px">NO</th><th rowspan="2" style="width:128px">관리제번</th><th rowspan="2" style="width:190px">도번 · 품명 · 품번</th><th rowspan="2" style="width:76px">제품형상</th><th rowspan="2" style="width:70px">제작<br>구분</th><th rowspan="2" style="width:46px">조수</th>
@@ -163,6 +172,15 @@ function fillBaseDL(){
  dl.innerHTML=[...mp.keys()].sort((a,b)=>b.localeCompare(a)).map(b=>{const g=mp.get(b);g.seqs.sort();
   return `<option value="${esc(b)}">${esc([seqRange(g.seqs),g.item].filter(Boolean).join(' · '))}</option>`}).join('');
 }
+/* v190: 고정 열 위치 — 실제 머리글 폭을 재서 left 를 맞춘다 */
+function freezeCols(){
+ const ths=[...document.querySelectorAll('.sheet thead tr:first-child th')].slice(0,4);if(ths.length<4)return;
+ const x0=ths[0].offsetLeft,L=ths.map(t=>t.offsetLeft-x0);
+ const set=(el,k)=>{el.style.left=L[k]+'px';el.classList.toggle('frz-last',k===3)};
+ ths.forEach(set);
+ document.querySelectorAll('.sheet tbody tr.g1').forEach(tr=>[...tr.children].slice(0,4).forEach(set));
+}
+window.addEventListener('resize',()=>{try{freezeCols()}catch(e){}});
 function render(){
  try{fillBaseDL()}catch(e){}
  body.innerHTML=view.length?view.map((r,i)=>{
@@ -186,7 +204,7 @@ function render(){
    +`<tr class="g3" data-i="${i}" ${on}>${evRow('가능일정','can',(k)=>pl['can_'+k+'_date'])}</tr>`;
  }).join('')
  :'<tr><td colspan="18" class="c" style="height:100px;color:#8a97a2">등록된 제작계획이 없습니다.</td></tr>';
- countText.textContent=`관리제번 ${view.length}건`;sel=-1;renderTotal();
+ countText.textContent=`관리제번 ${view.length}건`;try{freezeCols()}catch(e){}sel=-1;renderTotal();
 }
 function pick(i,tr){sel=i;document.querySelectorAll('#body tr').forEach(x=>x.classList.toggle('sel',Number(x.dataset.i)===i));}
 /* v169: 표 밖(다른 곳)을 클릭하면 행 선택 해제 */
