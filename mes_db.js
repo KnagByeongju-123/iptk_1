@@ -148,6 +148,8 @@ const table=name=>({
   upsert:(rows,onConflict)=>{const a=Array.isArray(rows)?rows:[rows];const keys=[];for(const r of a)for(const k in r)if(!keys.includes(k))keys.push(k);
     const norm=a.map(r=>{const o={};for(const k of keys)o[k]=(r[k]===undefined?null:r[k]);return o});
     return autoNotify(name,sendRows(name,`${name}${onConflict?'?on_conflict='+onConflict:''}`,norm,{'Prefer':'resolution=merge-duplicates,return=minimal'}))},
+  /* v171: 조건에 맞는 행만 PATCH (기본키가 아닌 열로 고칠 때 — upsert 의 on_conflict 제약 불필요) */
+  update:(match,patch)=>autoNotify(name,rest(`${name}?`+Object.entries(match).map(([k,v])=>`${k}=eq.${encodeURIComponent(v)}`).join('&'),{method:'PATCH',headers:{'Prefer':'return=minimal','Content-Type':'application/json'},body:JSON.stringify(patch)})),
   delete:(match)=>autoNotify(name,rest(`${name}?`+Object.entries(match).map(([k,v])=>`${k}=eq.${encodeURIComponent(v)}`).join('&'),{method:'DELETE',headers:{'Prefer':'return=minimal'}})),
   /* v39: identity 채번 컬럼을 DB에 맡기고 생성된 행을 돌려받는다.
      (화면에서 max+1 로 직접 채번하면 동시 저장 시 PK 가 충돌한다) */
