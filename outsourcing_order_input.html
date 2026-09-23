@@ -870,6 +870,10 @@ async function ctxOrderNow(){
    : rows.length>1
     ? `${f.part} 공정${f.sn}~${l.sn} ${rows.length}개 (${rows.map(x=>x.mpName).join(' → ')}) → ${f.vendor} 묶음 발주 (합계 ${_won(tot)}원, 입고요구 ${f.rdate||'-'}). 공정 리스트에 출고 표시.`
     : `${f.part} 공정${f.sn} ${f.mpName} → ${f.vendor} 발주 등록 (${_won(tot)}원, 입고요구 ${f.rdate||'-'}). 공정 리스트에 출고 표시.`);
+  /* v170: 발주서 메일 창 (PartList 그림 첨부) */
+  if(window.MESMAIL){try{const im=MESDB.partImages?await MESDB.partImages(f.job):{};
+   setTimeout(()=>MESMAIL.order({category:'외주가공',vendor:f.vendor,job:f.job,item:f.item||'',by:OWNER,
+    lines:rows.map(x=>({part:x.part,name:x.partName,proc:`공정${x.sn} ${x.mpName||x.mp||''}`,qty:x.qty,price:x.price,amt:x.amount,rdate:x.rdate||'',image_url:im[x.part]||''}))}),350)}catch(e){}}
  }catch(e){msg('발주 실패: '+String(e.message||e).slice(0,120));if(b){b.disabled=false;b.textContent=b0}}
 }
 
@@ -1036,6 +1040,7 @@ window.MESLOOK_RELOAD_VENDORS=async()=>{MESLOOK.invalidate('vendor_outsourcing')
  if(typeof renderRoutes==='function')renderRoutes();};
 </script>
 <script src="mes_price.js?v=162"></script>
+<script src="mes_mail.js?v=170"></script>
 <script src="mes_route_edit.js?v=168"></script>
 <script src="mes_vendorcheck.js?v=92"></script>
 <script>

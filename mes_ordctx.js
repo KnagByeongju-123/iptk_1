@@ -606,8 +606,12 @@ async function doOrder() {
       remark      : withCycleRemark((re ? `[재발주:${re}]` + (remark0 ? ' ' + remark0 : '') : (remark0 || null)), fresh ? CTX.cycleId : cycleIdFor(b.part)),
       reorder_reason: re || null
     }, ...extra.map(x => x.row)]);
+    /* v170: 발주서 메일 창 — 방금 발주한 라인 + PartList 그림 */
+    const mailLines = [{ part: b.part, name: b.name, mat: b.mat, spec: b.spec, qty, price, amt, rdate: _v('oxRdate') || '', image_url: b.image || '' },
+      ...extra.map(x => ({ part: x.b.part, name: x.b.name, mat: x.b.mat, spec: x.b.spec, qty: x.row.order_qty, price: x.row.unit_price, amt: x.row.quote_price, rdate: x.row.required_date || '', image_url: x.b.image || '' }))];
     await after(`${b.part} ${b.name || ''} → ${vendor} 발주 ${qty}개 등록 (${_won(amt)}원, 입고요구 ${_v('oxRdate') || '-'})`
       + (extra.length ? ` · 함께 발주 ${extra.length}개: ${extra.map(x => `${x.b.part} ${x.row.order_qty}개 ${_won(x.row.quote_price)}원`).join(', ')}` : ''));
+    offerMail({ category: CFG.category, vendor, job: job.job, item: job.item || '', lines: mailLines, by: OWNER });
   } catch (e) {
     say('발주 실패: ' + String(e.message || e).slice(0, 120));
     if (btn) { btn.disabled = false; btn.textContent = '▣ 즉시 발주'; }
@@ -844,6 +848,12 @@ async function doConfirmCancel() {
   } catch (e) { say('확정취소 실패: ' + String(e.message || e).slice(0, 120)); }
 }
 
+/* v170: 발주 직후 발주서 메일 창 (mes_mail.js 가 있을 때). 그림이 없으면 PartList 에서 다시 찾는다 */
+async function offerMail(o) {
+  if (!window.MESMAIL) return;
+  try { if (o.lines.some(l => !l.image_url) && MESDB.partImages) { const m = await MESDB.partImages(o.job); o.lines.forEach(l => { if (!l.image_url && m[l.part]) l.image_url = m[l.part]; }); } } catch (e) {}
+  setTimeout(() => { try { MESMAIL.order(o); } catch (e) {} }, 350);
+}
 /* ── 처리 후 공통 : 캐시 비우고 다시 그린다 ────────────────── */
 async function after(text) {
   try { MESDB.dropCache && MESDB.dropCache('order_lines'); } catch (e) {}
