@@ -74,9 +74,9 @@ table.sheet tbody tr.sel td,table.sheet tbody tr.sel th.rl{background:#d6e7f8!im
 table.sheet tbody tr.sel td.ev.late{background:#ffd34d!important}
 .sw{display:inline-block;width:10px;height:10px;border:1px solid #9aa7b1;vertical-align:-1px;margin:0 2px 0 4px}.sw.late{background:#ffe45c}.sw.early{background:#e6f6e6}
 .sheet small.wd{font-size:10px;color:#6b7a87;margin-left:1px}.sheet small.wd.sat{color:#1d5da3}.sheet small.wd.sun{color:#c0392b}
-</style></head><body><div class="screen"><div class="title"><h1>제작진행현황</h1><small>영업관리 · 제작계획</small></div><section class="filt"><div class="f2"><div class="lb">제번</div><div><input id="q_job" class="field" oninput="search()" placeholder="제번 일부 입력"></div><div class="lb">품번</div><div><input id="q_model" class="field" oninput="search()" placeholder="품번 입력/선택"></div><div></div><div style="display:flex;gap:12px;align-items:center;white-space:nowrap"><label style="display:flex;gap:4px;align-items:center" title="가능일정이 목표보다 늦은 제번만"><input type="checkbox" id="q_late" onchange="search()"> 지연만</label><label style="display:flex;gap:4px;align-items:center" title="완료 목표일이 지난 제번은 숨깁니다"><input type="checkbox" id="q_hideDone" onchange="search()"> 완료 숨김</label><span style="color:#6b7a86;font-size:11px">칸 색: <i class="sw late"></i>목표보다 늦음 <i class="sw early"></i>앞당김 · 행 더블클릭 → 상세</span></div></div></section><div class="gridbox"><table class="sheet" style="min-width:1860px">
+</style></head><body><div class="screen"><div class="title"><h1>제작진행현황</h1><small>영업관리 · 제작계획</small></div><section class="filt"><div class="f2"><div class="lb" title="관리제번 또는 공정 제번(A·B·C) 일부">관리제번</div><div><input id="q_job" class="field" oninput="search()" placeholder="관리제번 일부 입력"></div><div class="lb">품번</div><div><input id="q_model" class="field" oninput="search()" placeholder="품번 입력/선택"></div><div></div><div style="display:flex;gap:12px;align-items:center;white-space:nowrap"><label style="display:flex;gap:4px;align-items:center" title="가능일정이 목표보다 늦은 제번만"><input type="checkbox" id="q_late" onchange="search()"> 지연만</label><label style="display:flex;gap:4px;align-items:center" title="완료 목표일이 지난 제번은 숨깁니다"><input type="checkbox" id="q_hideDone" onchange="search()"> 완료 숨김</label><span style="color:#6b7a86;font-size:11px">칸 색: <i class="sw late"></i>목표보다 늦음 <i class="sw early"></i>앞당김 · 행 더블클릭 → 상세</span></div></div></section><div class="gridbox"><table class="sheet" style="min-width:1860px">
 <thead>
- <tr><th rowspan="2" style="width:40px">NO</th><th rowspan="2" style="width:112px">제작제번</th><th rowspan="2" style="width:190px">도번 · 품명 · 품번</th><th rowspan="2" style="width:76px">제품형상</th><th rowspan="2" style="width:70px">제작<br>구분</th><th rowspan="2" style="width:46px">조수</th>
+ <tr><th rowspan="2" style="width:40px">NO</th><th rowspan="2" style="width:128px">관리제번</th><th rowspan="2" style="width:190px">도번 · 품명 · 품번</th><th rowspan="2" style="width:76px">제품형상</th><th rowspan="2" style="width:70px">제작<br>구분</th><th rowspan="2" style="width:46px">조수</th>
   <th colspan="7" class="grp">금형제작 EVENT</th><th rowspan="2" style="width:300px">진척현황</th><th rowspan="2" style="width:210px">특기사항</th><th rowspan="2" style="width:100px">수주가</th><th rowspan="2" style="width:100px">목표가</th><th rowspan="2" style="width:56px">이익률</th></tr>
  <tr><th style="width:60px">구분</th><th style="width:66px">접수</th><th style="width:66px">설계</th><th style="width:66px">가공</th><th style="width:66px">조립</th><th style="width:66px">초품</th><th style="width:66px">완료</th></tr>
 </thead><tbody id="body"></tbody><tfoot><tr class="gtot"><td colspan="18" class="c" id="totline">조회 0건</td></tr></tfoot></table></div><footer class="foot"><button class="btn" onclick="detail()">⌕ 상세보기</button><button class="btn" onclick="search()">⌕ 검색</button><button class="btn" onclick="csv()">▤ EXCEL</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">행을 선택하고 상세보기를 누르면 계획등록 창이 열립니다.</span><span class="right" id="countText"></span></footer><div class="mask" id="mask" onmousedown="mask._d=(event.target===mask)" onclick="if(event.target===mask&&mask._d)closePlan()"><div class="dlg"><div class="dh"><span id="planTitle">제작계획</span><button onclick="closePlan()">×</button></div><div class="db" id="planBody"></div><div style="display:flex;justify-content:center;gap:10px;padding:8px"><button class="btn" onclick="editPlan()">▤ 수정</button><button class="btn" onclick="delPlan()">✕ 삭제</button><button class="btn" onclick="closePlan()">⊠ 닫기</button></div></div></div></div><script>
@@ -92,7 +92,7 @@ function renderTotal(){
   const src=(typeof view!=='undefined'&&view)||[];
   const sum=k=>src.reduce((a,r)=>a+(Number(r[k])||0),0);
   const el=document.getElementById('totline'); if(!el)return;
-  el.textContent = src.length ? `조회 ${src.length}건 · ` + ['수주가 '+money(sum('order_price')),'목표가 '+money(sum('target_price')),'가공 '+money(sum('machining_amount')),'조립 '+money(sum('assembly_amount')),'기타 '+money(sum('etc_amount'))].join(' / ') : '조회된 자료가 없습니다.';
+  el.textContent = src.length ? `관리제번 ${src.length}건 · ` + ['수주가 '+money(sum('order_price')),'목표가 '+money(sum('target_price')),'가공 '+money(sum('machining_amount')),'조립 '+money(sum('assembly_amount')),'기타 '+money(sum('etc_amount'))].join(' / ') : '조회된 자료가 없습니다.';
 }
 /* v68: 계획의 외주 체크(sales_plans)를 제번으로 찾아 사내/외주를 표시한다 */
 function planOf(job){return plans.find(x=>x.job_no===job)||null}
@@ -122,11 +122,31 @@ function notes(pl){
  if(pl.remark)a.push(String(pl.remark).split('\n')[0]);
  return `<div class="notes" title="${esc((pl.remark||''))}">${a.map(x=>`<div>${esc(x)}</div>`).join('')}</div>`;
 }
+/* ── v187: 관리제번 단위 표시 — 공정 제번(A·B·C…)을 한 줄로 묶는다.
+ *  제작계획은 관리제번으로 저장되어 공정마다 같은 일정이므로 계획이 있는 첫 공정의 계획을 보여주고,
+ *  수주가·목표가는 공정 합계, 이익률은 합계로 다시 계산한다. */
+const JSPL=j=>{const m=/^(.*\d)([A-Z])$/.exec(String(j||'').trim());return m?{base:m[1],seq:m[2]}:{base:String(j||'').trim(),seq:''}};
+function seqRange(q){q=q.filter(Boolean);if(!q.length)return '';const c=q.map(x=>x.charCodeAt(0));
+ const run=c.every((v,i)=>!i||v===c[i-1]+1);return q.length===1?`(${q[0]})`:run?`(${q[0]}~${q[q.length-1]})`:`(${q.join('·')})`}
+function groupView(list){
+ const mp=new Map();
+ list.forEach(r=>{const b=JSPL(r.job_no).base;let g=mp.get(b);if(!g){g=[];mp.set(b,g)}g.push(r)});
+ return [...mp.entries()].map(([b,rs])=>{
+  rs.sort((x,y)=>String(x.job_no).localeCompare(String(y.job_no)));
+  const rep=rs.find(r=>planOf(r.job_no))||rs[0];
+  const sum=k=>{const v=rs.reduce((a,r)=>a+(Number(r[k])||0),0);return v||null};
+  const op=sum('order_price'),tp=sum('target_price');
+  const seqs=rs.map(r=>JSPL(r.job_no).seq);
+  return {...rep,base:b,jobs:rs.map(r=>r.job_no),label:b+(seqs.some(Boolean)?' '+seqRange(seqs):''),
+   order_price:op,target_price:tp,profit_rate_pct:op?Math.round((op-(tp||0))/op*1000)/10:null,
+   machining_amount:sum('machining_amount'),assembly_amount:sum('assembly_amount'),etc_amount:sum('etc_amount')};
+ });
+}
 function render(){
  body.innerHTML=view.length?view.map((r,i)=>{
   const pl=planOf(r.job_no)||{},lt=lateOf(pl);
   const idCell=`<td rowspan="3" class="c">${i+1}</td>
-   <td rowspan="3"><b>${esc(r.job_no)}</b>${lt?`<div class="latebadge" title="가능일정이 목표보다 최대 ${lt}일 늦음">지연 +${lt}일</div>`:''}</td>
+   <td rowspan="3" title="${esc((r.jobs||[r.job_no]).join(', '))}"><b>${esc(r.base||r.job_no)}</b>${r.label&&r.label!==r.base?`<div style="color:#2a6191;font-weight:700">${esc(r.label.slice(r.base.length).trim())}</div>`:''}${lt?`<div class="latebadge" title="가능일정이 목표보다 최대 ${lt}일 늦음">지연 +${lt}일</div>`:''}</td>
    <td rowspan="3" class="idn"><div class="l1">${esc(pl.drawing_no||'')}</div><div class="l2">${esc(pl.product_name||r.item_name||'')}</div><div class="l3">${esc(pl.model||'')}</div>${pl.customer_contact?`<div class="l4">${esc(pl.customer_contact)}</div>`:''}${pl.material_spec||pl.size_spec?`<div class="l4">${esc([pl.material_spec,pl.size_spec].filter(Boolean).join(' · '))}</div>`:''}</td>
    <td rowspan="3" class="c">${pl.image_url?`<img class="thumb" src="${esc(pl.image_url)}" onclick="event.stopPropagation();window.open(this.src,'_blank')" title="클릭하면 크게">`:''}</td>
    <td rowspan="3" class="c">${esc(pl.make_type||'')}</td>
@@ -144,7 +164,7 @@ function render(){
    +`<tr class="g3" data-i="${i}" ${on}>${evRow('가능일정','can',(k)=>pl['can_'+k+'_date'])}</tr>`;
  }).join('')
  :'<tr><td colspan="18" class="c" style="height:100px;color:#8a97a2">등록된 제작계획이 없습니다.</td></tr>';
- countText.textContent=view.length+'건';sel=-1;renderTotal();
+ countText.textContent=`관리제번 ${view.length}건`;sel=-1;renderTotal();
 }
 function pick(i,tr){sel=i;document.querySelectorAll('#body tr').forEach(x=>x.classList.toggle('sel',Number(x.dataset.i)===i));}
 /* v169: 표 밖(다른 곳)을 클릭하면 행 선택 해제 */
@@ -152,21 +172,22 @@ document.addEventListener('mousedown',e=>{if(sel<0)return;if(e.target.closest('#
 function search(){const j=(q_job.value||'').trim().toLowerCase(),it=(q_model.value||'').trim().toLowerCase();
  const onlyLate=!!(document.getElementById('q_late')||{}).checked,hide=!!(document.getElementById('q_hideDone')||{}).checked,today=new Date().toLocaleDateString('sv-SE');
  view=data.filter(r=>{const pl=planOf(r.job_no);
-  if(j&&!String(r.job_no??'').toLowerCase().includes(j))return false;
+  if(j&&!String(r.job_no??'').toLowerCase().includes(j)&&!JSPL(r.job_no).base.toLowerCase().includes(j))return false;
   if(it&&!(String(r.item_name??'').toLowerCase().includes(it)||String(pl&&(pl.product_name||'')).toLowerCase().includes(it)||String(pl&&(pl.model||'')).toLowerCase().includes(it)))return false;
   if(onlyLate&&!lateOf(pl))return false;
   if(hide&&pl&&pl.delivery_planned_date&&pl.delivery_planned_date<today)return false;
   return true});
- sel=-1;render();msg(j||it?`조회결과 ${view.length}건입니다. (제번 "${q_job.value.trim()}"${it?` · 품번 "${q_model.value.trim()}"`:''})`:`전체 ${view.length}건입니다.`);}
+ view=groupView(view);
+ sel=-1;render();msg(j||it?`조회결과 관리제번 ${view.length}건입니다. (관리제번 "${q_job.value.trim()}"${it?` · 품번 "${q_model.value.trim()}"`:''})`:`전체 관리제번 ${view.length}건입니다.`);}
 function detail(){
  if(sel<0){msg('목록에서 행을 선택하세요.');return}
- const r=view[sel];const pl=plans.find(x=>x.job_no===r.job_no)||null;   /* v62: 다른 제번 폴백 제거 */
+ const r=view[sel];curGrp=r;const pl=plans.find(x=>x.job_no===r.job_no)||null;   /* v62: 다른 제번 폴백 제거 */
  openPlan(pl,r);}
 function fld(l,v,cls){return `<div class="k">${l}</div><div class="v${cls?' '+cls:''}">${esc(v??'')}</div>`}
 /* v68 상세 팝업 재작성: 기본정보 / 금액(이익금 포함) / 기간 / 구성비 4개 섹션 */
 function openPlan(pl,r){
  curJob=(pl&&pl.job_no)||(r&&r.job_no)||null;
- planTitle.textContent=`제작계획 - ${pl?pl.job_no:r.job_no}`;
+ planTitle.textContent=`제작계획 - ${(r&&r.label)||(pl?pl.job_no:r.job_no)}`;
  if(!pl){planBody.innerHTML='<div style="padding:24px;color:#8a97a2">해당 제번의 제작계획 상세가 없습니다. 제작계획등록에서 제번을 조회해 등록하세요.</div>';mask.classList.add('on');return}
  const A=[['설계 사내','design_internal_amount','design_internal_pct'],['설계 사외','design_external_amount','design_external_pct'],
   ['원재료','raw_material_amount','raw_material_pct'],['구매','purchase_amount','purchase_pct'],
@@ -189,7 +210,7 @@ function openPlan(pl,r){
  const logTbl=`<div class="sec"><div class="st">진척현황</div>${Array.isArray(LG)&&LG.length?`<div style="padding:6px 8px;font-size:11.5px;line-height:1.6">${LG.map(e=>`● <b style="color:#1d5da3">${esc(e.d)}</b> ${esc(e.t)}`).join('<br>')}</div>`:'<div style="padding:8px;color:#8a97a2">기록 없음</div>'}</div>`;
  planBody.innerHTML=
   `<div class="sec"><div class="st">기본정보</div><div class="kv mes-grid-fit">`
-  +fld('제번',pl.job_no)+fld('품명',pl.product_name)+fld('고객사',pl.customer_name)+fld('아이템',pl.item_name)
+  +fld('관리제번',(r&&r.label)||pl.job_no)+fld('품명',pl.product_name)+fld('고객사',pl.customer_name)+fld('아이템',pl.item_name)
   +fld('금형타입',pl.mold_type_name)+fld('품번',pl.model)+fld('공정(조)수',pl.process_set_qty)+fld('수주일',pl.order_date)
   +fld('T/O 예정일',pl.s1_planned_date)+fld('납기 예정일',pl.delivery_planned_date)
   +fld('도번',pl.drawing_no)+fld('제작구분',pl.make_type)+fld('재질·두께',pl.material_spec)+fld('사이즈',pl.size_spec)
@@ -206,13 +227,14 @@ function openPlan(pl,r){
   +`<tr><td class="c">구성비</td>`+A.map(a=>`<td class="num pct">${target?(N(pl[a[1]])/target*100).toFixed(1)+'%':''}</td>`).join('')+`</tr>`
   +`</tbody></table></div>`;
  mask.classList.add('on');}
-function closePlan(){mask.classList.remove('on')}
+function closePlan(){mask.classList.remove('on');curGrp=null}
 /* ── v46 수정/삭제 실동작 ────────────────────────────────
  * 수정: 제작계획등록 화면을 해당 제번으로 열어 편집 (부모 탭 전환)
  * 삭제: sales_plans + sales_plan_status_rows 에서 제거 */
-let curJob=null;
+let curJob=null,curGrp=null;
 function editPlan(){
- const job=curJob||(sel>=0?view[sel].job_no:null);
+ const g=curGrp||(sel>=0?view[sel]:null);
+ const job=(g&&g.base)||curJob;   /* v187: 관리제번으로 넘긴다 (등록 화면이 A~ 공정을 묶어 연다) */
  if(!job)return msg('수정할 계획을 선택하세요.');
  closePlan();
  try{
@@ -232,28 +254,32 @@ function editPlan(){
  msg('제작계획등록 화면에서 제번 '+job+' 을(를) 조회해 수정하세요.');
 }
 async function delPlan(){
- const job=curJob||(sel>=0?view[sel].job_no:null);
- if(!job)return msg('삭제할 계획을 선택하세요.');
- if(!confirm(`${job} 제작계획을 삭제할까요?\n(수주정보는 유지되고 계획 자료만 삭제됩니다)`))return;
+ const g=curGrp||(sel>=0?view[sel]:null);
+ const jobs=(g&&g.jobs)||(curJob?[curJob]:[]);const lab=(g&&g.label)||jobs[0];
+ if(!jobs.length)return msg('삭제할 계획을 선택하세요.');
+ if(!confirm(`${lab} 제작계획을 삭제할까요?\n(공정 제번 ${jobs.length}건: ${jobs.join(', ')})\n수주정보는 유지되고 계획 자료만 삭제됩니다.`))return;
  if(!(window.MESDB&&MESDB.online))return msg('DB 미연결 상태에서는 삭제할 수 없습니다.');
  try{
-  await MESDB.table('sales_plans').delete({job_no:job});
-  const rows=data.filter(r=>r.job_no===job);
-  for(const r of rows)await MESDB.table('sales_plan_status_rows').delete({row_no:Number(r.row_no)});
-  for(let i=data.length-1;i>=0;i--)if(data[i].job_no===job)data.splice(i,1);
-  for(let i=plans.length-1;i>=0;i--)if(plans[i].job_no===job)plans.splice(i,1);
-  closePlan();search();msg(`${job} 제작계획을 삭제했습니다.`);
+  for(const job of jobs){
+   await MESDB.table('sales_plans').delete({job_no:job});
+   const rows=data.filter(r=>r.job_no===job);
+   for(const r of rows)await MESDB.table('sales_plan_status_rows').delete({row_no:Number(r.row_no)});
+   for(let i=data.length-1;i>=0;i--)if(data[i].job_no===job)data.splice(i,1);
+   for(let i=plans.length-1;i>=0;i--)if(plans[i].job_no===job)plans.splice(i,1);
+  }
+  try{MESDB.notify&&MESDB.notify(['sales_plans','sales_plan_status_rows'])}catch(e){}
+  closePlan();search();msg(`${lab} 제작계획(${jobs.length}건)을 삭제했습니다.`);
  }catch(e){msg('삭제 실패: '+String(e.message||e).slice(0,140))}
 }
 
 function csv(){
  /* v167: 엑셀 시트와 같은 열 — 제번당 요구/목표/가능 3줄 */
- const h=['NO','제작제번','구분','도번','품명','품번','제작구분','조수','접수','설계','가공','조립','초품','완료','진척현황','설계처','제작처','양산처','특기사항','수주가','목표가','이익률'];
+ const h=['NO','관리제번','구분','도번','품명','품번','제작구분','조수','접수','설계','가공','조립','초품','완료','진척현황','설계처','제작처','양산처','특기사항','수주가','목표가','이익률'];
  const rows=[];
  view.forEach((r,i)=>{const pl=planOf(r.job_no)||{};
   let L=pl.progress_log;if(typeof L==='string'){try{L=JSON.parse(L)}catch(e){L=[]}}
   const log=(Array.isArray(L)?L:[]).map(e=>`${e.d} ${e.t}`).join(' | ');
-  const base=[i+1,r.job_no];
+  const base=[i+1,r.label||r.job_no];
   const id=[pl.drawing_no||'',pl.product_name||r.item_name||'',pl.model||'',pl.make_type||'',pl.process_set_qty??''];
   const tail=[log,pl.design_partner||'',pl.maker_name||'',pl.mass_vendor||'',pl.remark||'',r.order_price,r.target_price,r.profit_rate_pct];
   rows.push([...base,'요구',...id,...EV.map(([k])=>pl['req_'+k+'_date']||''),...tail]);
