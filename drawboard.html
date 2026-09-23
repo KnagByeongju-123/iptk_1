@@ -1,0 +1,63 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>부품 그림보드</title>
+<style>
+body{font-family:'Malgun Gothic','맑은 고딕',Arial,sans-serif;font-size:12px;color:#222;margin:0;background:#e9edf0}
+.wrap{display:flex;gap:10px;padding:10px;align-items:flex-start}
+.sheet{background:#fff;width:277mm;min-height:190mm;box-shadow:0 2px 10px rgba(0,0,0,.2);padding:8mm 10mm;box-sizing:border-box;flex:0 0 auto}
+.side{flex:1 1 260px;min-width:240px;background:#f7f9fb;border:1px solid #cfd8df;border-radius:4px;padding:10px;position:sticky;top:10px}
+.side h3{margin:0 0 6px;font-size:13px;color:#2f5f8a}
+.side .hint{font-size:11px;color:#6b7a86;margin-bottom:8px;line-height:1.45}
+.pbtn{display:flex;align-items:center;gap:8px;width:100%;margin:0 0 5px;padding:6px 9px;border:1px solid #9fb0bf;background:linear-gradient(#fff,#e9eef2);cursor:pointer;font:inherit;font-size:12.5px;text-align:left;border-radius:3px}
+.pbtn:hover{background:#fff}
+.pbtn.on{border-color:#2f75b5;background:#e3eef8}
+.pbtn .n{display:inline-block;min-width:18px;height:18px;line-height:18px;border-radius:9px;background:#c5ced6;color:#fff;font-weight:700;text-align:center;font-size:11px}
+.pbtn.on .n{background:#2f75b5}
+.pbtn .k{font-weight:700;color:#20456b}
+.pbtn .v{margin-left:auto;font-size:11px;color:#7c8993;white-space:nowrap}
+.pbtn .h{font-size:10.5px;color:#8a6d3b;border:1px solid #d9c9a5;background:#fbf4e3;padding:0 4px;border-radius:2px}
+.tools{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.tools button{height:28px;padding:0 10px;border:1px solid #8b9ba9;background:linear-gradient(#fff,#e9eef2);cursor:pointer;font:inherit;border-radius:3px}
+.tools button.go{font-weight:700;color:#fff;border-color:#2a5d95;background:linear-gradient(#4a8ad0,#2f6fb0)}
+h1{font-size:18px;margin:0 0 6px;letter-spacing:3px;text-align:center}
+.meta{display:grid;grid-template-columns:auto 1fr auto 1fr auto 1fr;gap:3px 8px;font-size:12px;border:1px solid #444;padding:5px 8px;margin-bottom:6px}
+.meta b{color:#000;white-space:nowrap}
+.strip{border:2px solid #333;padding:6px 8px;min-height:44px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:6px;background:#fff}
+.strip .lab{font-weight:700;font-size:12.5px;margin-right:4px;white-space:nowrap}
+.strip .empty{color:#999;font-size:11.5px}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1.5px solid #2f5f8a;border-radius:4px;padding:3px 8px;font-size:13px;font-weight:700;color:#1d3f63;background:#f3f8fd;cursor:pointer}
+.chip .n{display:inline-block;min-width:20px;height:20px;line-height:20px;border-radius:10px;background:#2f5f8a;color:#fff;text-align:center;font-size:12px}
+.chip small{font-weight:400;color:#5c6b76;font-size:11px}
+.chip.house{border-color:#8a6d3b;color:#5a4400;background:#fbf4e3}.chip.house .n{background:#8a6d3b}
+.arrow{color:#888;font-size:14px}
+.fig{border:1px solid #999;background:#fff;height:150mm;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.fig img{max-width:100%;max-height:100%;object-fit:contain}
+.fig .none{color:#999;border:1px dashed #bbb;padding:40px 60px}
+.foot{display:flex;justify-content:space-between;margin-top:6px;font-size:11px;color:#555}
+.note{margin-top:6px;border:1px solid #444;padding:4px 8px;min-height:30px;font-size:12px}
+.note[contenteditable]:empty:before{content:'비고 (클릭해 입력)';color:#aaa}
+@page{size:A4 landscape;margin:8mm}
+@media print{body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}.wrap{padding:0;display:block}.sheet{box-shadow:none;width:auto;min-height:0;padding:0}.side{display:none}.chip{cursor:default}.note:empty{display:none}.fig{height:128mm}h1{font-size:16px;margin-bottom:4px}.foot{page-break-inside:avoid}}
+@media(max-width:1100px){.wrap{flex-wrap:wrap}.sheet{width:100%}.side{position:static}}
+</style></head><body>
+<div class="wrap">
+ <div class="sheet" id="sheet">
+  <h1>가공 공정 도면</h1>
+  <div class="meta" id="meta"></div>
+  <div class="strip" id="strip"></div>
+  <div class="fig" id="fig"></div>
+  <div class="note" id="note" contenteditable="true"></div>
+  <div class="foot"><span id="footL"></span><span>IPTK MES · 사내외가공 발주</span></div>
+ </div>
+ <div class="side">
+  <h3 id="sideTitle">가공공정</h3>
+  <div class="hint">누르는 순서대로 도면 위 띠에 번호가 붙습니다. 다시 누르면 빠집니다. 띠의 공정을 눌러도 뺄 수 있습니다.</div>
+  <div id="btns"></div>
+  <div class="tools">
+   <button id="bAll" title="가공계획 순서 그대로 전부 넣습니다">▶ 전체 순서대로</button>
+   <button id="bClr">지우기</button>
+   <button class="go" id="bPrint" title="인쇄창에서 대상을 「PDF로 저장」으로 고르면 PDF 파일로 저장됩니다">🖨 인쇄 / PDF 저장</button>
+   <button id="bClose">닫기</button>
+  </div>
+ </div>
+</div>
+<script src="drawboard.js?v=204"></script>
+</body></html>
