@@ -547,8 +547,10 @@ function ctxDragInit(){
  });
  head.addEventListener('pointermove',e=>{
   if(!d||(e.pointerId!=null&&e.pointerId!==d.id))return;
-  const x=Math.max(4,Math.min(window.innerWidth-d.w-4,d.l+e.clientX-d.x));
-  const y=Math.max(4,Math.min(window.innerHeight-d.h-4,d.t+e.clientY-d.y));
+  /* v168: 창 전체를 화면 안에 가두지 않는다 — 머리글 한 조각(60px)만 남으면 어디로든 밀어 둘 수 있다 */
+  const KEEP=60;
+  const x=Math.max(KEEP-d.w,Math.min(window.innerWidth-KEEP,d.l+e.clientX-d.x));
+  const y=Math.max(0,Math.min(window.innerHeight-36,d.t+e.clientY-d.y));
   pop.style.right='auto';pop.style.bottom='auto';pop.style.left=x+'px';pop.style.top=y+'px';e.preventDefault();
  });
  const stop=e=>{if(!d||(e.pointerId!=null&&e.pointerId!==d.id))return;try{head.releasePointerCapture(d.id)}catch(x){}d=null};
@@ -1021,7 +1023,7 @@ window.MESLOOK_RELOAD_VENDORS=async()=>{MESLOOK.invalidate('vendor_outsourcing')
  if(typeof renderRoutes==='function')renderRoutes();};
 </script>
 <script src="mes_price.js?v=162"></script>
-<script src="mes_route_edit.js?v=162"></script>
+<script src="mes_route_edit.js?v=168"></script>
 <script src="mes_vendorcheck.js?v=92"></script>
 <script>
 function sampleFill(){

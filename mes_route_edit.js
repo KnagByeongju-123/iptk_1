@@ -77,6 +77,11 @@ const autoName = steps => { const nm = steps.map(x => pn(x.code)); return nm.len
 /* ── 편집 상태 ────────────────────────────────────────────── */
 let E = null;   /* {ri, r, steps:[{code,house,lock,st}], stdNo} */
 
+/* v168: 목록에서 체크된 부품 index 목록 (사내외가공 발주 화면의 부품 체크박스) */
+function checkedRoutes() {
+  try { return [...document.querySelectorAll('#routeBody input[type=checkbox][data-i]:checked')].map(c => Number(c.dataset.i)).filter(i => ROUTES[i]); }
+  catch (e) { return []; }
+}
 function open(ev, ri) {
   const r = ROUTES[ri]; if (!r) return false;
   const j = jobView[jobIdx] || {};
@@ -106,7 +111,8 @@ function body() {
    <div class="note" id="rtNote"></div>`;
 }
 function foot() {
-  return `<button class="btn go" type="button" onclick="MESROUTE.savePlan()" title="이 부품의 공정을 가공계획에 저장하여 적용합니다. 기준공정 칸에 직접 입력한 이름도 함께 저장됩니다.">▣ 가공계획 적용</button>
+  const nOther = checkedRoutes().filter(i => !E || i !== E.ri).length;
+  return `<button class="btn go" type="button" onclick="MESROUTE.savePlan()" title="이 부품의 공정을 가공계획에 저장하여 적용합니다.${nOther ? ' 목록에서 체크한 부품 ' + nOther + '개에도 같은 공정이 적용됩니다 (발주 진행 중인 부품은 제외).' : ''} 기준공정 칸에 직접 입력한 이름도 함께 저장됩니다.">▣ 가공계획 적용${nOther ? ` (+체크 ${nOther}개)` : ''}</button>
    <button class="btn" type="button" onclick="MESROUTE.saveStd()" title="지금 공정 구성을 기준공정으로 저장합니다. 새 이름을 직접 입력하면 다른 이름으로 신규 저장됩니다.">기준공정 저장</button>
    <button class="btn" type="button" onclick="MESROUTE.newOrder()" style="color:#a04000;font-weight:700" title="기존 발주·입고 이력은 그대로 남기고, 새 가공 차수로 첫 외주공정부터 다시 발주합니다.">↻ 신규발주</button>
    <button class="btn" type="button" onclick="ctxClose()">닫기</button>`;
@@ -260,11 +266,38 @@ async function savePlan() {
       say('공정은 저장됐지만 사내 체크가 저장되지 않았습니다 — DB(machining_plan_parts)에 inhouse 컬럼이 없습니다. 관리자에게 sql_v161_inhouse.sql 실행을 요청하세요.');
       try { (window.MESPOP || window.parent?.MESPOP)?.warn?.('사내 체크가 DB 에 저장되지 않았습니다 (inhouse 컬럼 없음)', '가공계획 적용'); } catch (e) {}
     }
+    /* v168: 목록에서 체크한 다른 부품에도 같은 공정을 한 번에 적용한다.
+       이미 발주가 진행된 부품은 건드리지 않고 건너뛴다. */
+    const others = checkedRoutes().filter(i => i !== E.ri);
+    let applied = 0, skipped = [];
+    if (others.length) {
+      for (const oi of others) {
+        const o = ROUTES[oi]; if (!o) continue;
+        const started = (o.steps || []).some((s, i) => !isHouse(o, i) && stepState(o, i));
+        if (started) { skipped.push(o.part); continue; }
+        try {
+          const ojo = String(o.jo || job.proc || jo);
+          const orow = { ...base, process_code: ojo, part_no: o.part, part_name: o.name || null, qty: (o.qty != null ? Number(o.qty) : 1) };
+          let orn = (o.row_no != null) ? Number(o.row_no) : null;
+          if (orn == null) {
+            const h = await MESDB.table('machining_plan_parts').select(
+              `select=row_no&job_no=eq.${encodeURIComponent(job.job)}&process_code=eq.${encodeURIComponent(ojo)}`
+              + `&part_no=eq.${encodeURIComponent(o.part)}&limit=1`, { fresh: true }).catch(() => []);
+            if (h && h.length) orn = Number(h[0].row_no);
+          }
+          if (orn != null) await MESDB.table('machining_plan_parts').upsert([{ row_no: orn, ...orow }], 'row_no');
+          else await MESDB.table('machining_plan_parts').upsert([orow]);
+          applied++;
+        } catch (e) { skipped.push(o.part + '(실패)'); }
+      }
+    }
     try { MESDB.dropCache && ['machining_plan_parts', 'machining_plans'].forEach(t => MESDB.dropCache(t)); } catch (e) {}
     try { MESDB.notify && MESDB.notify(['machining_plan_parts', 'machining_plans']); } catch (e) {}
     ctxClose();
     await loadRoutes();
-    const txt = `${r.part} 가공계획 적용 — 기준공정 ${planStdName || '-'} · 공정 ${steps.length}개 (${steps.map(x => pn(x.code) + (x.house ? '[사내]' : '')).join(' → ')})`;
+    const txt = `${r.part} 가공계획 적용 — 기준공정 ${planStdName || '-'} · 공정 ${steps.length}개 (${steps.map(x => pn(x.code) + (x.house ? '[사내]' : '')).join(' → ')})`
+      + (applied ? ` · 체크한 부품 ${applied}개에도 적용` : '')
+      + (skipped.length ? ` · 건너뜀 ${skipped.length}개 (발주 진행 중: ${skipped.slice(0, 4).join(', ')}${skipped.length > 4 ? ' …' : ''})` : '');
     say(txt); try { (window.MESPOP || window.parent?.MESPOP)?.ok(txt, '가공계획 적용'); } catch (e) {}
   } catch (e) { say('가공계획 적용 실패: ' + String(e.message || e).slice(0, 140)); }
 }
