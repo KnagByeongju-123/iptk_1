@@ -193,7 +193,7 @@ function applyFilter(){const j=jobQ.value.trim().toLowerCase(),md=modelQ.value.t
 /* [⌕ 조회] — DB에서 제번을 다시 읽은 뒤 거른다 */
 function search(){applyFilter();
  if(typeof loadJobs==='function'){try{loadJobs(true)}catch(e){}}}
-async function pushDown(){const j=jobView[jobIdx];if(!j)return;const picks=[...bomBody.querySelectorAll('input:checked')].map(x=>j.bom[Number(x.dataset.i)]);if(!picks.length)return msg('자재표에서 발주할 품번을 선택하세요.');const vens=pickedVendors();
+async function pushDown(){const j=jobView[jobIdx];if(!j)return;const picks=[...bomBody.querySelectorAll('input:checked')].map(x=>j.bom[Number(x.dataset.i)]).filter(b=>!(b.oq>0&&!(b.rem>0)));if(!picks.length)return msg('자재표에서 발주할 품번을 선택하세요. (발주완료 품번은 제외됩니다)');const vens=pickedVendors();
  if(!vens.length)return msg('협력업체리스트에서 발주할 업체를 선택하세요.');
  const d=reqDate.value||new Date().toISOString().slice(0,10);
  const combos=[];for(const v of vens)for(const b of picks)combos.push({v,b});
@@ -410,7 +410,7 @@ function decorateBom(){
    const ref=tr.cells[tr.cells.length-1];tr.insertBefore(td,ref)}
   {const rq=(OQ_JOB===j.job?RQ[b.part]:0)||0;const td=tr.querySelector('td.oq');td.textContent=oq?oq:'';if(rq){const e=document.createElement('span');e.className='rq';e.textContent=' +재'+rq;e.title='재발주(실수·불량·예비품 등) 수량 — 자재표 수량 집계에서 제외';td.appendChild(e)}}
   const full=q>0&&oq>=q;
-  cb.checked=false;cb.disabled=full;tr.classList.toggle('bom-done',full);
+  cb.checked=false;cb.disabled=false;tr.classList.toggle('bom-done',full);   /* v169: 발주완료 품번도 체크 가능 (일괄 입고·입고확정용) */
   tr.title=full?`발주완료 — 수량 ${q} / 발주 ${oq}`:(oq?`부분발주 — 잔량 ${q-oq}`:'');
   tr.classList.toggle('bom-part',!full&&oq>0);
  });
@@ -421,7 +421,7 @@ function decorateBom(){
  const _lb=window.loadBom;window.loadBom=async function(){const r=await _lb.apply(this,arguments);const j=jobView[jobIdx];if(j){await loadOrdQ(j.job);window.renderBom()}return r};
  const _sv=window.save;window.save=async function(){const r=await _sv.apply(this,arguments);try{const j=jobView[jobIdx];if(j){await loadOrdQ(j.job);window.renderBom()}}catch(e){}return r};
  if(window.MES){if(MES.save)MES.save=window.save}
- const st=document.createElement('style');st.textContent='#bomBody tr.bom-done td{color:#b4bcc3!important}#bomBody tr.bom-done input{cursor:not-allowed;opacity:.45}#bomBody tr.bom-part td.oq{color:#c77700;font-weight:700}';
+ const st=document.createElement('style');st.textContent='#bomBody tr.bom-done td{color:#b4bcc3!important}#bomBody tr.bom-part td.oq{color:#c77700;font-weight:700}';
  document.head.appendChild(st);
  try{window.renderBom()}catch(e){}
  /* 첫 조회가 이 스크립트보다 먼저 끝났을 수 있으므로 한 번 더 발주수량을 읽는다 */
@@ -475,7 +475,7 @@ try{MESJOB.attach("jobQ",{onPick:()=>{try{onJobPick()}catch(e){}}})}catch(e){}
  modelQ.addEventListener(ev,()=>{try{onModelPick()}catch(e){}});
 });
 </script>
-<script src="mes_ordctx.js?v=162"></script>
+<script src="mes_ordctx.js?v=169"></script>
 <script>/* v142: 자재표 리스트 우클릭 → 발주 · 입고 · 입고확정 · 취소 (외주가공 발주와 같은 방식) */
 try{MESORDCTX.init({category:'구매품',useWeight:false,bySize:false,priceKey:b=>b.mat||b.part})}catch(e){}
 </script>

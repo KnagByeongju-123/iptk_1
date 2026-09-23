@@ -130,6 +130,24 @@ function ordered(p) {
     .reduce((s, r) => s + (Number(r.order_qty) || 0), 0);
 }
 function remain(b) { return Math.max(0, (Number(b.qty) || 0) - ordered(b.part)); }
+/* v169: 자재표에서 체크된(활성) 품번 목록 */
+function checkedBoms() {
+  const j = curJob(); if (!j || !j.bom) return [];
+  const tb = $('bomBody'); if (!tb) return [];
+  return [...tb.querySelectorAll('input[type=checkbox][data-i]:checked:not(:disabled)')]
+    .map(cb => ({ i: Number(cb.dataset.i), b: j.bom[Number(cb.dataset.i)] })).filter(x => x.b);
+}
+/* 일괄 대상 : 상태별로 걸러 {b, lines} 로 */
+function batchFor(status) {
+  const bt = (CTX && CTX.batch) || [];
+  return bt.map(x => {
+    const ls = linesOf(x.b.part).filter(l => !status || String(l.status || '') === status);
+    return { b: x.b, lines: ls };
+  });
+}
+const batchNote = (n, what, skip) => n
+  ? `<div class="note" style="border-color:#7fb07f;background:#eef8ee;color:#245c24"><b>☑ 체크한 ${n}개 품번에 함께 ${what}</b>${skip && skip.length ? ` · 제외 ${skip.length}개 (${_esc(skip.slice(0, 6).join(', '))}${skip.length > 6 ? ' …' : ''})` : ''}</div>`
+  : '';
 
 /* ── 스타일 · 팝업 DOM (한 번만 주입) ──────────────────────── */
 function ensureUI() {
@@ -289,6 +307,8 @@ function openPart(ev, idx) {
   const b = (j.bom || [])[idx]; if (!b) return false;
   if (LINES_JOB !== j.job) { say('발주 내역을 불러오는 중입니다. 잠시 후 다시 시도하세요.'); loadLines(j.job).then(refresh); return false; }
   CTX = { b, i: idx, job: j };
+  /* v169: 체크한 다른 품번도 함께 처리 (가공계획 적용과 같은 방식) — 우클릭한 줄 + 체크된 줄 */
+  CTX.batch = checkedBoms().filter(x => x.i !== idx);
   const a = linesOf(b.part);
   if (!a.length) return formOrder(ev);
   if (a.length === 1) return formLine(ev, a[0]);
@@ -385,9 +405,11 @@ function formOrder(ev) {
     <label>비고</label><input id="oxRemark" placeholder="선택">
    </div>
    ${(CTX && CTX.newCycle) ? `<div class="note" style="border-color:#e5ad62;background:#fff7ea;color:#8a4f08"><b>신규발주</b> — 기존 이력은 이전 차수로 그대로 남고, 이 발주부터 소요수량 전체를 기준으로 새 차수가 시작됩니다.</div>` : ''}
+   ${(() => { const bt = (CTX.newCycle ? [] : batchFor()); const ok = bt.filter(x => remain(x.b) > 0), skip = bt.filter(x => !(remain(x.b) > 0)).map(x => x.b.part);
+      CTX.batchOrder = ok; return batchNote(ok.length, '발주 (수량은 각 잔량 · 단가는 업체별 자동조회)', skip); })()}
    <div class="note" id="oxNote">업체를 고르면 단가변동등록에서 발주일 기준 단가를 자동 조회합니다. 이력이 없으면 직접 입력하세요.</div>
    ${CFG.useWeight ? '<div class="note">중량(kg)은 설계치수로 자동 계산되지만 <b>직접 입력</b>할 수 있습니다. 손으로 넣은 중량은 노랗게 표시되며 발주금액(단가×중량)에 그대로 쓰입니다. [자동]을 누르면 계산값으로 돌아갑니다.</div>' : ''}`,
-   [{ t: '▣ 즉시 발주', cls: 'go k-order', id: 'oxGo', fn: doOrder },
+   [{ t: '▣ 즉시 발주' + ((CTX.batchOrder || []).length ? ` (+${CTX.batchOrder.length}개)` : ''), cls: 'go k-order', id: 'oxGo', fn: doOrder },
     { t: '닫기', fn: close }]);
   $('oxVendor').onchange = autoPrice;
   $('oxOdate').onchange  = autoPrice;
@@ -480,6 +502,33 @@ async function doOrder() {
   try { if (window.MESVCHK && MESVCHK.gate && !(await MESVCHK.gate([vendor]))) return say('협력업체 적격성 확인에서 중단했습니다.'); } catch (e) {}
 
   const btn = $('oxGo'); if (btn) { btn.disabled = true; btn.textContent = '등록 중…'; }
+  /* v169: 체크한 품번들 — 수량은 각 잔량, 중량은 각 설계치수, 단가는 업체별 자동조회(없고 재질이 같으면 입력 단가) */
+  const extra = [], noPrice = [];
+  for (const x of (fresh ? [] : (CTX.batchOrder || []))) {
+    const eb = x.b, eq = Math.max(1, remain(eb) || Number(eb.qty) || 1);
+    let ep = 0;
+    try { if (window.MESPRICE) { const opt = { asOf: _v('oxOdate') || T0() };
+      if (CFG.bySize) { const th = Number(String(eb.spec || '').split(/[*xX×]/)[0]); if (th > 0) opt.size = th; }
+      const hit = await MESPRICE.material(CFG.priceKey(eb), vendor, opt); if (hit && hit.price) ep = _n(hit.price); } } catch (e) {}
+    if (!ep && price && CFG.priceKey(eb) === CFG.priceKey(b)) ep = price;
+    if (!ep) noPrice.push(eb.part);
+    const ekg = CFG.useWeight ? Math.round(autoKg(eb.spec, eq) * 100) / 100 : 0;
+    const eamt = Math.round(ep * (ekg || eq));
+    extra.push({ b: eb, row: {
+      category: CFG.category, status: '발주',
+      vendor_name: vendor, job_no: job.job, item_name: job.item || null,
+      process_code: eb.procCode || job.proc || null,
+      part_no: eb.part, part_name: eb.name || null,
+      material: eb.mat || null, spec: eb.spec || null,
+      order_qty: eq, order_weight: ekg || null,
+      unit_price: ep || null, quote_price: eamt || null, confirm_price: eamt || null,
+      order_date: _v('oxOdate') || T0(), required_date: _v('oxRdate') || null,
+      owner_name: OWNER,
+      remark: withCycleRemark((re ? `[재발주:${re}]` + (remark0 ? ' ' + remark0 : '') : (remark0 || null)), cycleIdFor(eb.part)),
+      reorder_reason: re || null } });
+  }
+  if (noPrice.length && !confirm(`단가 이력이 없어 0원으로 발주되는 품번이 있습니다:\n${noPrice.join(', ')}\n\n(발주 뒤 입고 창에서 입고단가를 넣을 수 있습니다) 계속할까요?`)) {
+    if (btn) { btn.disabled = false; btn.textContent = '▣ 즉시 발주'; } return say('발주를 취소했습니다.'); }
   try {
     await MESDB.newLines([{
       category: CFG.category, status: '발주',
@@ -497,8 +546,9 @@ async function doOrder() {
       owner_name  : OWNER,
       remark      : withCycleRemark((re ? `[재발주:${re}]` + (remark0 ? ' ' + remark0 : '') : (remark0 || null)), fresh ? CTX.cycleId : cycleIdFor(b.part)),
       reorder_reason: re || null
-    }]);
-    await after(`${b.part} ${b.name || ''} → ${vendor} 발주 ${qty}개 등록 (${_won(amt)}원, 입고요구 ${_v('oxRdate') || '-'})`);
+    }, ...extra.map(x => x.row)]);
+    await after(`${b.part} ${b.name || ''} → ${vendor} 발주 ${qty}개 등록 (${_won(amt)}원, 입고요구 ${_v('oxRdate') || '-'})`
+      + (extra.length ? ` · 함께 발주 ${extra.length}개: ${extra.map(x => `${x.b.part} ${x.row.order_qty}개 ${_won(x.row.quote_price)}원`).join(', ')}` : ''));
   } catch (e) {
     say('발주 실패: ' + String(e.message || e).slice(0, 120));
     if (btn) { btn.disabled = false; btn.textContent = '▣ 즉시 발주'; }
@@ -506,6 +556,8 @@ async function doOrder() {
 }
 
 /* ── ② 입고 ────────────────────────────────────────────────── */
+const bN = () => ((CTX && CTX.batchIn) || []).reduce((n, x) => n + x.lines.length, 0);
+const cN = () => ((CTX && CTX.batchCfm) || []).reduce((n, x) => n + x.lines.length, 0);
 function formReceive(ev, l) {
   const { b } = CTX; CTX.line = l;
   const ord = Number(l.order_qty) || 0, got = Number(l.receipt_qty) || 0;
@@ -529,10 +581,12 @@ function formReceive(ev, l) {
     <label>입고금액</label><input id="oxInAmt" class="r" readonly>
     <label>비고</label><input id="oxInRemark" class="full" placeholder="선택" value="${_esc(cleanCycleRemark(l.remark))}">
    </div>
+   ${(() => { const bt = batchFor('발주'); const ok = bt.filter(x => x.lines.length), skip = bt.filter(x => !x.lines.length).map(x => x.b.part);
+      CTX.batchIn = ok; return batchNote(ok.reduce((n, x) => n + x.lines.length, 0), '입고 (수량은 각 발주 잔량 · 단가는 각 발주단가 · 입고일은 이 창의 날짜)', skip); })()}
    <div class="note"><b>입고 처리</b>는 「입고」까지만, <b>입고+확정</b>은 매입가 그대로(네고 0%) 입고확정까지 한 번에 끝냅니다. 네고가 필요하면 입고 처리 뒤 다시 우클릭하세요.</div>
    ${CFG.useWeight ? '<div class="note">중량(kg)은 발주 중량을 입고수량만큼 환산해 채웁니다. <b>실측 중량으로 직접 고칠 수 있고</b>, 고친 값이 입고금액(단가×중량)에 쓰입니다.</div>' : ''}`,
-   [{ t: '▣ 입고 처리', cls: 'go k-in', id: 'oxGo', fn: () => doReceive(false) },
-    { t: '▣ 입고+확정', cls: 'go', id: 'oxGo2', title: '입고 처리와 입고확정(매입가 그대로, 네고 0%)을 한 번에 끝냅니다', fn: () => doReceive(true) },
+   [{ t: '▣ 입고 처리' + (bN() ? ` (+${bN()}건)` : ''), cls: 'go k-in', id: 'oxGo', fn: () => doReceive(false) },
+    { t: '▣ 입고+확정' + (bN() ? ` (+${bN()}건)` : ''), cls: 'go', id: 'oxGo2', title: '입고 처리와 입고확정(매입가 그대로, 네고 0%)을 한 번에 끝냅니다', fn: () => doReceive(true) },
     { t: '＋ 추가 발주', cls: 'go k-order', title: '같은 품번을 다른 업체에 나눠 발주하거나 재발주합니다', fn: e => formOrder(e) },
     { t: '↻ 신규발주', cls: 'warn', title: '기존 이력을 남기고 새 발주차수를 시작합니다. 현재 차수가 미완료면 안내 후 실행되지 않습니다.', fn: e => startNewCycle(e) },
     { t: '✖ 발주취소', cls: 'warn', title: '이 발주 라인을 삭제합니다', fn: doOrderCancel },
@@ -587,10 +641,24 @@ async function doReceive(withConfirm) {
     };
     /* v152: 입고+확정 — 매입가(입고금액) 그대로 확정, 네고 0%. 네고가 필요하면 [입고 처리] 뒤 다시 우클릭 */
     if (withConfirm) { row.status = '입고확정'; row.confirm_date = row.receipt_date; row.confirm_price = amt || _n(l.quote_price) || null; row.nego_rate = 0; }
-    await MESDB.table('order_lines').upsert([row], 'line_id');
+    /* v169: 체크한 품번의 발주 라인도 같은 날짜로 입고 — 수량은 각 잔량, 단가·중량은 각 발주값 */
+    const rows = [row], done = [];
+    for (const x of (CTX.batchIn || [])) for (const el of x.lines) {
+      if (Number(el.line_id) === Number(l.line_id)) continue;
+      const eo = Number(el.order_qty) || 0, eg = Number(el.receipt_qty) || 0, eq = Math.max(eo - eg, 0) || eo || 1;
+      const ep = _n(el.unit_price), ow = Number(el.order_weight) || 0;
+      const ew = CFG.useWeight ? Math.round(((ow && eo) ? ow / eo * eq : autoKg(x.b.spec, eq)) * 100) / 100 : 0;
+      const ea = Math.round(ep * (ew || eq));
+      const r2 = { line_id: Number(el.line_id), status: '입고', receipt_qty: eq, receipt_date: row.receipt_date,
+        receipt_weight: ew || null, unit_price: ep || null, receipt_amount: ea || null, updated_at: row.updated_at };
+      if (withConfirm) { r2.status = '입고확정'; r2.confirm_date = row.receipt_date; r2.confirm_price = ea || _n(el.quote_price) || null; r2.nego_rate = 0; }
+      rows.push(r2); done.push(`${x.b.part} ${eq}개`);
+    }
+    await MESDB.table('order_lines').upsert(rows, 'line_id');
+    const more = done.length ? ` · 함께 ${withConfirm ? '입고확정' : '입고'} ${done.length}건: ${done.join(', ')}` : '';
     await after(withConfirm
-      ? `${b.part} ${l.vendor_name || ''} 입고 ${q}개 + 입고확정 (확정가 ${_won(row.confirm_price)}원, 네고 0%) — 제조원가에 반영됩니다.`
-      : `${b.part} ${l.vendor_name || ''} 입고 ${q}개 처리 — 입고확정(네고·확정가)은 다시 우클릭하세요.`);
+      ? `${b.part} ${l.vendor_name || ''} 입고 ${q}개 + 입고확정 (확정가 ${_won(row.confirm_price)}원, 네고 0%) — 제조원가에 반영됩니다.` + more
+      : `${b.part} ${l.vendor_name || ''} 입고 ${q}개 처리 — 입고확정(네고·확정가)은 다시 우클릭하세요.` + more);
   } catch (e) {
     say('입고 실패: ' + String(e.message || e).slice(0, 120));
     if (btn) { btn.disabled = false; btn.textContent = b0; }
@@ -624,8 +692,10 @@ function formConfirm(ev, l) {
     <label>네고율(%)</label><input id="oxRate" class="r" value="${quote ? ((1 - fix / quote) * 100).toFixed(1) : '0'}" inputmode="decimal">
     <label>확정가</label><input id="oxFix" class="r" value="${_won(fix)}" inputmode="numeric">
    </div>
+   ${(() => { const bt = batchFor('입고'); const ok = bt.filter(x => x.lines.length), skip = bt.filter(x => !x.lines.length).map(x => x.b.part);
+      CTX.batchCfm = ok; return batchNote(ok.reduce((n, x) => n + x.lines.length, 0), '입고확정 (이 창의 확정일·네고율을 각 매입가에 적용)', skip); })()}
    <div class="note">확정가가 제조원가(${CFG.category}비)에 반영됩니다. 네고율을 넣으면 확정가가, 확정가를 고치면 네고율이 맞춰집니다.</div>`,
-   [{ t: '▣ 입고확정', cls: 'go', id: 'oxGo', fn: doConfirm },
+   [{ t: '▣ 입고확정' + (cN() ? ` (+${cN()}건)` : ''), cls: 'go', id: 'oxGo', fn: doConfirm },
     { t: '＋ 추가 발주', cls: 'go k-order', title: '같은 품번을 다른 업체에 나눠 발주하거나 재발주합니다', fn: e => formOrder(e) },
     { t: '↻ 신규발주', cls: 'warn', title: '기존 이력을 남기고 새 발주차수를 시작합니다. 현재 차수가 미완료면 안내 후 실행되지 않습니다.', fn: e => startNewCycle(e) },
     { t: '✖ 입고취소', cls: 'warn', title: '입고를 취소하고 발주 상태로 되돌립니다', fn: doReceiveCancel },
@@ -642,14 +712,19 @@ async function doConfirm() {
   const quote = _n(_v('oxQuote')), fix = _n(_v('oxFix'));
   const btn = $('oxGo'); if (btn) { btn.disabled = true; btn.textContent = '처리 중…'; }
   try {
-    await MESDB.table('order_lines').upsert([{
-      line_id: Number(l.line_id), status: '입고확정',
-      confirm_date: _v('oxCdate') || T0(),
-      confirm_price: fix || null,
-      nego_rate: quote ? Number(((1 - fix / quote) * 100).toFixed(2)) : null,
-      updated_at: new Date().toISOString()
-    }], 'line_id');
-    await after(`${b.part} ${l.vendor_name || ''} 입고확정 (확정가 ${_won(fix)}원) — 제조원가에 반영됩니다.`);
+    const rate = quote ? Number(((1 - fix / quote) * 100).toFixed(2)) : 0, cd = _v('oxCdate') || T0(), ts = new Date().toISOString();
+    const rows = [{ line_id: Number(l.line_id), status: '입고확정', confirm_date: cd, confirm_price: fix || null, nego_rate: quote ? rate : null, updated_at: ts }];
+    /* v169: 체크한 품번의 입고 라인도 같은 확정일·네고율로 확정 */
+    const done = [];
+    for (const x of (CTX.batchCfm || [])) for (const el of x.lines) {
+      if (Number(el.line_id) === Number(l.line_id)) continue;
+      const eqt = _n(el.receipt_amount) || _n(el.quote_price), efix = Math.round(eqt * (1 - rate / 100));
+      rows.push({ line_id: Number(el.line_id), status: '입고확정', confirm_date: cd, confirm_price: efix || null, nego_rate: eqt ? rate : null, updated_at: ts });
+      done.push(`${x.b.part} ${_won(efix)}원`);
+    }
+    await MESDB.table('order_lines').upsert(rows, 'line_id');
+    await after(`${b.part} ${l.vendor_name || ''} 입고확정 (확정가 ${_won(fix)}원) — 제조원가에 반영됩니다.`
+      + (done.length ? ` · 함께 확정 ${done.length}건: ${done.join(', ')}` : ''));
   } catch (e) {
     say('입고확정 실패: ' + String(e.message || e).slice(0, 120));
     if (btn) { btn.disabled = false; btn.textContent = '▣ 입고확정'; }
@@ -792,7 +867,7 @@ function init(opt) {
       const s = document.createElement('span');
       s.className = 'oxhint';
       s.title = '자재표 리스트에서 마우스 오른쪽 버튼(또는 더블클릭)을 누르면 상태에 맞는 처리 창이 열립니다';
-      s.innerHTML = '※ 자재표 <b>우클릭</b> → 발주 · 입고 · 입고확정 · 취소 · 신규발주';
+      s.innerHTML = '※ 자재표 <b>우클릭</b> → 발주 · 입고 · 입고확정 · 취소 · 신규발주 &nbsp;<b>☑ 체크</b>한 품번은 함께 처리';
       bar.appendChild(s);
     }
     /* 옛 배치(협력업체리스트·구매요청 리스트·PRINT 발주서) 토글 — 선택은 브라우저에 기억 */
