@@ -175,6 +175,9 @@ function groupRows(list){
  return out;
 }
 let groups=[],allGroups=[];
+/* v184: 공정 범위 표기 — 연속이면 (A~D), 하나면 (A), 떨어져 있으면 (A·C) */
+function seqRange(q){q=q.filter(x=>/^[A-Z]$/.test(x));if(!q.length)return '';const c=q.map(x=>x.charCodeAt(0));
+ const run=c.every((v,i)=>!i||v===c[i-1]+1);return q.length===1?`(${q[0]})`:run?`(${q[0]}~${q[q.length-1]})`:`(${q.join('·')})`}
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const n0=v=>Number(v||0);
 const msg=t=>message.textContent=t;
@@ -266,8 +269,8 @@ function render(){
   const seqs=g.jobs.map(x=>jsplit(x.job_no).seq||'단일');
   return `<div class="card${g.late?' late':''}">
    <div class="chead" onclick="toggle('${esc(g.base)}')">
-    <span class="jno">${esc(g.base)}</span>
-    ${multi?`<span class="seqs" title="${esc(g.jobs.map(x=>x.job_no).join(', '))}">공정 <b>${g.jobs.length}</b> · ${esc(seqs.join('·'))}</span>`:''}
+    <span class="jno">${esc(g.base)}${multi?` <span style="font-size:15px;color:#2a6191">${esc(seqRange(seqs))}</span>`:''}</span>
+    ${multi?`<span class="seqs" title="${esc(g.jobs.map(x=>x.job_no).join(', '))}">공정 <b>${g.jobs.length}</b></span>`:''}
     <span class="item">${esc(g.item)}</span>
     <span class="cust">${esc(g.cust)}</span>
     ${!r.has_plan?'<span class="tag" style="color:#9aa5ad">계획 미등록</span>':r.design_outsourced?'<span class="tag out">설계 외주</span>':'<span class="tag">설계 사내</span>'}
@@ -371,7 +374,7 @@ function goScreen(name){
 function exportCsv(){
  const head=['관리제번','공정 제번','대표 공정','품명','고객사','설계구분','진척률(평균)','T/O예정','납기예정','다음담당','다음화면','다음할일',
   ...STAGES.map(s=>s.n)];
- const out=[head,...groups.map(g=>{const r=g.rep;return [g.base,g.jobs.map(x=>x.job_no).join(' '),r.job_no,g.item,g.cust,
+ const out=[head,...groups.map(g=>{const r=g.rep;return [g.base+(g.jobs.length>1?' '+seqRange(g.jobs.map(x=>jsplit(x.job_no).seq)):''),g.jobs.map(x=>x.job_no).join(' '),r.job_no,g.item,g.cust,
   r.design_outsourced?'외주':'사내',g.pct+'%',r.s1_planned_date||'',r.delivery_planned_date||'',
   r.next_owner||'',r.next_screen||'',r.next_step||'',
   ...STAGES.map(s=>({done:'완료',run:'진행',wait:'대기'}[r['st_'+s.k]||'wait']))]})];
