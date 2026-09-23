@@ -51,10 +51,10 @@ function linesHtml(o,forMail){
 /* 발주서 HTML (메일 본문 · A4 인쇄 공용) */
 function sheetHtml(o,inline){
  const imgs=o.lines.filter(l=>l.image_url);
- const style=`body{font-family:'Malgun Gothic','맑은 고딕',Arial,sans-serif;font-size:12px;color:#222;margin:0}.pg{padding:14mm 12mm}h1{font-size:22px;margin:0 0 4px;letter-spacing:4px;text-align:center}.meta{display:flex;justify-content:space-between;margin:10px 0 8px;font-size:12px}.meta b{color:#000}table{width:100%;border-collapse:collapse}th,td{border:1px solid #444;padding:4px 6px;font-size:11.5px}th{background:#eee}td.r{text-align:right}td.c{text-align:center}.fig{page-break-before:always;padding:10mm}.fig h3{margin:0 0 6px;font-size:14px}.fig img{width:100%;max-height:250mm;object-fit:contain;border:1px solid #999}@page{size:A4;margin:8mm}`;
+ const style=`body{font-family:'Malgun Gothic','맑은 고딕',Arial,sans-serif;font-size:12px;color:#222;margin:0}.pg{padding:14mm 12mm}h1{font-size:22px;margin:0 0 4px;letter-spacing:4px;text-align:center}.meta{display:flex;justify-content:space-between;margin:10px 0 8px;font-size:12px}.meta b{color:#000}table{width:100%;border-collapse:collapse}th,td{border:1px solid #444;padding:4px 6px;font-size:11.5px}th{background:#eee}td.r{text-align:right}td.c{text-align:center}.fig{page-break-before:always;padding:10mm}.fig h3{margin:0 0 6px;font-size:14px}.fig img{width:100%;max-height:250mm;object-fit:contain;border:1px solid #999}@page{size:A4;margin:8mm}.bar{position:sticky;top:0;background:#f3f6f8;border-bottom:1px solid #cfd8df;padding:6px 10px;display:flex;gap:6px;align-items:center;font-size:12px}.bar button{height:26px;padding:0 10px;border:1px solid #8b9ba9;background:linear-gradient(#fff,#e9eef2);cursor:pointer;font:inherit}@media print{.bar{display:none}}`;
  const head=`<div class="pg"><h1>발 주 서</h1><div class="meta"><div><b>수신</b> ${esc(o.vendor)} 귀중<br><b>발신</b> ${esc(o.company||'IPTK')} ${esc(o.by||'')}<br><b>발주일</b> ${esc(o.date||T0())}</div><div style="text-align:right"><b>제번</b> ${esc(o.job)}${o.item?'<br><b>품명</b> '+esc(o.item):''}<br><b>구분</b> ${esc(o.category)} 발주</div></div>${linesHtml(o,true)}<p style="margin-top:10px;white-space:pre-wrap">${esc(o.message||'')}</p>${imgs.length?`<p style="color:#555">※ 부품 그림 ${imgs.length}장 ${inline?'다음 장에 첨부':'첨부'}</p>`:''}</div>`;
  const figs=inline?imgs.map(l=>`<div class="fig"><h3>${esc(o.job)} · ${esc(l.part)} ${esc(l.name||'')}</h3><img src="${esc(l.image_url)}"></div>`).join(''):'';
- return `<!doctype html><html><head><meta charset="utf-8"><title>발주서 ${esc(o.job)} ${esc(o.vendor)}</title><style>${style}</style></head><body>${head}${figs}</body></html>`;
+ return `<!doctype html><html><head><meta charset="utf-8"><title>발주서 ${esc(o.job)} ${esc(o.vendor)}</title><style>${style}</style></head><body><div class="bar"><button onclick="print()">🖨 인쇄 / PDF 저장</button><span style="color:#5d6d7b">인쇄 대화상자에서 「PDF로 저장」을 고르면 메일에 첨부할 파일이 됩니다 · 부품 그림은 다음 장부터</span></div>${head}${figs}</body></html>`;
 }
 function textBody(o){
  const L=o.lines.map((l,i)=>` ${i+1}. ${l.part} ${l.name||''} ${[l.mat,l.spec].filter(Boolean).join(' ')}${l.proc?' / '+l.proc:''} × ${l.qty??''} ${l.amt?won(l.amt)+'원':''} ${l.rdate?'(입고요구 '+l.rdate+')':''}`).join('\n');
@@ -96,5 +96,21 @@ window.MESMAIL={
   }catch(e){say('전송 실패: '+String(e.message||e).slice(0,140)+' — [📨 메일 앱]으로 보내세요.');b.disabled=false;b.textContent='✉ 보내기'}
  },
  sheet:sheetHtml,
+ /* 저장된 발주(order_lines)로 발주서 열기 — 같은 제번·업체·발주일 묶음 */
+ async sheetFor(q){
+  try{
+   let f=`select=*&category=eq.${encodeURIComponent(q.category)}&job_no=eq.${encodeURIComponent(q.job)}`;
+   if(q.vendor)f+=`&vendor_name=eq.${encodeURIComponent(q.vendor)}`;
+   if(q.order_date)f+=`&order_date=eq.${encodeURIComponent(String(q.order_date).slice(0,10))}`;
+   let rs=await MESDB.table('order_lines').select(f+'&order=line_id',{fresh:true});
+   rs=(rs||[]).filter(l=>String(l.status||'')!=='취소');
+   if(q.line_id&&!rs.some(l=>Number(l.line_id)===Number(q.line_id))){const one=await MESDB.table('order_lines').select(`select=*&line_id=eq.${Number(q.line_id)}`);rs=[...(one||[]),...rs]}
+   if(!rs.length)return alert('발주서를 만들 발주 내역이 없습니다.');
+   let im={};try{im=MESDB.partImages?await MESDB.partImages(q.job):{}}catch(e){}
+   const o={category:q.category,vendor:q.vendor||rs[0].vendor_name||'',job:q.job,item:q.item||rs[0].item_name||'',date:String(rs[0].order_date||'').slice(0,10),by:q.by||rs[0].owner_name||'',message:q.message||'',
+     lines:rs.map(l=>({part:l.part_no,name:l.part_name,mat:l.material,spec:l.spec,proc:q.category==='외주가공'?`${l.step_no?'공정'+l.step_no+' ':''}${l.machining_process_name||l.machining_process_code||''}`:'',qty:l.order_qty,price:l.unit_price,amt:l.quote_price,rdate:String(l.required_date||'').slice(0,10),image_url:im[l.part_no]||''}))};
+   const w=window.open('','_blank');if(!w)return alert('팝업이 차단되었습니다.');w.document.write(sheetHtml(o,true));w.document.close();
+  }catch(e){alert('발주서 열기 실패: '+String(e.message||e).slice(0,120))}
+ },
 };
 })();

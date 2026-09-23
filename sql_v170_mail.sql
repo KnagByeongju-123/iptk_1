@@ -16,8 +16,13 @@ do $$ begin
 end $$;
 
 -- ────────────────────────────────────────────────────────────────
--- 메일 실제 발송은 Edge Function  mes-mail  이 합니다 (supabase/functions/mes-mail/index.ts).
--- 배포:  supabase functions deploy mes-mail --no-verify-jwt
--- 비밀:  supabase secrets set RESEND_API_KEY=re_xxx MAIL_FROM="IPTK MES <order@yourdomain.com>"
+-- 메일 실제 발송은 Edge Function  mes-mail  이 구글(Gmail SMTP)로 보냅니다. (supabase/functions/mes-mail/index.ts)
+-- 1) 구글 계정(발신용, 예: order@회사도메인) › 보안 › 2단계 인증 켜기 › 「앱 비밀번호」 생성 (16자리)
+-- 2) PC 에서 한 번 :
+--      npm i -g supabase
+--      supabase login
+--      supabase link --project-ref ipggvrzxfcryzryileuv
+--      supabase secrets set GMAIL_USER=order@회사도메인 GMAIL_APP_PASSWORD=앱비밀번호16자리 MAIL_FROM_NAME="IPTK MES"
+--      supabase functions deploy mes-mail --no-verify-jwt
 -- 함수가 없으면 화면은 자동으로 메일 앱(mailto)으로 열립니다.
 -- ────────────────────────────────────────────────────────────────
