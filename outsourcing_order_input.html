@@ -469,30 +469,30 @@ async function loadRoutes(){
  if(!j||!_online()){renderRoutes();return}
  const out=[];
  try{
-  /* 1순위: 가공계획에서 확정된 부품별 공정 */
-  let rs=await MESDB.table('machining_plan_parts')
-    .select(`select=*&job_no=eq.${encodeURIComponent(j.job)}&order=row_no`);
+  /* v169: 가공계획에 저장된 부품 + PartList(원재료)에만 있는 부품을 합쳐 보인다.
+     (예전엔 가공계획이 한 부품이라도 있으면 나머지 PartList 부품이 통째로 빠졌다) */
+  const [rs,pm,std]=await Promise.all([
+    MESDB.table('machining_plan_parts').select(`select=*&job_no=eq.${encodeURIComponent(j.job)}&order=row_no`,{fresh:true}),
+    MESDB.table('partlist_materials').select(`select=part_no,part_name,process_code,qty&job_no=eq.${encodeURIComponent(j.job)}&order=row_no`,{fresh:true}),
+    MESDB.table('machining_standard_routes').select('select=*&order=standard_process_no&limit=1')]);
   if(my!==_routeSeq)return;                 /* 더 최근 조회가 시작됐으면 이번 결과는 버린다 */
-  if(rs.length){
-   rs.forEach(r=>{const st=(Array.isArray(r.steps)?r.steps:[]).map(stepCode).filter(Boolean).slice(0,MAXSTEP);
-     out.push({part:r.part_no,name:r.part_name||'',jo:joNum(r.process_code),
-     qty:(r.qty!=null?Number(r.qty):1),   /* v154: PartList 기반 소요수량 = 외주가공 발주 기본 수량 */
-     steps:st,inhouse:st.map((c,i)=>!!(Array.isArray(r.inhouse)&&r.inhouse[i])),   /* v147: 사내가공 표시 */
-     row_no:r.row_no,stdName:r.standard_process||'',saved:true})});
-  }else{
-   /* 2순위: PartList 부품 × 기준공정(가공 기준공정관리 1번) */
-   const [pm,std]=await Promise.all([
-     MESDB.table('partlist_materials').select(`select=part_no,part_name,process_code,qty&job_no=eq.${encodeURIComponent(j.job)}&order=row_no`),
-     MESDB.table('machining_standard_routes').select('select=*&order=standard_process_no&limit=1')]);
-   if(my!==_routeSeq)return;
-   const steps=(std&&std[0]&&Array.isArray(std[0].steps))?std[0].steps:[];
-   const sth=(std&&std[0]&&Array.isArray(std[0].inhouse))?std[0].inhouse:[];
-   pm.forEach(r=>{const st=steps.map(stepCode).filter(Boolean).slice(0,MAXSTEP);
-     out.push({part:r.part_no,name:r.part_name||'',jo:joNum(r.process_code),
-     qty:(r.qty!=null?Number(r.qty):1),steps:st,inhouse:st.map((c,i)=>!!sth[i]),
-     row_no:null,stdName:(std&&std[0]&&std[0].standard_process_name)||'',saved:false})});   /* v147: 미저장(PartList 기본값) */
-   if(pm.length&&!steps.length)msg('기준공정(가공 기준공정관리)이 없어 공정이 비어 있습니다.');
-  }
+  const planned=new Set();
+  (rs||[]).forEach(r=>{const st=(Array.isArray(r.steps)?r.steps:[]).map(stepCode).filter(Boolean).slice(0,MAXSTEP);
+    planned.add((joNum(r.process_code)??'')+'|'+r.part_no);
+    out.push({part:r.part_no,name:r.part_name||'',jo:joNum(r.process_code),
+    qty:(r.qty!=null?Number(r.qty):1),   /* v154: PartList 기반 소요수량 = 외주가공 발주 기본 수량 */
+    steps:st,inhouse:st.map((c,i)=>!!(Array.isArray(r.inhouse)&&r.inhouse[i])),   /* v147: 사내가공 표시 */
+    row_no:r.row_no,stdName:r.standard_process||'',saved:true})});
+  /* PartList 부품 × 기준공정(가공 기준공정관리 1번) — 가공계획에 없는 부품만 */
+  const steps=(std&&std[0]&&Array.isArray(std[0].steps))?std[0].steps:[];
+  const sth=(std&&std[0]&&Array.isArray(std[0].inhouse))?std[0].inhouse:[];
+  let added=0;
+  (pm||[]).forEach(r=>{if(planned.has((joNum(r.process_code)??'')+'|'+r.part_no))return;added++;
+    const st=steps.map(stepCode).filter(Boolean).slice(0,MAXSTEP);
+    out.push({part:r.part_no,name:r.part_name||'',jo:joNum(r.process_code),
+    qty:(r.qty!=null?Number(r.qty):1),steps:st,inhouse:st.map((c,i)=>!!sth[i]),
+    row_no:null,stdName:(std&&std[0]&&std[0].standard_process_name)||'',saved:false})});   /* v147: 미저장(PartList 기본값) */
+  if(added&&!steps.length)msg('기준공정(가공 기준공정관리)이 없어 공정이 비어 있습니다.');
   /* 같은 부품코드가 겹쳐 들어오면 한 행으로 (조가 다르면 따로 둔다) */
   const seen=new Set();
   ROUTES.length=0;
@@ -502,9 +502,22 @@ async function loadRoutes(){
   if(my!==_routeSeq)return;
   renderRoutes();
   PICK.clear();
+  if(!ROUTES.length){await emptyWhy(j,my);return}
   const _w=ROUTES.filter(r=>nextStep(r)===-2).length,_d=ROUTES.filter(r=>(r.steps||[]).length&&nextStep(r)===-1).length;
   msg(`${j.job} 부품별 가공공정 ${ROUTES.length}건을 조회했습니다.`+(_w?` · 입고 대기 ${_w}건`:'')+(_d?` · 전공정 완료 ${_d}건`:''));
  }catch(e){renderRoutes();msg('가공공정 조회 실패: '+String(e.message||e).slice(0,110))}
+}
+/* v169: 부품이 하나도 없을 때 이유를 표 안에 보여준다 */
+async function emptyWhy(j,my){
+ let pur=0,base=0;const b=(window.MESDB&&MESDB.jobSplit?MESDB.jobSplit(j.job).base:'')||'';
+ try{pur=(await MESDB.table('partlist_purchases').select(`select=part_no&job_no=eq.${encodeURIComponent(j.job)}`,{fresh:true})||[]).length}catch(e){}
+ try{if(b&&b!==j.job)base=(await MESDB.table('partlist_materials').select(`select=part_no&job_no=eq.${encodeURIComponent(b)}`,{fresh:true})||[]).length}catch(e){}
+ if(my!==_routeSeq)return;
+ const t=`${j.job} 에 가공할 부품이 없습니다 — 가공계획도, PartList(원재료)도 등록되어 있지 않습니다.`
+  +(pur?` (구매품 PartList ${pur}건은 있음 — 가공 대상은 원재료만)`:'')
+  +(base?` · 관리제번 ${b} 에 원재료 ${base}건이 있으니 PartList 복사로 ${j.job} 에 복사하세요.`:' 설계관리 › PartList 등록(원재료) 또는 PartList 복사를 먼저 하세요.');
+ routeBody.innerHTML=`<tr><td colspan="30" style="height:90px;text-align:center;color:#8a4f08;background:#fff8ec;white-space:normal;padding:10px">${t}</td></tr>`;
+ msg(t);
 }
 /* v112: [새로고침] — 다른 화면에서 발주·입고한 내용을 반영해 부품별 가공공정 상태를 다시 그린다.
    RPC·직접 fetch 는 조회 캐시를 거치지 않으므로 dropCache 로 비운 뒤 다시 읽는다. 선택한 제번은 유지. */
