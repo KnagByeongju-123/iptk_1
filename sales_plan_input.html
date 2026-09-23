@@ -111,7 +111,7 @@ table.ev td .dcell .wd.late{background:#ffe45c;color:#5a4400;font-weight:700}
 </style></head><body><div class="screen">
 <div class="title"><h1>제작계획등록</h1><small>영업관리 · 제작계획</small></div>
 <div class="blk"><div class="bt">기본정보</div><div class="gg g4">
- <div class="lb">제작제번</div><div><input id="job_no" class="field cbo" list="dl_job" autocomplete="off" placeholder="입력 또는 선택"></div>
+ <div class="lb" title="관리제번을 고르면 공정 제번(A~D 등) 전체에 같은 계획이 저장됩니다 (v183)">관리제번</div><div><input id="job_no" class="field cbo" list="dl_job" autocomplete="off" placeholder="입력 또는 선택"></div>
  <div class="lb">고객사</div><div><input id="customer_name" class="field cbo" list="dl_cust" autocomplete="off" placeholder="입력 또는 선택"></div>
  <div class="lb">아이템</div><div><input id="item_name" class="field cbo" list="dl_item" autocomplete="off" placeholder="입력 또는 선택"></div>
  <div class="lb">금형타입</div><div><input id="mold_type_name" class="field cbo" list="dl_mold" autocomplete="off" placeholder="입력 또는 선택"></div>
@@ -203,7 +203,7 @@ table.ev td .dcell .wd.late{background:#ffe45c;color:#5a4400;font-weight:700}
   <div><input id="a8" oninput="recalc()"><div class="pct" id="p8">0%</div></div>
  </div>
 </div>
-<footer class="foot"><button class="btn" onclick="save()">▤ 저장</button><button class="btn" onclick="clearForm()">✕ 삭제</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">제번을 입력하거나 목록에서 고르면 수주정보가 자동으로 채워집니다.</span></footer>
+<footer class="foot"><button class="btn" onclick="save()">▤ 저장</button><button class="btn" onclick="clearForm()">✕ 삭제</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">관리제번을 고르면 수주정보가 채워지고, 저장하면 공정 제번(A~D 등) 모두에 같은 계획이 들어갑니다.</span></footer>
 </div>
 <datalist id="dl_job"></datalist><datalist id="dl_make"><option value="신규제작"><option value="수정"><option value="추가"><option value="보완"><option value="양산이관"></datalist><datalist id="dl_cust"></datalist><datalist id="dl_item"></datalist><datalist id="dl_mold"></datalist><datalist id="dl_emp"></datalist><datalist id="dl_vd_design"></datalist><datalist id="dl_vd_mach"></datalist><datalist id="dl_vd_asm"></datalist>
 <script src="mes_lookup.js?v=71"></script><script>
@@ -365,7 +365,7 @@ function shapeShow(url){
 function shapeClear(){shapeShow('');msg('제품 그림을 지웠습니다 — 저장하면 반영됩니다.')}
 async function shapeUp(inp){
  const f=inp.files&&inp.files[0];if(!f)return;
- const job=(job_no.value||'').trim();
+ const job=curBase();
  try{
   msg('그림 올리는 중…');
   const url=await MESDB.imgUpload(f,job||'공통','shape');
@@ -450,12 +450,29 @@ function fillDL(id,rows,val,lab){
  dl.innerHTML=rows.map(r=>{const v=val(r);if(!v)return '';const l=lab?lab(r):'';
   return `<option value="${esc(v)}">${esc(l)}</option>`}).join('');
 }
+/* ── v183: 관리제번 단위 제작계획 ─────────────────────────────
+ *  목록·입력칸은 「26DSA057 (A~D)」 처럼 관리제번 + 공정 범위로 보인다.
+ *  저장하면 그 관리제번의 공정 제번(A·B·C·D) 모두에 같은 계획(일정·담당·특기사항)이 들어가고,
+ *  원가 항목(설계·재료·가공·조립 금액)은 공정 수로 나눠 넣는다. 수주가는 각 공정 제번의 수주가를 쓴다. */
+const JSPL=j=>{const m=/^(.*\d)([A-Z])$/.exec(String(j||'').trim());return m?{base:m[1],seq:m[2]}:{base:String(j||'').trim(),seq:''}};
+let JGROUP=new Map();   /* 관리제번 → [공정 제번…] */
+const seqRange=js=>{const q=js.map(j=>JSPL(j).seq).filter(Boolean);if(!q.length)return '';
+ const c=q.map(x=>x.charCodeAt(0));const run=c.every((v,i)=>!i||v===c[i-1]+1);
+ return q.length===1?`(${q[0]})`:run?`(${q[0]}~${q[q.length-1]})`:`(${q.join('·')})`};
+const baseLabel=b=>{const js=JGROUP.get(b)||[];const r=seqRange(js);return r?`${b} ${r}`:b};
+function curBase(){return String(job_no.value||'').trim().toUpperCase().split(/[\s(]/)[0]||''}
+function jobsOfBase(b){const js=JGROUP.get(b);if(js&&js.length)return js.slice();return b?[b]:[]}
 async function loadMasters(){
  await waitDB();if(!online()){msg('DB 미연결 - 기준정보를 불러올 수 없습니다.');return}
  try{
   const rs=await MESDB.table('job_pool').select('select=job_no,item_name,customer_name,order_date&order=row_no');
-  fillDL('dl_job',rs,r=>r.job_no,r=>[r.item_name,r.customer_name].filter(Boolean).join(' · '));
-  job_no.placeholder=rs.length?`제번 입력/선택 (등록 ${rs.length}건)`:'등록된 수주가 없습니다';
+  const info=new Map();JGROUP=new Map();
+  (rs||[]).forEach(r=>{const b=JSPL(r.job_no).base;if(!JGROUP.has(b)){JGROUP.set(b,[]);info.set(b,r)}JGROUP.get(b).push(String(r.job_no))});
+  JGROUP.forEach(a=>a.sort());
+  const bases=[...JGROUP.keys()].sort((a,b)=>b.localeCompare(a));
+  fillDL('dl_job',bases.map(b=>({b,r:info.get(b)})),x=>baseLabel(x.b),x=>[x.r.item_name,x.r.customer_name].filter(Boolean).join(' · '));
+  job_no.placeholder=bases.length?`관리제번 입력/선택 (등록 ${bases.length}건)`:'등록된 수주가 없습니다';
+  if(curBase())job_no.value=baseLabel(curBase());
  }catch(e){}
  const K=window.MESLOOK;if(!K)return;
  const pull=async kind=>{try{return await K.rows(kind)}catch(e){return []}};
@@ -474,37 +491,48 @@ async function loadMasters(){
 (function(){const bind=()=>{if(window.MESDB&&MESDB.onChange){MESDB.onChange(['sale_orders','jobs','vendors','item_categories','mold_types','users'],()=>{loadMasters()});return true}return false};
  if(!bind()){let n=0;const iv=setInterval(()=>{if(bind()||++n>40)clearInterval(iv)},100)}})();
 
-/* 제번 선택 → 기존 계획 우선, 없으면 수주정보(sale_orders)로 헤더 채움 */
+/* 관리제번 선택 → 공정 제번 중 기존 계획이 있으면 그것, 없으면 수주정보(sale_orders)로 헤더 채움 */
 async function loadJob(j){
  if(typeof j==='string'&&j)setSel('job_no',j);
- const job=(job_no.value||'').trim();if(!job){clearForm(true);msg('제번을 입력하거나 목록에서 고르세요.');return}
+ const b=curBase();if(!b){clearForm(true);msg('관리제번을 입력하거나 목록에서 고르세요.');return}
+ if(!JGROUP.has(b)){const hit=[...JGROUP.entries()].find(([k,v])=>v.includes(b));if(hit){setSel('job_no',baseLabel(hit[0]));return loadJob()}}
+ job_no.value=baseLabel(b);
+ const jobs=jobsOfBase(b),rg=seqRange(jobs);
  if(!online()){msg('DB 미연결 - 수주정보를 불러올 수 없습니다.');return}
  try{
-  const ex=await MESDB.table('sales_plans').select(`select=*&job_no=eq.${encodeURIComponent(job)}&limit=1`);
-  if(ex&&ex[0]){load(ex[0]);msg(`${job} 기존 제작계획을 불러왔습니다. (row_no ${ex[0].row_no})`);return}
-  const so=await MESDB.table('sale_orders').select(`select=*&job_no=eq.${encodeURIComponent(job)}&limit=1`);
-  if(!so||!so[0]){msg(`${job} 수주정보가 없습니다. 수주등록을 먼저 진행하세요.`);return}
-  const s=so[0];
-  clearForm(true);setSel('job_no',job);
-  setSel('item_name',s.item_name);setSel('product_name',s.product_name);setSel('customer_name',s.customer_name);
-  setSel('model',s.model);setSel('order_date',s.order_date);setSel('s1_planned_date',s.s1_planned_date);
-  setSel('delivery_planned_date',s.delivery_planned_date);setSel('mold_type_name',s.mold_type_name);
-  setSel('process_set_qty',s.process_set_qty);
-  setSel('drawing_no',s.drawing_no);setSel('receipt_date',s.order_date);
+  const inq=`in.(${jobs.map(x=>encodeURIComponent(x)).join(',')})`;
+  const [ex,so]=await Promise.all([
+   MESDB.table('sales_plans').select(`select=*&job_no=${inq}&order=job_no`),
+   MESDB.table('sale_orders').select(`select=*&job_no=${inq}&order=job_no`)]);
+  const soSum=(so||[]).reduce((t,r)=>t+num(r.order_price),0);
+  if(ex&&ex.length){
+   const o={...ex[0]};
+   /* 원가 금액은 공정 합계로 보여준다 (저장 시 다시 공정 수로 나눔) */
+   if(ex.length>1)AK.forEach(k=>{o[k]=ex.reduce((t,r)=>t+num(r[k]),0)||null});
+   load(o);setSel('job_no',baseLabel(b));
+   if(soSum)order_price.value=fmt(soSum);recalc();
+   msg(`${b} ${rg} 기존 제작계획을 불러왔습니다. (공정 제번 ${jobs.length}건 중 계획 ${ex.length}건${ex.length<jobs.length?' — 저장하면 나머지 공정에도 들어갑니다':''})`);return}
+  if(!so||!so[0]){msg(`${b} 수주정보가 없습니다. 수주등록을 먼저 진행하세요.`);return}
+  const s0=so[0];
+  clearForm(true);setSel('job_no',baseLabel(b));
+  setSel('item_name',s0.item_name);setSel('product_name',s0.product_name);setSel('customer_name',s0.customer_name);
+  setSel('model',s0.model);setSel('order_date',s0.order_date);setSel('s1_planned_date',s0.s1_planned_date);
+  setSel('delivery_planned_date',s0.delivery_planned_date);setSel('mold_type_name',s0.mold_type_name);
+  setSel('process_set_qty',s0.process_set_qty);
+  setSel('drawing_no',s0.drawing_no);setSel('receipt_date',s0.order_date);
   /* v168: 새 계획은 EVENT 표의 빈 날짜 칸을 전부 오늘로 채운다 — 휠로 밀어 가며 잡기 쉽게 */
   fillTodayAll();markLate();
-  order_price.value=num(s.order_price)?fmt(num(s.order_price)):'';
-  recalc();msg(`${job} 수주정보를 불러왔습니다. (신규 제작계획)`);
+  order_price.value=soSum?fmt(soSum):'';
+  recalc();msg(`${b} ${rg} 수주정보를 불러왔습니다. (신규 제작계획 — 저장하면 공정 제번 ${jobs.length}건에 함께 들어갑니다)`);
  }catch(e){msg('조회 실패: '+String(e.message||e).slice(0,120))}
 }
 
-async function save(){
- const o=collect();
- if(!o.job_no){msg('제번은 필수입니다.');return}
+async function saveOne(o){
+ if(!o.job_no){msg('제번은 필수입니다.');return false}
  if(!online()){await adStore();msg(`${o.job_no} 저장했습니다. (DB 미연결 - 로컬)`);return}
  try{
   const jb=await MESDB.table('jobs').select(`select=job_no&job_no=eq.${encodeURIComponent(o.job_no)}&limit=1`);
-  if(!jb||!jb[0]){msg(`${o.job_no} 은(는) 등록된 제번이 아닙니다. 수주등록을 먼저 진행하세요.`);return}
+  if(!jb||!jb[0]){msg(`${o.job_no} 은(는) 등록된 제번이 아닙니다. 수주등록을 먼저 진행하세요.`);return false}
   const ex=await MESDB.table('sales_plans').select(`select=row_no&job_no=eq.${encodeURIComponent(o.job_no)}&limit=1`);
   /* v39: 기존은 row_no 로 갱신, 신규는 DB identity 에 맡긴다 */
   if(ex&&ex[0]){o.row_no=Number(ex[0].row_no);await MESDB.table('sales_plans').upsert(o,'row_no')}
@@ -523,17 +551,44 @@ async function save(){
    delivery_planned_date:o.delivery_planned_date};
   try{if(srNo!=null)await MESDB.table('sales_plan_status_rows').upsert({row_no:srNo,...r},'row_no');
       else await MESDB.table('sales_plan_status_rows').insertOne(r)}
-  catch(e){msg(`${o.job_no} 계획은 저장됐으나 제작계획현황 반영 실패: `+String(e.message||e).slice(0,100));return}
+  catch(e){msg(`${o.job_no} 계획은 저장됐으나 제작계획현황 반영 실패: `+String(e.message||e).slice(0,100));return false}
   /* v68: 설계=외주 + 외주업체 지정이면 외주설계 발주(order_lines)를 여기서 바로 만든다.
      설계관리의 외주설계발주등록 화면을 대신한다. 견적가 = 설계 사외 금액, 입고예정일 = 설계 종료일 */
   /* v119: 외주설계 자동발주 제거 — 설계외주는 영업관리 › 설계외주 › 외주설계발주등록에서 직접 등록 */
   let odMsg='';
   try{MESDB.notify&&MESDB.notify(['sales_plans','sales_plan_status_rows','order_lines'])}catch(e){}
-  msg(`${o.job_no} 제작계획을 저장했습니다. (목표원가 ${Number(o.target_price||0).toLocaleString()}원 / 이익률 ${o.profit_rate_pct ?? '-'}%)`+odMsg+(await adStore()));
+  return true;
  }catch(e){
   const m=String(e.message||e);
-  msg(/무결성|foreign key/i.test(m)?'저장 실패: 등록되지 않은 제번입니다.':'저장 실패: '+m.slice(0,120));
+  msg(`${o.job_no} `+(/무결성|foreign key/i.test(m)?'저장 실패: 등록되지 않은 제번입니다.':'저장 실패: '+m.slice(0,120)));
+  return false;
  }
+}
+/* v183: 관리제번의 공정 제번 모두에 저장 — 원가 금액은 공정 수로 나누고, 수주가는 각 공정의 수주가 */
+async function save(){
+ const b=curBase();if(!b){msg('관리제번은 필수입니다.');return}
+ const base=collect();const jobs=jobsOfBase(b),n=jobs.length,rg=seqRange(jobs);
+ if(!online()){await adStore();msg(`${b} ${rg} 저장했습니다. (DB 미연결 - 로컬)`);return}
+ let soP={};
+ try{const so=await MESDB.table('sale_orders').select(`select=job_no,order_price&job_no=in.(${jobs.map(x=>encodeURIComponent(x)).join(',')})`);(so||[]).forEach(r=>soP[r.job_no]=num(r.order_price))}catch(e){}
+ const part=(tot,i)=>{tot=num(tot);if(!tot)return null;const each=Math.round(tot/n);return i===n-1?tot-each*(n-1):each};
+ let ok=0,fail=[];
+ for(let i=0;i<n;i++){
+  const o={...base,job_no:jobs[i]};delete o.row_no;
+  if(n>1){
+   let s=0;AK.forEach(k=>{o[k]=part(base[k],i);s+=num(o[k])});
+   AK.forEach(k=>{o[PCT[k]]=s?Math.round(num(o[k])/s*1000)/10:0});
+   o.target_price=s||null;
+   o.order_price=soP[jobs[i]]||part(base.order_price,i);
+   o.profit_rate_pct=o.order_price?Math.round((o.order_price-s)/o.order_price*1000)/10:null;
+  }
+  if(await saveOne(o))ok++;else fail.push(jobs[i]);
+ }
+ try{MESDB.notify&&MESDB.notify(['sales_plans','sales_plan_status_rows'])}catch(e){}
+ const ad=await adStore();
+ msg(fail.length?`${b} ${rg} 제작계획 ${ok}건 저장 · 실패 ${fail.join(', ')}`
+   :`${b} ${rg} 제작계획을 공정 제번 ${ok}건(${jobs.join(', ')})에 저장했습니다. (목표원가 합계 ${Number(base.target_price||0).toLocaleString()}원 / 이익률 ${base.profit_rate_pct ?? '-'}%)`+ad);
+ if(!fail.length)try{(window.MESPOP||window.parent?.MESPOP)?.ok(`${b} ${rg} 제작계획 저장`,'제작계획등록')}catch(e){}
 }
 /* 외주설계 발주 동기화 — 미입고(status=발주) 라인만 만들거나 고친다. 입고가 시작된 라인은 건드리지 않는다 */
 async function syncDesignOrder(o){
