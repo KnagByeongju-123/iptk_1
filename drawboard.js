@@ -1,4 +1,4 @@
-/* drawboard.js (v204) — 부품 그림보드 화면 스크립트
+/* drawboard.js (v205) — 부품 그림보드 화면 스크립트
  * 사내외가공 발주(mes_drawboard.js)가 sessionStorage 'mes_drawboard' 에 넣어 준 자료를 읽어 그린다.
  * 문서를 스크립트로 써 넣지 않고(document.write 없음) DOM 만 만든다. */
 (function(){
@@ -17,8 +17,12 @@
  $('footL').textContent=(o.job||'')+' · '+(o.part||'')+' '+(o.name||'');
  /* 그림 */
  const fig=$('fig');
- if(o.image){const im=el('img');im.src=o.image;im.alt=o.part||'';fig.appendChild(im)}
+ if(o.image){const im=el('img');im.alt=o.part||'';im.addEventListener('load',()=>{if(im.naturalHeight>im.naturalWidth*1.15&&!ORI_SET)setOri('portrait')});im.src=o.image;fig.appendChild(im)}
  else fig.appendChild(el('div','none','PartList 에 등록된 부품 그림이 없습니다.'));
+ /* 용지 방향: 세로 도면이면 자동 세로. @page 는 스타일을 바꿔 넣어 인쇄 방향을 맞춘다 */
+ let ORI='landscape',ORI_SET=false;const pageSt=el('style');document.head.appendChild(pageSt);
+ function setOri(v){ORI=v;document.body.classList.toggle('portrait',v==='portrait');pageSt.textContent='@page{size:A4 '+v+';margin:6mm}';$('bOri').textContent='용지: '+(v==='portrait'?'세로':'가로')}
+ $('bOri').addEventListener('click',()=>{ORI_SET=true;setOri(ORI==='portrait'?'landscape':'portrait')});
  /* 공정 버튼 */
  $('sideTitle').textContent='가공공정 ('+STEPS.length+')';
  const btns=$('btns');

@@ -29,13 +29,28 @@ h1{font-size:18px;margin:0 0 6px;letter-spacing:3px;text-align:center}
 .chip.house{border-color:#8a6d3b;color:#5a4400;background:#fbf4e3}.chip.house .n{background:#8a6d3b}
 .arrow{color:#888;font-size:14px}
 .fig{border:1px solid #999;background:#fff;height:150mm;display:flex;align-items:center;justify-content:center;overflow:hidden}
-.fig img{max-width:100%;max-height:100%;object-fit:contain}
+.fig img{max-width:100%;max-height:100%;object-fit:contain;image-rendering:auto}
+body.portrait .fig{height:200mm}
 .fig .none{color:#999;border:1px dashed #bbb;padding:40px 60px}
 .foot{display:flex;justify-content:space-between;margin-top:6px;font-size:11px;color:#555}
 .note{margin-top:6px;border:1px solid #444;padding:4px 8px;min-height:30px;font-size:12px}
 .note[contenteditable]:empty:before{content:'비고 (클릭해 입력)';color:#aaa}
-@page{size:A4 landscape;margin:8mm}
-@media print{body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}.wrap{padding:0;display:block}.sheet{box-shadow:none;width:auto;min-height:0;padding:0}.side{display:none}.chip{cursor:default}.note:empty{display:none}.fig{height:128mm}h1{font-size:16px;margin-bottom:4px}.foot{page-break-inside:avoid}}
+@page{size:A4 landscape;margin:6mm}
+body.portrait .sheet{width:198mm}
+@media print{
+ body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ .wrap{padding:0;display:block}.side{display:none}.chip{cursor:default}
+ .sheet{box-shadow:none;padding:0;margin:0;width:285mm;height:198mm;min-height:0;display:flex;flex-direction:column;overflow:hidden;page-break-after:avoid}
+ body.portrait .sheet{width:198mm;height:285mm}
+ h1{font-size:15px;margin:0 0 3px;letter-spacing:2px}
+ .meta{padding:3px 8px;margin-bottom:4px;font-size:11.5px;gap:2px 8px}
+ .strip{padding:4px 8px;min-height:0;margin-bottom:4px;gap:4px}.strip .empty{display:none}
+ .chip{font-size:12px;padding:2px 7px}.chip .n{min-width:17px;height:17px;line-height:17px;font-size:11px}
+ .fig{flex:1 1 auto;min-height:0;height:auto}
+ .fig img{width:100%;height:100%;max-width:none;max-height:none;object-fit:contain;image-rendering:auto}
+ .note{margin-top:4px;min-height:0;padding:3px 8px}.note:empty{display:none}
+ .foot{margin-top:3px;font-size:10px}
+}
 @media(max-width:1100px){.wrap{flex-wrap:wrap}.sheet{width:100%}.side{position:static}}
 </style></head><body>
 <div class="wrap">
@@ -54,10 +69,11 @@ h1{font-size:18px;margin:0 0 6px;letter-spacing:3px;text-align:center}
   <div class="tools">
    <button id="bAll" title="가공계획 순서 그대로 전부 넣습니다">▶ 전체 순서대로</button>
    <button id="bClr">지우기</button>
+   <button id="bOri" title="도면 방향에 맞춰 자동으로 정해집니다. 눌러서 바꿀 수 있습니다">용지: 가로</button>
    <button class="go" id="bPrint" title="인쇄창에서 대상을 「PDF로 저장」으로 고르면 PDF 파일로 저장됩니다">🖨 인쇄 / PDF 저장</button>
    <button id="bClose">닫기</button>
   </div>
  </div>
 </div>
-<script src="drawboard.js?v=204"></script>
+<script src="drawboard.js?v=205"></script>
 </body></html>
