@@ -39,6 +39,17 @@ body.portrait .fig{height:200mm}
 .foot{display:flex;justify-content:space-between;margin-top:6px;font-size:11px;color:#555}
 .note{margin-top:6px;border:1px solid #444;padding:4px 8px;min-height:30px;font-size:12px}
 .note[contenteditable]:empty:before{content:'비고 (클릭해 입력)';color:#aaa}
+/* v208: 원본 이미지 보기 — 화면 전체 덮개. 그림 클릭 = 실제 크기 ↔ 화면 맞춤, 실제 크기일 땐 스크롤 */
+.ov{position:fixed;inset:0;background:rgba(20,24,28,.94);z-index:50;display:none;flex-direction:column}
+.ov.show{display:flex}
+.ov .bar{display:flex;gap:8px;align-items:center;padding:8px 12px;color:#e6ecf1;font-size:12.5px;background:#1d2329}
+.ov .bar b{font-size:13.5px}.ov .bar .sp{flex:1}
+.ov .bar button{height:26px;padding:0 10px;border:1px solid #6b7c8b;background:#2c353d;color:#fff;cursor:pointer;font:inherit;border-radius:3px}
+.ov .body{flex:1;overflow:auto;display:flex;align-items:center;justify-content:center}
+.ov .body.real{display:block;text-align:left}
+.ov img{max-width:100%;max-height:100%;object-fit:contain;cursor:zoom-in;background:#fff}
+.ov .body.real img{max-width:none;max-height:none;cursor:zoom-out}
+@media print{.ov{display:none!important}}
 @page{size:A4 landscape;margin:6mm}
 body.portrait .sheet{width:198mm}
 @media print{
@@ -73,6 +84,7 @@ body.portrait .sheet{width:198mm}
   <div class="tools">
    <button id="bAll" title="이 부품의 가공계획 순서 그대로 넣습니다">▶ 계획 순서대로</button>
    <button id="bClr">지우기</button>
+   <button id="bImg" title="공정 표시 없이 PartList 에 등록된 이미지만 크게 봅니다">🖼 이미지만 보기</button>
    <button id="bApply" class="go" style="background:linear-gradient(#5aa05a,#3d7f3d);border-color:#2f6a2f" title="띠에 표시된 순서를 이 부품의 부품별 가공공정 리스트(가공계획)에 저장합니다">▣ 가공계획 적용</button>
    <button id="bOri" title="도면 방향에 맞춰 자동으로 정해집니다. 눌러서 바꿀 수 있습니다">용지: 가로</button>
    <button class="go" id="bPrint" title="인쇄창에서 대상을 「PDF로 저장」으로 고르면 PDF 파일로 저장됩니다">🖨 인쇄 / PDF 저장</button>
@@ -80,5 +92,6 @@ body.portrait .sheet{width:198mm}
   </div>
  </div>
 </div>
-<script src="drawboard.js?v=207"></script>
+<div class="ov" id="ov"><div class="bar"><b id="ovT">원본 이미지</b><span id="ovS"></span><span class="sp"></span><button id="ovFit">화면 맞춤</button><button id="ovReal">실제 크기</button><button id="ovClose">닫기 (Esc)</button></div><div class="body" id="ovB"></div></div>
+<script src="drawboard.js?v=208"></script>
 </body></html>

@@ -1,4 +1,4 @@
-/* drawboard.js (v207) — 부품 그림보드 화면 스크립트
+/* drawboard.js (v208) — 부품 그림보드 화면 스크립트
  * 사내외가공 발주(mes_drawboard.js)가 sessionStorage 'mes_drawboard' 에 넣어 준 자료를 읽어 그린다.
  * 문서를 스크립트로 써 넣지 않고(document.write 없음) DOM 만 만든다. */
 (function(){
@@ -67,5 +67,15 @@
   $('bApply').textContent='✔ 적용 보냄';setTimeout(()=>{$('bApply').textContent='▣ 가공계획 적용'},2500);
  });
  $('bClose').addEventListener('click',()=>window.close());
+ /* v208: 등록된 이미지만 보기 */
+ const ov=$('ov'),ovB=$('ovB');let ovImg=null;
+ function ovMode(real){ovB.classList.toggle('real',!!real)}
+ $('bImg').addEventListener('click',()=>{
+  if(!o.image)return alert('PartList 에 등록된 부품 그림이 없습니다.');
+  if(!ovImg){ovImg=el('img');ovImg.alt=o.part||'';ovImg.addEventListener('load',()=>{$('ovS').textContent=' · '+ovImg.naturalWidth+' × '+ovImg.naturalHeight+' px'});ovImg.src=o.image;ovImg.addEventListener('click',()=>ovMode(!ovB.classList.contains('real')));ovB.appendChild(ovImg)}
+  $('ovT').textContent='원본 이미지 — '+(o.part||'')+' '+(o.name||'');ovMode(false);ov.classList.add('show')});
+ $('ovFit').addEventListener('click',()=>ovMode(false));$('ovReal').addEventListener('click',()=>ovMode(true));
+ $('ovClose').addEventListener('click',()=>ov.classList.remove('show'));
+ document.addEventListener('keydown',e=>{if(e.key==='Escape')ov.classList.remove('show')});
  draw();
 })();
