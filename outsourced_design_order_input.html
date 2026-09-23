@@ -137,7 +137,8 @@ async function addRow(){const J=jobView[jobIdx];if(!J)return msg('관리제번�
  const picks=[{proc:'ALL',procName:jobLabel(J),jobNo:(J.jobs&&J.jobs[0]&&J.jobs[0].job)||J.job}];
  const vens=pickedVendors();
  if(!vens.length)return msg('협력업체리스트에서 발주할 업체를 체크하세요.');
- const quote=numv(fQuote.value),nego=numv(fNego.value)||quote;
+ /* v200: 견적가를 비우고 네고가만 넣으면 견적가 = 네고가 (현황에서 견적가 0 · 차액 -네고가 로 보이던 문제) */
+ const quote=numv(fQuote.value)||numv(fNego.value),nego=numv(fNego.value)||quote;
  if(nego>quote&&quote>0)return msg('네고가는 견적가를 넘을 수 없습니다.');
  const odate=fOdate.value||new Date().toISOString().slice(0,10),edate=fRdate.value||'';
  let dup=0,added=0;

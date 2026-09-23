@@ -72,8 +72,8 @@ async function loadRows(){
   rs.forEach(r=>rows.push({job:r.job_no,item:r.item_name||'',model:r.model||'',area:r.area||'',
    cust:r.customer_name||'',amount:Number(r.order_price||0),proc:r.process_code||'',procName:r.process_name||'',
    line:r.line_id,status:r.status||'',
-   paid:r.paid_supply||'',quote:Number(r.quote_price||0),nego:Number(r.nego_price||0),
-   diff:Number(r.difference||0),partner:r.vendor_name||'',rate:Number(r.progress_rate||0),
+   paid:r.paid_supply||'',quote:Number(r.quote_price||0)||Number(r.nego_price||0),nego:Number(r.nego_price||0),   /* v200: 견적가가 없으면 네고가로 */
+   diff:Number(r.quote_price||0)?Number(r.difference||0):0,partner:r.vendor_name||'',rate:Number(r.progress_rate||0),
    idate:r.receipt_date||'',odate:r.order_date||'',edate:r.required_date||''}));
   fillBaseDL('dl_base',rows.map(r=>({job:r.job,item:r.item})));
   view=[...rows];render();
