@@ -37,9 +37,9 @@ tbody tr:nth-child(even) td{background:#fafcfd}tbody tr:hover td{background:#edf
 <div class="title"><h1>PartList 등록(원재료)</h1><small>설계관리 · PARTLIST</small></div>
 
 <section class="filt">
- <span class="lb">제번</span><input id="q_job" class="field" style="width:190px" autocomplete="off">
- <span class="lb">품번</span><input id="q_pn" class="field" style="width:170px" placeholder="품번 입력/선택" list="pnDL" autocomplete="off"><datalist id="pnDL"></datalist>
- <span class="hint">제번 선택 → 엑셀 <b>금형번호·품명·재질·규격·두께·수량</b> 복사(<b>Ctrl+C</b>) → <b>Ctrl+V</b> → 리스트에 추가 → 체크 → <b>[▤ 등록]</b></span>
+ <span class="lb" title="관리제번을 고르고 공정(A·B·C)을 고르면 그 공정 제번의 PartList 가 열립니다 (v180)">관리제번</span><input id="q_job" class="field" style="width:190px" autocomplete="off">
+ <span class="lb">품번</span><input id="q_pn" class="field" style="width:150px;background:#f4f7f9" placeholder="자동" readonly title="고른 제번의 품번(수주등록)">
+ <span class="hint">관리제번 · 공정 선택 → 엑셀 <b>금형번호·품명·재질·규격·두께·수량</b> 복사(<b>Ctrl+C</b>) → <b>Ctrl+V</b> → 리스트에 추가 → 체크 → <b>[▤ 등록]</b></span>
 </section>
 
 <div class="gridbox"><table style="min-width:980px"><thead><tr>
@@ -530,7 +530,7 @@ async function pnLoad(){
   const rs=await MESDB.table('job_pool').select('select=job_no,model&order=row_no');
   PNMAP.length=0;
   (rs||[]).forEach(r=>{const m=String(r.model||'').trim();if(m)PNMAP.push({model:m,job:r.job_no})});
-  pnFillDL();
+  pnFillDL();try{pnSync(curJobNo())}catch(e){}
  }catch(e){}
 }
 /* 품번을 고르거나 입력하면 → 그 제번으로 자재표를 연다 */
@@ -560,10 +560,11 @@ window.MES={search,save,saveChecked,setMessage:msg,reload:loadJob,manOpen};rende
 </script>
 <script src="mes_ctx.js?v=169"></script>
 <script src="mes_imgedit.js?v=170"></script>
-<script src="mes_jobpick.js?v=162"></script>
+<script src="mes_jobpick.js?v=180"></script>
 <script>/* 제번 직접 타이핑 → 등록된 수주 목록에서 선택 */
-try{MESJOB.attach("q_job",{onPick:j=>{if(typeof loadJob==="function")loadJob(j);try{pnSync(j)}catch(e){}}})}catch(e){}
-try{pnLoad();q_pn.addEventListener("change",()=>{try{pnPick()}catch(e){}});
+/* v180: 관리제번 ▼ | 공정 ▼ 두 칸 — 공정을 고르면 그 제번을 열고 품번을 자동으로 채운다 */
+try{MESJOB.attachSplit("q_job",{onPick:j=>{if(typeof loadJob==="function")loadJob(j);try{pnSync(j)}catch(e){}}}).then(()=>{try{pnSync(curJobNo())}catch(e){}})}catch(e){}
+try{pnLoad();
  q_pn.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();try{pnPick()}catch(_){}}});}catch(e){}</script>
 <script>
 function sampleFill(){
