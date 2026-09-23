@@ -22,3 +22,11 @@ where not exists (select 1 from public.processes where process_name like '%검�
 insert into public.labor_rates (rate_code, rate_name, rate_type, rate_per_hour, remark)
 select 'INS', '검사 공통', '검사', 30000, '검사실적등록 기본 단가'
 where not exists (select 1 from public.labor_rates where rate_code='INS');
+
+-- ── 설계실적등록(격자형) ─────────────────────────────────────────
+insert into public.processes (process_code, process_name, sort_order)
+select 'DS', '설계', coalesce((select max(sort_order) from public.processes),0)+30
+where not exists (select 1 from public.processes where process_name like '%설계%');
+insert into public.labor_rates (rate_code, rate_name, rate_type, rate_per_hour, remark)
+select 'DSN', '설계 공통', '설계', 30000, '설계실적등록 기본 단가'
+where not exists (select 1 from public.labor_rates where rate_code='DSN');

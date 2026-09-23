@@ -387,7 +387,7 @@ MESDB.laborRateInfo=async function(type,key){
     const hit=rs.find(r=>String(r.rate_code)===k);
     if(hit&&Number(hit.rate_per_hour)>0)return {rate:Number(hit.rate_per_hour),code:k,source:'작업단가'};
   }
-  const common=type==='조립'?'ASM':(type==='검사'?'INS':'MCH');   /* v169: 검사 공통 INS */
+  const common=type==='조립'?'ASM':(type==='검사'?'INS':(type==='설계'?'DSN':'MCH'));   /* v169: 검사 공통 INS */
   const c=rs.find(r=>String(r.rate_code)===common);
   if(c&&Number(c.rate_per_hour)>0)return {rate:Number(c.rate_per_hour),code:common,source:'작업단가(공통)'};
   const t=rs.find(r=>r.rate_type===type&&Number(r.rate_per_hour)>0);
