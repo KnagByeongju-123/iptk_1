@@ -618,6 +618,10 @@ async function doOrder() {
   }
 }
 
+/* v170: 발주서 보기 — 같은 제번·업체·발주일 묶음 (mes_mail.js) */
+function sheetOf(l) { const { b, job } = CTX || {}; if (!window.MESMAIL) return say('발주서 모듈(mes_mail.js)이 없습니다.');
+  MESMAIL.sheetFor({ category: CFG.category, job: job.job, item: job.item || '', vendor: l.vendor_name || '', order_date: l.order_date || '', line_id: l.line_id, by: OWNER }); }
+const sheetBtn = l => ({ t: '🧾 발주서', title: '이 발주건이 포함된 발주서(A4)를 새 창에 엽니다 — 인쇄·PDF 저장', fn: () => sheetOf(l) });
 /* ── ② 입고 ────────────────────────────────────────────────── */
 const bN = () => ((CTX && CTX.batchIn) || []).reduce((n, x) => n + x.lines.length, 0);
 const cN = () => ((CTX && CTX.batchCfm) || []).reduce((n, x) => n + x.lines.length, 0);
@@ -654,7 +658,7 @@ function formReceive(ev, l) {
     { t: '＋ 추가 발주', cls: 'go k-order', title: '같은 품번을 다른 업체에 나눠 발주하거나 재발주합니다', fn: e => formOrder(e) },
     { t: '↻ 신규발주', cls: 'warn', title: '기존 이력을 남기고 새 발주차수를 시작합니다. 현재 차수가 미완료면 안내 후 실행되지 않습니다.', fn: e => startNewCycle(e) },
     { t: '✖ 발주취소', cls: 'warn', title: '이 발주 라인을 삭제합니다', fn: doOrderCancel },
-    { t: '닫기', fn: close }]);
+    sheetBtn(l), { t: '닫기', fn: close }]);
   /* v158: 입고 중량 — 발주 중량(order_weight)을 입고수량에 맞춰 환산, 없으면 설계치수로 자동계산.
            수동 입력한 값은 수량을 바꿔도 덮어쓰지 않는다 ([자동]으로 해제) */
   const inKg = q => {
@@ -763,7 +767,7 @@ function formConfirm(ev, l) {
     { t: '＋ 추가 발주', cls: 'go k-order', title: '같은 품번을 다른 업체에 나눠 발주하거나 재발주합니다', fn: e => formOrder(e) },
     { t: '↻ 신규발주', cls: 'warn', title: '기존 이력을 남기고 새 발주차수를 시작합니다. 현재 차수가 미완료면 안내 후 실행되지 않습니다.', fn: e => startNewCycle(e) },
     { t: '✖ 입고취소', cls: 'warn', title: '입고를 취소하고 발주 상태로 되돌립니다', fn: doReceiveCancel },
-    { t: '닫기', fn: close }]);
+    sheetBtn(l), { t: '닫기', fn: close }]);
   $('oxRate').onchange = () => { const q = _n(_v('oxQuote')); $('oxFix').value = _won(Math.round(q * (1 - _n(_v('oxRate')) / 100))); };
   $('oxFix').onchange  = () => { const q = _n(_v('oxQuote')); $('oxRate').value = q ? ((1 - _n(_v('oxFix')) / q) * 100).toFixed(1) : '0'; };
   return false;
@@ -829,7 +833,7 @@ function formDone(ev, l) {
    [{ t: '＋ 추가 발주', cls: 'go k-order', title: '같은 품번을 다른 업체에 나눠 발주하거나 재발주합니다', fn: e => formOrder(e) },
     { t: '↻ 신규발주', cls: 'warn', title: '기존 이력을 남기고 소요수량 전체를 기준으로 새 발주차수를 시작합니다', fn: e => startNewCycle(e) },
     { t: '✖ 확정취소', cls: 'warn', fn: doConfirmCancel },
-    { t: '닫기', fn: close }]);
+    sheetBtn(l), { t: '닫기', fn: close }]);
   return false;
 }
 

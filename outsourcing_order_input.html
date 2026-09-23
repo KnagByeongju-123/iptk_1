@@ -893,6 +893,11 @@ async function ospRpc(fn,body){
  const res=await fetch(MESDB.cfg.url+'/rest/v1/rpc/'+fn,{method:'POST',headers:{apikey:MESDB.cfg.key,Authorization:'Bearer '+(auth.token||MESDB.cfg.key),'Content-Type':'application/json'},body:JSON.stringify(body)});
  const t=await res.text();if(!res.ok)throw new Error(t.slice(0,160));try{return JSON.parse(t)}catch(e){return null}
 }
+/* v170: 이 발주건의 발주서 보기 (같은 제번·업체·발주일 묶음, 부품 그림 포함) */
+function ctxSheet(){const {o}=CTX||{};const l=(o&&o.line)||{};const j=jobView[jobIdx]||{};
+ if(!window.MESMAIL)return msg('발주서 모듈(mes_mail.js)이 없습니다.');
+ MESMAIL.sheetFor({category:'외주가공',job:j.job||l.job_no,item:j.item||'',vendor:l.vendor_name||o.vendor||'',order_date:l.order_date||'',line_id:l.line_id,by:OWNER})}
+const SHEET_BTN='<button class="btn" onclick="ctxSheet()" title="이 발주건이 포함된 발주서(A4)를 새 창에 엽니다 — 인쇄·PDF 저장">🧾 발주서</button>';
 function ctxReceive(ev,head){
  const {i,c,o}=CTX;const l=o.line||{};
  const ord=_n(l.order_qty)||1,got=_n(l.receipt_qty),rem=Math.max(ord-got,0);
@@ -907,7 +912,7 @@ function ctxReceive(ev,head){
   </div>`,
   `<button class="btn go k-in" id="cxGo" onclick="ctxReceiveNow(false)">▣ 입고 처리</button>
    <button class="btn go" id="cxGo2" onclick="ctxReceiveNow(true)" title="입고 처리와 입고확정(견적가 그대로, 네고 0%)을 한 번에 끝냅니다. 잔량이 남으면 입고만 됩니다">▣ 입고+확정</button>
-   <button class="btn" onclick="ctxClose()">닫기</button>`);
+   ${SHEET_BTN}<button class="btn" onclick="ctxClose()">닫기</button>`);
  return false;
 }
 async function ctxReceiveNow(withConfirm){
@@ -950,7 +955,7 @@ function ctxConfirm(ev,head){
   </div>
   <div class="note">확정가는 제조원가(외주가공비)에 반영됩니다. 네고율을 입력하면 확정가가, 확정가를 고치면 네고율이 맞춰집니다.</div>`,
   `<button class="btn" onclick="ctxRecvCancel()" title="현품 입고를 취소하고 발주(출고) 상태로 되돌립니다">✖ 입고취소</button>
-   <button class="btn go" id="cxGo" onclick="ctxConfirmNow()">▣ 입고확정</button><button class="btn" onclick="ctxClose()">취소</button>`);
+   <button class="btn go" id="cxGo" onclick="ctxConfirmNow()">▣ 입고확정</button>${SHEET_BTN}<button class="btn" onclick="ctxClose()">취소</button>`);
  return false;
 }
 function ctxFixFromRate(){const q=_n(_v('cxQuote')),rt=_n(_v('cxRate'));document.getElementById('cxFix').value=_won(Math.round(q*(1-rt/100)))}
@@ -988,7 +993,8 @@ async function ctxRecvCancel(){
 function ctxDone(ev,head){
  const {i,c,o}=CTX;const l=o.line||{};
  ctxOpen(ev,`공정${i+1} ${procName(c)} — 완료`,'',head+`<div class="info"><b>업체</b><span>${_esc(l.vendor_name||o.vendor||'')}</span><b>발주일</b><span>${_esc(String(l.order_date||'').slice(0,10))}</span><b>입고일</b><span>${_esc(String(l.receipt_date||'').slice(0,10))}</span><b>확정일</b><span>${_esc(String(l.confirm_date||'').slice(0,10))}</span><b>견적가</b><span>${_won(l.quote_price)}원</span><b>확정가</b><span>${_won(l.confirm_price)}원</span></div>
-  <div class="note">입고취소가 필요하면 외주가공 입고확정 화면에서 처리하세요.</div>`);
+  <div class="note">입고취소가 필요하면 외주가공 입고확정 화면에서 처리하세요.</div>`,
+  `${SHEET_BTN}<button class="btn" onclick="ctxClose()">닫기</button>`);
  return false;
 }
 
@@ -1040,7 +1046,7 @@ window.MESLOOK_RELOAD_VENDORS=async()=>{MESLOOK.invalidate('vendor_outsourcing')
  if(typeof renderRoutes==='function')renderRoutes();};
 </script>
 <script src="mes_price.js?v=162"></script>
-<script src="mes_mail.js?v=170"></script>
+<script src="mes_mail.js?v=171"></script>
 <script src="mes_route_edit.js?v=168"></script>
 <script src="mes_vendorcheck.js?v=92"></script>
 <script>
