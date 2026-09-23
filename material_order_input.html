@@ -172,7 +172,7 @@ function pickJob(i){jobIdx=i;const _j=jobView[i];if(_j){try{jobQ.value=_j.job;mo
 function pickVendor(i){const v=venView[i];if(v==null)return;
  venIdx=(venIdx===i)?-1:i;renderVendors();
  msg(venIdx<0?'협력업체 선택 없음':`협력업체 ${v} 선택`)}
-/* v117: 제번 ↔ 모델 연동 + 드롭다운(타이핑 병행) */
+/* v117: 제번 ↔ 품번 연동 + 드롭다운(타이핑 병행) */
 function fillModelDL(){const dl=document.getElementById('modelDL');if(!dl)return;
  const seen=new Set(),out=[];
  JOBS.forEach(x=>{const m=(x.model||'').trim();if(!m||seen.has(m))return;seen.add(m);out.push({m,job:x.job})});
@@ -180,7 +180,7 @@ function fillModelDL(){const dl=document.getElementById('modelDL');if(!dl)return
  dl.innerHTML=out.map(o=>`<option value="${String(o.m).replace(/"/g,'')}">${String(o.job).replace(/</g,'')}</option>`).join('')}
 function jobExact(no){no=String(no||'').trim().toLowerCase();if(!no)return null;return JOBS.find(x=>String(x.job).toLowerCase()===no)||null}
 function selectJobRow(no){const i=jobView.findIndex(x=>x.job===no);if(i>=0)pickJob(i)}
-/* 제번을 고르거나 입력하면 → 같은 행의 모델을 채우고 그 제번을 선택한다.
+/* 제번을 고르거나 입력하면 → 같은 행의 품번을 채우고 그 제번을 선택한다.
    정확히 일치하지 않아도 걸러진 결과가 한 건이면 그 행으로 맞춘다. */
 function onJobPick(){
  let j=jobExact(jobQ.value);
@@ -190,7 +190,7 @@ function onJobPick(){
  if(modelQ.value!==(j.model||'')){modelQ.value=j.model||'';applyFilter()}
  selectJobRow(j.job);
 }
-/* 모델을 고르거나 입력하면 → 같은 행의 제번을 채우고 선택한다 (여러 제번이 같은 모델이면 목록만 걸러 준다) */
+/* 품번을 고르거나 입력하면 → 같은 행의 제번을 채우고 선택한다 (여러 제번이 같은 품번이면 목록만 걸러 준다) */
 function onModelPick(){
  const m=String(modelQ.value||'').trim().toLowerCase();
  if(!m){applyFilter();return}
@@ -380,7 +380,7 @@ async function loadBom(){
 }
 window.MES={search,save,exportCsv,setMessage:msg,print:printOrder};loadJobs();
 </script>
-<script src="mes_sample.js?v=92"></script><script src="mes_scene.js?v=92"></script><script src="mes_demo.js?v=92"></script><script src="mes_db.js?v=168"></script>
+<script src="mes_sample.js?v=169"></script><script src="mes_scene.js?v=92"></script><script src="mes_demo.js?v=92"></script><script src="mes_db.js?v=168"></script>
 <script>MESDB.bind("material_order_input",()=>({REQ}));   /* v62: 제번/업체는 매번 DB 에서 */
 /* v22: 구매요청 리스트는 화면을 열 때 빈 작업공간으로 시작 (샘플 잔존분이 저장되는 것 방지) */
 REQ.length=0;/*v22*/if(typeof renderReq==='function')renderReq();
@@ -502,7 +502,7 @@ async function reAdd(){const j=jobView[jobIdx];if(!j)return;
 <script>/* v117: 제번 칸 — 등록된 제번 목록에서 고르거나 직접 타이핑 (둘 다 가능) */
 try{MESJOB.attach("jobQ",{onPick:()=>{try{onJobPick()}catch(e){}}})}catch(e){}
 </script>
-<script>/* v117: 제번 ↔ 모델 양방향 연동 (고르거나 쳐 넣거나 둘 다) */
+<script>/* v117: 제번 ↔ 품번 양방향 연동 (고르거나 쳐 넣거나 둘 다) */
 ["change","input"].forEach(ev=>{
  jobQ.addEventListener(ev,()=>{try{onJobPick()}catch(e){}});
  modelQ.addEventListener(ev,()=>{try{onModelPick()}catch(e){}});

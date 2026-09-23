@@ -105,7 +105,7 @@ html[data-mw="xs"] .formgrid{grid-template-columns:84px minmax(0,1fr)}
  <div class="label">개발유형</div><div><select id="devtype" class="field"><option value=""></option><option>사내</option><option>외주</option></select></div>
  <div class="label">양산처</div><div class="lk"><input id="mp_code"><input id="mp_name" readonly><button onclick="openLook('mass_production','mp_code','mp_name')">…</button></div>
  <div class="label">품 명</div><div><input id="product_name" class="field"></div>
- <div class="label">모 델</div><div><input id="model" class="field"></div>
+ <div class="label">품 번</div><div><input id="model" class="field"></div>
  <div class="label">공정(조)수</div><div><input id="proc_cnt" class="field num" title="공정 SET 수(조수). 원가 배부 단위가 됩니다."></div>
 
  <div class="label">견적가</div><div><input id="quo_price" class="field num"></div>
@@ -425,7 +425,7 @@ clearForm();
   try{document.dispatchEvent(new Event('change'))}catch(e){}}
  return ok};
  window.MES.save=window.save;})();
-</script><script src="mes_sample.js?v=116"></script><script src="mes_demo.js?v=116"></script><script src="mes_db.js?v=168"></script>
+</script><script src="mes_sample.js?v=169"></script><script src="mes_demo.js?v=116"></script><script src="mes_db.js?v=168"></script>
 <script src="mes_ctx.js?v=162"></script>
 
 <script>

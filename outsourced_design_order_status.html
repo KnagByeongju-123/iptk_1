@@ -27,7 +27,7 @@ tfoot th{position:sticky;bottom:0;background:linear-gradient(#e6eef5,#d3e0ea)}
       <div class="radios"><label><input type="radio" name="st" value="전체" checked onchange="search()"> 전체</label><label><input type="radio" name="st" value="발주" onchange="search()"> 발주</label><label><input type="radio" name="st" value="입고" onchange="search()"> 입고</label></div>
       <span class="label">제 번</span><input id="jobQ" class="field" style="width:170px">
       <span class="label">품 명</span><input id="itemQ" class="field" style="width:170px">
-      <span class="label">모 델</span><input id="modelQ" class="field" style="width:150px">
+      <span class="label">품 번</span><input id="modelQ" class="field" style="width:150px">
     </div>
     <div class="frow">
       <span class="label">발주일</span><input id="od1" class="field" type="date"><span>~</span><input id="od2" class="field" type="date">
@@ -38,7 +38,7 @@ tfoot th{position:sticky;bottom:0;background:linear-gradient(#e6eef5,#d3e0ea)}
   </section>
   <div class="gridbox"><div class="tablewrap"><table>
     <colgroup><col style="width:44px"><col style="width:110px"><col style="width:130px"><col style="width:110px"><col style="width:74px"><col style="width:110px"><col style="width:108px"><col style="width:50px"><col style="width:74px"><col style="width:90px"><col style="width:90px"><col style="width:90px"><col style="width:96px"><col style="width:86px"><col style="width:92px"><col style="width:100px"><col style="width:92px"></colgroup>
-    <thead><tr><th>No</th><th>제번</th><th>품명</th><th>모델</th><th>국내/해외</th><th>거래처</th><th>수주가</th><th>공정</th><th>유상사급</th><th>견적가</th><th>네고가</th><th>차액</th><th>협력업체</th><th>진행률</th><th>발주일</th><th>입고예정일</th><th>입고일</th></tr></thead>
+    <thead><tr><th>No</th><th>제번</th><th>품명</th><th>품번</th><th>국내/해외</th><th>거래처</th><th>수주가</th><th>공정</th><th>유상사급</th><th>견적가</th><th>네고가</th><th>차액</th><th>협력업체</th><th>진행률</th><th>발주일</th><th>입고예정일</th><th>입고일</th></tr></thead>
     <tbody id="body"></tbody>
     <tfoot><tr><th colspan="9" class="r">합 계</th><th class="r" id="sumQuote">0</th><th class="r" id="sumNego">0</th><th class="r" id="sumDiff">0</th><th colspan="5"></th></tr></tfoot>
   </table></div></div>
@@ -98,7 +98,7 @@ async function cancelOrder(){
 function search(){const st=document.querySelector('input[name=st]:checked').value;const j=jobQ.value.trim().toLowerCase(),it=itemQ.value.trim().toLowerCase(),m=modelQ.value.trim().toLowerCase();
 view=rows.filter(r=>(st==='전체'||(st==='입고'?!!r.idate:!r.idate))&&(!j||r.job.toLowerCase().includes(j))&&(!it||r.item.toLowerCase().includes(it))&&(!m||r.model.toLowerCase().includes(m))&&within(r.odate,od1.value,od2.value)&&within(r.edate,ed1.value,ed2.value)&&within(r.idate,rd1.value,rd2.value));
 render();msg(`${st} 기준 ${view.length}건을 조회했습니다.`)}
-function exportCsv(){const out=[['제번','품명','모델','국내/해외','거래처','수주가','공정','견적가','네고가','차액','협력업체','진행률','발주일','입고예정일','입고일'],...view.map(r=>[r.job,r.item,r.model,r.area,r.cust,r.amount,r.proc,r.quote,r.nego,r.diff,r.partner,r.rate,r.odate,r.edate,r.idate])];const csv='\ufeff'+out.map(a=>a.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='outsourced_design_order_status.csv';a.click();URL.revokeObjectURL(a.href);msg('EXCEL(CSV) 파일을 생성했습니다.')}
+function exportCsv(){const out=[['제번','품명','품번','국내/해외','거래처','수주가','공정','견적가','네고가','차액','협력업체','진행률','발주일','입고예정일','입고일'],...view.map(r=>[r.job,r.item,r.model,r.area,r.cust,r.amount,r.proc,r.quote,r.nego,r.diff,r.partner,r.rate,r.odate,r.edate,r.idate])];const csv='\ufeff'+out.map(a=>a.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='outsourced_design_order_status.csv';a.click();URL.revokeObjectURL(a.href);msg('EXCEL(CSV) 파일을 생성했습니다.')}
 function msg(t){message.textContent=t}
 /* v73: 외주설계실적조회를 이 화면으로 통합 — 발주 행의 입고(진척) 이력을 팝업으로 본다 */
 const esc=v=>String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));

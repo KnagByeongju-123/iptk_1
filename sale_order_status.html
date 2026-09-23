@@ -54,7 +54,7 @@ th.sortable{cursor:pointer;user-select:none}th.sortable:hover{background:#dfe9f3
    <div class="lb">진 행</div><div><select id="q_st" class="field"><option>전체</option><option>진행</option><option>완료</option></select></div>
    <div class="lb">수주유형</div><div><select id="q_ot" class="field"><option>전체</option><option>신작</option><option>개조</option><option>수리</option></select></div>
    <div class="lb">지역</div><div><select id="q_dom" class="field"><option value=""></option><option>국내</option><option>해외</option></select></div>
-   <div class="lb">모 델</div><div><input id="q_model" class="field"></div>
+   <div class="lb">품 번</div><div><input id="q_model" class="field"></div>
    <div class="lb">도 번</div><div><input id="q_draw" class="field"></div>
    <div class="lb">제 번</div><div><input id="q_job" class="field"></div>
    <div class="lb">품 명</div><div><input id="q_item" class="field"></div>
@@ -65,7 +65,7 @@ th.sortable{cursor:pointer;user-select:none}th.sortable:hover{background:#dfe9f3
 </section>
 <div class="gridbox"><table style="min-width:1740px">
  <thead><tr>
-  <th style="width:44px">NO</th><th class="sortable" data-k="_base" onclick="sortBy(this)" style="width:96px" title="공정 문자를 뺀 제번 (v120)">관리제번<span class="si"></span></th><th class="sortable" data-k="_seq" onclick="sortBy(this)" style="width:40px">공정<span class="si"></span></th><th class="sortable" data-k="job_no" onclick="sortBy(this)" style="width:104px">제번<span class="si"></span></th><th class="sortable" data-k="model" onclick="sortBy(this)" style="width:112px">모델<span class="si"></span></th><th class="sortable" data-k="drawing_no" onclick="sortBy(this)" style="width:112px">도번<span class="si"></span></th>
+  <th style="width:44px">NO</th><th class="sortable" data-k="_base" onclick="sortBy(this)" style="width:96px" title="공정 문자를 뺀 제번 (v120)">관리제번<span class="si"></span></th><th class="sortable" data-k="_seq" onclick="sortBy(this)" style="width:40px">공정<span class="si"></span></th><th class="sortable" data-k="job_no" onclick="sortBy(this)" style="width:104px">제번<span class="si"></span></th><th class="sortable" data-k="model" onclick="sortBy(this)" style="width:112px">품번<span class="si"></span></th><th class="sortable" data-k="drawing_no" onclick="sortBy(this)" style="width:112px">도번<span class="si"></span></th>
   <th class="sortable" data-k="item_name" onclick="sortBy(this)" style="width:180px">품명<span class="si"></span></th><th class="sortable" data-k="eco" onclick="sortBy(this)" style="width:72px">ECO<span class="si"></span></th><th class="sortable" data-k="customer_name" onclick="sortBy(this)" style="width:140px">고객사<span class="si"></span></th><th class="sortable" data-k="set_qty" onclick="sortBy(this)" style="width:70px" title="공정 SET 수(조수)">공정(조)수<span class="si"></span></th>
   <th class="sortable" data-k="development_type" onclick="sortBy(this)" style="width:70px">개발유형<span class="si"></span></th><th class="sortable" data-k="order_type" onclick="sortBy(this)" style="width:70px">수주유형<span class="si"></span></th><th class="sortable" data-k="mold_type_name" onclick="sortBy(this)" style="width:96px">금형타입<span class="si"></span></th><th class="sortable" data-k="machine_spec_name" onclick="sortBy(this)" style="width:78px">기계사양<span class="si"></span></th>
   <th class="sortable" data-k="order_date" onclick="sortBy(this)" style="width:92px">수주일<span class="si"></span></th><th class="sortable" data-k="s1_planned_date" onclick="sortBy(this)" style="width:104px">T/O 예정일<span class="si"></span></th><th class="sortable" data-k="completion_date" onclick="sortBy(this)" style="width:92px" title="정산까지 끝나 제번을 종결한 날">정산완료일<span class="si"></span></th><th class="sortable" data-k="mass_production_vendor_name" onclick="sortBy(this)" style="width:110px">양산처<span class="si"></span></th><th class="sortable" data-k="order_status" onclick="sortBy(this)" style="width:60px">상태<span class="si"></span></th>
@@ -147,7 +147,7 @@ const DFIELDS=[['job_no','제번'],['plant_name','공장'],['order_status','수�
  ['quotation_no','견적서번호'],['item_name','품명(아이템)'],['order_date','수주일'],['s1_planned_date','T/O 예정일'],
  ['delivery_planned_date','납기예정일'],['domestic_overseas','국내/해외'],['drawing_no','도번'],
  ['manager_name','담당자'],['customer_name','고객사'],['mold_type_name','금형타입'],['development_type','개발유형'],
- ['mass_production_vendor_name','양산처'],['product_name','품명'],['model','모델'],['process_set_qty','공정(조)수'],
+ ['mass_production_vendor_name','양산처'],['product_name','품명'],['model','품번'],['process_set_qty','공정(조)수'],
  ['quotation_price','견적가'],['machine_spec_name','기계사양'],['material_used','사용재료'],
  ['s1_completed_date','T/O 완료일'],['delivery_completed_date','납기완료일'],['eco','ECO'],
  ['process_category','공정카테고리'],['order_price','수주가'],['nego_amount','네고조정'],['nego_note','네고사유'],['completion_date','정산완료일'],['remark','비고']];
@@ -233,7 +233,7 @@ async function delOrder(){
  message.textContent=`${r.job_no} 수주를 삭제했습니다.`;
 }
 function exportCsv(){
- const h=['관리제번','공정','제번','모델','도번','품명','ECO','고객사','공정','개발유형','수주유형','금형타입','기계사양','수주일','T/O예정일','정산완료일','양산처','상태'];
+ const h=['관리제번','공정','제번','품번','도번','품명','ECO','고객사','공정','개발유형','수주유형','금형타입','기계사양','수주일','T/O예정일','정산완료일','양산처','상태'];
  const rs=view.map(r=>[JS(r.job_no).base,JS(r.job_no).seq,r.job_no,r.model,r.drawing_no,r.item_name,r.eco,r.customer_name,r.set_qty,r.development_type,r.order_type,r.mold_type_name,r.machine_spec_name,r.order_date,r.s1_planned_date,r.completion_date,r.mass_production_vendor_name,r.order_status]);
  const csv='\ufeff'+[h,...rs].map(a=>a.map(x=>'"'+String(x??'').replaceAll('"','""')+'"').join(',')).join('\n');
  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='sale_order_status.csv';a.click();
