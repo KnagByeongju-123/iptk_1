@@ -37,3 +37,9 @@ alter table public.sales_plans
 -- 확인
 -- select job_no, drawing_no, make_type, receipt_date, can_design_date, progress_log
 --   from public.sales_plans order by row_no desc limit 5;
+
+-- ────────────────────────────────────────────────────────────────
+-- 제작계획등록 화면의 옛 배치(배치편집으로 저장한 입력칸 폭·위치)를 지웁니다.
+-- 화면 구조가 바뀌어 옛 배치가 새 표를 찌그러뜨릴 수 있습니다. 한 번만 실행하세요.
+-- ────────────────────────────────────────────────────────────────
+delete from public.ui_layout where page = 'sales_plan_input';
