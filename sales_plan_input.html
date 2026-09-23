@@ -115,7 +115,7 @@ table.ev td .dcell .wd.late{background:#ffe45c;color:#5a4400;font-weight:700}
  <div class="lb">고객사</div><div><input id="customer_name" class="field cbo" list="dl_cust" autocomplete="off" placeholder="입력 또는 선택"></div>
  <div class="lb">아이템</div><div><input id="item_name" class="field cbo" list="dl_item" autocomplete="off" placeholder="입력 또는 선택"></div>
  <div class="lb">금형타입</div><div><input id="mold_type_name" class="field cbo" list="dl_mold" autocomplete="off" placeholder="입력 또는 선택"></div>
- <div class="lb">모델명</div><div><input id="model" class="field" placeholder="예) Sliding door IDX27"></div>
+ <div class="lb">품번</div><div><input id="model" class="field" placeholder="예) Sliding door IDX27"></div>
  <div class="lb">도 번</div><div><input id="drawing_no" class="field" placeholder="예) MAZ30224301"></div>
  <div class="lb">품 명</div><div><input id="product_name" class="field" placeholder="예) BRACKET,MOTOR"></div>
  <div class="lb">제작구분</div><div><input id="make_type" class="field cbo" list="dl_make" autocomplete="off" placeholder="신규제작 / 수정 / 추가"></div>
@@ -570,7 +570,7 @@ async function syncDesignOrder(o){
 window.MES={save,clearForm,setMessage:t=>message.textContent=t,search:loadJob,load,loadJob};
 job_no.addEventListener('change',()=>loadJob());
 clearForm(true);
-</script><script src="mes_sample.js?v=68"></script><script src="mes_demo.js?v=68"></script><script src="mes_db.js?v=168"></script>
+</script><script src="mes_sample.js?v=169"></script><script src="mes_demo.js?v=68"></script><script src="mes_db.js?v=168"></script>
 <script>loadMasters();</script>
 <script src="mes_ctx.js?v=162"></script>
 
