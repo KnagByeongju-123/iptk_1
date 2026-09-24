@@ -1172,6 +1172,9 @@ async function _movesSum(lineId){
 }
 async function _cancelRoundDirect(lineId,moveId){
  await MESDB.table('outsourcing_moves').delete({move_id:Number(moveId)});
+ /* v222: 권한(RLS) 때문에 조용히 지워지지 않는 경우를 잡는다 */
+ try{const left=await MESDB.table('outsourcing_moves').select(`select=move_id&move_id=eq.${Number(moveId)}`,{fresh:true})||[];
+  if(left.length)throw new Error('입고 기록(outsourcing_moves)을 지우지 못했습니다 — 권한 문제. Supabase 에서 sql_v178_receive_cancel.sql 을 실행해 주세요.')}catch(e){if(/outsourcing_moves/.test(String(e.message||e)))throw e}
  const sum=await _movesSum(lineId);
  await MESDB.table('order_lines').upsert([Object.assign({line_id:Number(lineId),status:'발주',receipt_qty:sum||null,receipt_date:null,updated_at:new Date().toISOString()},CLR_CFM)],'line_id');
  return {in_qty:sum};
@@ -1192,6 +1195,10 @@ async function ctxRoundCancel(lineId,moveId){
   await ospRpcOr('fn_osp_receive_cancel',{p_line_id:Number(lineId),p_move_id:Number(moveId)},()=>_cancelRoundDirect(lineId,moveId));
   /* 기존 RPC(v1)는 확정 정보를 남긴다 → 발주 상태에 확정가가 남지 않게 정리 */
   if(l.confirm_date||l.confirm_price!=null)await MESDB.table('order_lines').upsert([Object.assign({line_id:Number(lineId),updated_at:new Date().toISOString()},CLR_CFM)],'line_id');
+  /* v222: 실제로 되돌아갔는지 확인 — 회차 기록이 남아 있으면 실패로 알린다 */
+  try{const chk=await MESDB.table('outsourcing_moves').select(`select=move_id&move_id=eq.${Number(moveId)}`,{fresh:true})||[];
+   if(chk.length)throw new Error('회차 기록이 지워지지 않았습니다. DB 함수 fn_osp_receive_cancel(sql_v178) 과 outsourcing_moves 삭제 권한을 확인해 주세요.')}
+  catch(e){if(/회차 기록/.test(String(e.message||e)))throw e}
   await ctxAfter(job.job,`${r.part} 공정${i+1} ${procName(c)} 발주건 #${lineId} 입고 1회차를 취소했습니다. (발주 상태 — 다시 입고 처리할 수 있습니다)`);
  }catch(e){msg('입고취소 실패: '+String(e.message||e).slice(0,120))}
 }
