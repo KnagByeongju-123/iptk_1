@@ -1,4 +1,4 @@
-/* drawboard.js (v217: 그림에 박힌 머리글 자동 잘라내기 · v215: 공정 순서 띠 → 격자(확인란) + QR · v214: 이전·다음 품번은 열 때 받은 부품 리스트 순서로 · v213: ◀ 이전 · 다음 ▶ 품번 — 가공계획이 등록된 부품은 등록된 순서로, 아니면 띠 공정 그대로 / v212: 오른쪽 목록 끌어서 순서·해제 · 기준공정 불러오기 / v211: 공정 목록 — 선택한 공정 위 · 구분선 · 나머지 가나다 / v210: 그림 등록 / v209: 끌어서 순서) — 부품 그림보드 화면 스크립트
+/* drawboard.js (v219: 확인란에 업체명(5자)·사내 표시, 공정명 한 줄 · v217: 그림에 박힌 머리글 자동 잘라내기 · v215: 공정 순서 띠 → 격자(확인란) + QR · v214: 이전·다음 품번은 열 때 받은 부품 리스트 순서로 · v213: ◀ 이전 · 다음 ▶ 품번 — 가공계획이 등록된 부품은 등록된 순서로, 아니면 띠 공정 그대로 / v212: 오른쪽 목록 끌어서 순서·해제 · 기준공정 불러오기 / v211: 공정 목록 — 선택한 공정 위 · 구분선 · 나머지 가나다 / v210: 그림 등록 / v209: 끌어서 순서) — 부품 그림보드 화면 스크립트
  * 사내외가공 발주(mes_drawboard.js)가 sessionStorage 'mes_drawboard' 에 넣어 준 자료를 읽어 그린다.
  * 문서를 스크립트로 써 넣지 않고(document.write 없음) DOM 만 만든다. */
 (function(){
@@ -87,15 +87,20 @@
   const L=el('div','stripL');st.appendChild(L);
   const lab=el('div','lab');lab.appendChild(el('b',null,'가공공정 순서'));lab.appendChild(el('small',null,'확인란: 작업자 · 일자'));L.appendChild(lab);
   const grid=el('div','cells');L.appendChild(grid);
+  /* 공정이 많을수록 글자를 조금 줄여 한 줄에 맞춘다 (4개 이하 12px … 10개 10px) */
+  grid.style.setProperty('--fs',Math.max(9.5,Math.min(12,13-SEQ.length*0.3)).toFixed(1)+'px');grid.classList.toggle('many',SEQ.length>=8);
   if(!SEQ.length)grid.appendChild(el('span','empty','오른쪽 공정 버튼을 누르거나 여기로 끌어 오면 순서대로 표시됩니다.'));
   SEQ.forEach((i,k)=>{const s=STEPS[i];
    const cell=el('div','cell'+(s.inhouse?' house':''));cell.dataset.i=i;
    const c=el('span','chip');c.title='누르면 뺍니다 · 끌어서 순서를 바꿉니다';c.dataset.i=i;
-   c.appendChild(el('span','n',String(k+1)));c.appendChild(el('span','nm',s.name||s.code||''));
-   if(s.vendor||s.inhouse)c.appendChild(el('small',null,s.inhouse?'사내':s.vendor));
+   c.appendChild(el('span','n',String(k+1)));const nm=el('span','nm',s.name||s.code||'');nm.title=(s.name||s.code||'')+(s.vendor?' · '+s.vendor:'')+(s.inhouse?' · 사내':'');c.appendChild(nm);
    c.addEventListener('click',()=>{if(SUPPRESS)return;tg(i)});
    c.addEventListener('pointerdown',e=>{if(e.button)return;dragStart(e,i,'chip')});
-   cell.appendChild(c);const sg=el('div','sign');sg.appendChild(el('i',null,'확인'));cell.appendChild(sg);grid.appendChild(cell)});
+   cell.appendChild(c);const sg=el('div','sign');
+   /* v219: 발주된 업체명(앞 5자) 또는 「사내」 를 확인란 왼쪽 위에 — 작업자 서명은 그 아래 빈 자리에 */
+   const who=s.inhouse?'사내':String(s.vendor||'').trim();
+   if(who){const v=el('b','who',who.length>5?who.slice(0,5):who);v.title=who+(s.state?' · '+s.state:'');sg.appendChild(v)}
+   sg.appendChild(el('i',null,'확인'));cell.appendChild(sg);grid.appendChild(cell)});
   st.appendChild(qrBox());
   STEPS.forEach(s=>{const b=btns.querySelector('.pbtn[data-i="'+s.idx+'"]'),n=$('n'+s.idx);const k=SEQ.indexOf(s.idx);
    if(b)b.classList.toggle('on',k>=0);if(n)n.textContent=k>=0?String(k+1):''});

@@ -48,12 +48,14 @@ h1{font-size:18px;margin:0 0 6px;letter-spacing:3px;text-align:center}
 .strip .empty{color:#999;font-size:11.5px;padding:10px 8px;align-self:center}
 .cell{flex:1 1 0;min-width:0;max-width:150px;display:flex;flex-direction:column;border-right:1px solid #333}
 .cell:last-child{border-right:0}
-.cell .chip{flex:0 0 auto;display:flex;align-items:center;gap:4px;min-height:32px;padding:3px 4px;font-size:11.5px;font-weight:700;color:#1d3f63;background:#f3f8fd;cursor:pointer;border-bottom:1px dashed #9aa}
+.cell .chip{flex:0 0 auto;display:flex;align-items:center;gap:3px;min-height:28px;padding:3px 3px;font-size:var(--fs,11.5px);font-weight:700;color:#1d3f63;background:#f3f8fd;cursor:pointer;border-bottom:1px dashed #9aa}
 .chip .n{flex:0 0 auto;display:inline-block;min-width:18px;height:18px;line-height:18px;border-radius:9px;background:#2f5f8a;color:#fff;text-align:center;font-size:11px}
-.chip .nm{flex:1;min-width:0;white-space:normal;line-height:1.15;word-break:break-all;overflow:hidden}
+.cells.many .chip .n{min-width:15px;height:15px;line-height:15px;font-size:9.5px}
+.chip .nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}   /* v219: 공정명 한 줄 */
 .chip small{flex:0 0 auto;font-weight:400;color:#5c6b76;font-size:10px}
-.cell .sign{flex:1;min-height:34px;position:relative;background:#fff}
+.cell .sign{flex:1;min-height:38px;position:relative;background:#fff}
 .cell .sign i{position:absolute;right:3px;bottom:1px;font-style:normal;font-size:9px;color:#aab}
+.cell .sign .who{position:absolute;left:4px;top:2px;font-size:10.5px;color:#2f5f8a;white-space:nowrap}.cell.house .sign .who{color:#8a6d3b}
 .strip .qr{flex:0 0 auto;width:118px;border-left:2px solid #333;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px;gap:3px}
 .strip .qr svg{width:88px;height:88px;display:block}
 .strip .qr .cap{text-align:center;line-height:1.2}.strip .qr .cap b{display:block;font-size:9.5px;color:#1d3f63}.strip .qr .cap span{font-size:8.5px;color:#666;word-break:break-all}
@@ -138,5 +140,5 @@ body.portrait .sheet{width:198mm}
 <div class="ov" id="ov"><div class="bar"><b id="ovT">원본 이미지</b><span id="ovS"></span><span class="sp"></span><button id="ovFit">화면 맞춤</button><button id="ovReal">실제 크기</button><button id="ovClose">닫기 (Esc)</button></div><div class="body" id="ovB"></div></div>
 <script src="mes_qr.js?v=92"></script>
 <script src="mes_imgedit.js?v=196"></script>
-<script src="drawboard.js?v=218"></script>
+<script src="drawboard.js?v=219"></script>
 </body></html>
