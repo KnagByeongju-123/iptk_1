@@ -22,9 +22,10 @@ tfoot th{position:sticky;bottom:0;background:linear-gradient(#e6eef5,#d3e0ea)}
   <div class="title"><h1>재고조회</h1></div>
   <section class="filters">
     <span class="label">기준일</span><input id="baseDate" class="field" type="date">
-    <span class="label">제번</span><input id="jobQ" class="field" style="width:170px">
+    <span class="label">관리제번</span><input id="baseQ" class="field" style="width:170px" list="baseDL" autocomplete="off" placeholder="관리제번 선택/입력"><datalist id="baseDL"></datalist>
+    <span class="label">제번</span><input id="jobQ" class="field" style="width:150px">
     <span class="label">품명</span><input id="itemQ" class="field" style="width:190px">
-    <span class="label">고객사</span><input id="custQ" class="field" style="width:190px">
+    <span class="label">고객사</span><input id="custQ" class="field" style="width:170px" list="custDL" autocomplete="off" placeholder="고객사 선택/입력"><datalist id="custDL"></datalist>
     <span class="label">구분</span><select id="typeQ" class="field" style="width:110px;max-width:110px"><option value="">전체</option><option>신작</option><option>개조</option><option>수리</option><option>유상사급</option></select>
     <button class="btn" onclick="search()">⌕ 조회</button>
   </section>
@@ -43,8 +44,17 @@ const money=v=>Number(v||0).toLocaleString('ko-KR');
 function render(){body.innerHTML=view.map((r,i)=>`<tr onclick="sel(this)"><td class="c">${i+1}</td><td>${r.job}</td><td class="c">${r.type}</td><td>${r.item}</td><td class="c">${r.odate}</td><td>${r.cust}</td><td class="c">${r.dev}</td><td class="r">${money(r.amount)}</td><td class="r">${money(r.buy)}</td></tr>`).join('');
 sumOrder.textContent=money(view.reduce((a,r)=>a+(Number(r.amount)||0),0));sumBuy.textContent=money(view.reduce((a,r)=>a+(Number(r.buy)||0),0));countText.textContent=`${view.length}건`}
 function sel(tr){document.querySelectorAll('#body tr').forEach(x=>x.classList.remove('sel'));tr.classList.add('sel')}
-function search(){const j=jobQ.value.trim().toLowerCase(),it=itemQ.value.trim().toLowerCase(),c=custQ.value.trim().toLowerCase(),t=typeQ.value,b=baseDate.value;
-view=rows.filter(r=>(!j||r.job.toLowerCase().includes(j))&&(!it||r.item.toLowerCase().includes(it))&&(!c||r.cust.toLowerCase().includes(c))&&(!t||r.type===t)&&(!b||!r.odate||r.odate<=b));
+/* v196: 관리제번 · 고객사 드롭다운(목록에서 고르거나 직접 입력) — 조회된 자료에서 목록을 만든다 */
+const esc=v=>String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const baseOf=j=>{const m=/^(.*\d)([A-Z])$/.exec(String(j||'').trim());return m?m[1]:String(j||'').trim()};
+function fillDL(){const G=new Map(),C=new Map();
+ rows.forEach(r=>{const j=String(r.job||'');if(j){const m=/^(.*\d)([A-Z])$/.exec(j),b=m?m[1]:j;let g=G.get(b);if(!g){g={seq:[],item:''};G.set(b,g)}if(m&&!g.seq.includes(m[2]))g.seq.push(m[2]);if(!g.item&&r.item)g.item=r.item}
+  const c=String(r.cust||'').trim();if(c)C.set(c,(C.get(c)||0)+1)});
+ const rng=a=>{a.sort();return !a.length?'':a.length>2?`${a[0]}~${a[a.length-1]}`:a.join('·')};
+ baseDL.innerHTML=[...G.keys()].sort((a,b)=>b.localeCompare(a)).map(b=>{const g=G.get(b);return `<option value="${esc(b)}">${esc([rng(g.seq),g.item].filter(Boolean).join(' · '))}</option>`}).join('');
+ custDL.innerHTML=[...C].sort((a,b)=>a[0].localeCompare(b[0],'ko')).map(([c,n])=>`<option value="${esc(c)}">${n}건</option>`).join('')}
+function search(){const bq=baseQ.value.trim().toUpperCase(),j=jobQ.value.trim().toLowerCase(),it=itemQ.value.trim().toLowerCase(),c=custQ.value.trim().toLowerCase(),t=typeQ.value,b=baseDate.value;
+view=rows.filter(r=>(!bq||(rows.some(x=>baseOf(x.job).toUpperCase()===bq)?baseOf(r.job).toUpperCase()===bq:baseOf(r.job).toUpperCase().includes(bq)))&&(!j||r.job.toLowerCase().includes(j))&&(!it||r.item.toLowerCase().includes(it))&&(!c||r.cust.toLowerCase().includes(c))&&(!t||r.type===t)&&(!b||!r.odate||r.odate<=b));
 render();msg(`기준일 ${b||'전체'} 기준 ${view.length}건을 조회했습니다.`)}
 function exportCsv(){const out=[['제번','구분','품명','수주일','고객사','개발유형','수주가','매입금액'],...view.map(r=>[r.job,r.type,r.item,r.odate,r.cust,r.dev,r.amount,r.buy])];const csv='\ufeff'+out.map(a=>a.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='stock_inquiry.csv';a.click();URL.revokeObjectURL(a.href);msg('EXCEL(CSV) 파일을 생성했습니다.')}
 function msg(t){message.textContent=t}
@@ -62,6 +72,7 @@ async function loadLive(){
   rs.forEach(r=>rows.push({job:r.job_no||r.job||'',type:r.order_type||r.type||'',item:r.item_name||r.item||'',odate:r.order_date||r.odate||'',
    cust:r.customer_name||r.cust||'',dev:r.develop_type||r.development_type||r.dev||'',amount:Number(r.order_amount??r.amount??0),buy:Number(r.purchase_amount??r.buy??0)}));
   if(typeof view!=='undefined'&&Array.isArray(view))view=[...rows];
+  fillDL();
   (window.MES&&window.MES.search||window.search||window.render||function(){})();
   const m=document.getElementById('message');
   if(m)m.textContent=`실데이터 ${rows.length}건을 조회했습니다.`;
@@ -69,6 +80,9 @@ async function loadLive(){
   if(m)m.textContent='조회 실패: '+String(e.message||e).slice(0,110)}
 }
 window.MES={search,exportCsv,setMessage:msg};loadLive();
+/* 고르거나 Enter 치면 바로 조회, 칸을 비우면 전체 */
+[baseQ,jobQ,itemQ,custQ].forEach(el=>{el.addEventListener('change',search);el.addEventListener('keydown',e=>{if(e.key==='Enter')search()});el.addEventListener('input',()=>{if(!el.value.trim())search()})});
+[typeQ,baseDate].forEach(el=>el.addEventListener('change',search));
 </script>
 <script src="mes_db.js?v=171"></script>
 
