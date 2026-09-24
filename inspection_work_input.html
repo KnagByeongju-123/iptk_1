@@ -309,5 +309,18 @@ loadJobs();
 <script src="mes_ctx.js?v=169"></script>
 <script src="mes_lookup.js?v=92"></script>
 <script src="mes_jobpick.js?v=162"></script>
+<script src="mes_go.js?v=196"></script>
+<script>/* v196: 금형원가내역 더블클릭으로 들어왔을 때 — 제번 고르고 부품 행 표시 */
+MES.go=async function(p){p=p||{};const job=String(p.job||'');if(!job)return;
+ if(!await MESGO.wait(()=>JOBS.length))return msg('제번 목록을 불러오지 못했습니다.');
+ const x=JOBS.find(r=>r.job===job);if(!x)return msg(job+' 제번이 목록에 없습니다.');
+ const b=document.getElementById('baseQ');if(b)b.value='';
+ const rd=document.querySelector('input[name=mode][value="'+(x.done?'완료':'진행')+'"]');if(rd)rd.checked=true;
+ $('jobQ').value=job;search(job);
+ if(!p.part)return;
+ const k=await MESGO.wait(()=>{const c=curJob();if(!c||c.job!==job)return 0;const n=PARTS.findIndex(q=>q.part===p.part);return n>=0&&$('partBody').children[n]?n+1:0});
+ if(!k)return msg(job+' 에서 부품 '+p.part+' 을(를) 찾지 못했습니다.');
+ MESGO.hold(()=>{const n=PARTS.findIndex(q=>q.part===p.part);return n>=0?$('partBody').children[n]:null});msg(`${job} · ${p.part} — 금형원가내역에서 이동했습니다.`)};
+</script>
 </body>
 </html>

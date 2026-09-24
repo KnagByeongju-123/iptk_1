@@ -1351,5 +1351,21 @@ try{venF.addEventListener("change",()=>{try{venPick()}catch(e){}});venF.addEvent
 try{pnQ.addEventListener("change",()=>{try{pnPick()}catch(e){}});
  [jobQ,pnQ,venF].forEach(el=>el.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();el.blur()}}));}catch(e){}
 </script>
+<script src="mes_go.js?v=196"></script>
+<script>/* v196: 금형원가내역 더블클릭으로 들어왔을 때 — 제번 고르고 부품 행(과 공정 칸)을 표시 */
+MES.go=async function(p){p=p||{};const job=String(p.job||'');if(!job)return;
+ if(!await MESGO.wait(()=>JOBS.length))return msg('제번 목록을 불러오지 못했습니다.');
+ const b=document.getElementById('baseQ');if(b)b.value='';
+ jobQ.value='';pnQ.value='';search();
+ const i=jobView.findIndex(x=>x.job===job);if(i<0)return msg(job+' 제번이 목록에 없습니다.');
+ jobQ.value=job;pickJob(i);
+ if(!p.part)return;
+ const k=await MESGO.wait(()=>{if((jobView[jobIdx]||{}).job!==job)return 0;const n=ROUTES.findIndex(r=>r.part===p.part);return n>=0&&routeBody.children.length===ROUTES.length?n+1:0});
+ if(!k)return msg(job+' 가공공정 리스트에서 부품 '+p.part+' 을(를) 찾지 못했습니다.');
+ await new Promise(r=>setTimeout(r,250));   /* 협력업체·상태가 늦게 들어와 표가 다시 그려지는 것을 기다린다 */
+ const tr=routeBody.children[k-1],r=ROUTES[k-1];let cell=null;
+ if(p.proc&&r){const si=(r.steps||[]).findIndex(s=>stepCode(s)===p.proc);if(si>=0)cell=tr.querySelectorAll('td.route')[si]||null}
+ MESGO.hold(()=>{const n=ROUTES.findIndex(x=>x.part===p.part);const t=routeBody.children[n];if(!t)return null;let c=null;if(p.proc){const si=(ROUTES[n].steps||[]).findIndex(s=>stepCode(s)===p.proc);if(si>=0)c=t.querySelectorAll('td.route')[si]||null}return [t,c]});msg(`${job} · ${p.part}${p.proc?' · '+procName(p.proc):''} — 금형원가내역에서 이동했습니다.`+(p.proc&&!cell?' (이 부품 가공계획에 해당 공정이 없습니다)':''))};
+</script>
 </body>
 </html>

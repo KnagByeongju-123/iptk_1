@@ -589,4 +589,15 @@ function sampleFill(){
   var e=document.getElementById('message'); if(e)e.textContent='예제 모듈을 불러오지 못했습니다.';
 }
 </script>
+<script src="mes_go.js?v=196"></script>
+<script>/* v196: 금형원가내역 더블클릭으로 들어왔을 때 — 제번 불러오고 부품 행 표시 */
+MES.go=async function(p){p=p||{};const job=String(p.job||'');if(!job)return;
+ q_job.value=job;try{MESJOB.syncSplit('q_job')}catch(e){}
+ await loadJob(job);try{if(typeof pnSync==='function')pnSync(job)}catch(e){}
+ if(!p.part)return;
+ const r=await MESGO.wait(()=>view().find(x=>x.part_no===p.part),5000);
+ if(!r)return msg(job+' PartList 에서 부품 '+p.part+' 을(를) 찾지 못했습니다.');
+ const tr=[...body.querySelectorAll('tr')].find(t=>(t.getAttribute('onclick')||'').includes('rowClick('+r.row_no+','));
+ MESGO.hold(()=>[...body.querySelectorAll('tr')].find(t=>(t.getAttribute('onclick')||'').includes('rowClick('+r.row_no+',')));msg(`${job} · ${p.part} — 금형원가내역에서 이동했습니다.`)};
+</script>
 </body></html>

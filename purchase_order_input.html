@@ -480,5 +480,17 @@ try{MESJOB.attach("jobQ",{onPick:()=>{try{onJobPick()}catch(e){}}})}catch(e){}
 <script>/* v142: 자재표 리스트 우클릭 → 발주 · 입고 · 입고확정 · 취소 (외주가공 발주와 같은 방식) */
 try{MESORDCTX.init({category:'구매품',useWeight:false,bySize:false,priceKey:b=>b.mat||b.part})}catch(e){}
 </script>
+<script src="mes_go.js?v=196"></script>
+<script>/* v196: 금형원가내역 더블클릭으로 들어왔을 때 — 제번 고르고 자재표에서 부품 행 표시 */
+MES.go=async function(p){p=p||{};const job=String(p.job||'');if(!job)return;
+ if(!await MESGO.wait(()=>JOBS.length))return msg('제번 목록을 불러오지 못했습니다.');
+ jobQ.value=job;modelQ.value='';applyFilter();
+ const i=jobView.findIndex(x=>x.job===job);if(i<0)return msg(job+' 제번이 목록에 없습니다.');
+ pickJob(i);
+ if(!p.part)return;
+ const k=await MESGO.wait(()=>{const j=jobView[jobIdx];if(!j||j.job!==job||!j.bom)return 0;const n=j.bom.findIndex(b=>b.part===p.part);return n>=0&&bomBody.children[n]?n+1:0});
+ if(!k)return msg(job+' 자재표에서 부품 '+p.part+' 을(를) 찾지 못했습니다.');
+ MESGO.hold(()=>{const j=jobView[jobIdx];const n=j&&j.bom?j.bom.findIndex(b=>b.part===p.part):-1;return n>=0?bomBody.children[n]:null});msg(`${job} · ${p.part} — 금형원가내역에서 이동했습니다.`)};
+</script>
 </body>
 </html>
