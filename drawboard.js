@@ -1,4 +1,4 @@
-/* drawboard.js (v214: 이전·다음 품번은 열 때 받은 부품 리스트 순서로 · v213: ◀ 이전 · 다음 ▶ 품번 — 가공계획이 등록된 부품은 등록된 순서로, 아니면 띠 공정 그대로 / v212: 오른쪽 목록 끌어서 순서·해제 · 기준공정 불러오기 / v211: 공정 목록 — 선택한 공정 위 · 구분선 · 나머지 가나다 / v210: 그림 등록 / v209: 끌어서 순서) — 부품 그림보드 화면 스크립트
+/* drawboard.js (v215: 공정 순서 띠 → 격자(확인란) + QR · v214: 이전·다음 품번은 열 때 받은 부품 리스트 순서로 · v213: ◀ 이전 · 다음 ▶ 품번 — 가공계획이 등록된 부품은 등록된 순서로, 아니면 띠 공정 그대로 / v212: 오른쪽 목록 끌어서 순서·해제 · 기준공정 불러오기 / v211: 공정 목록 — 선택한 공정 위 · 구분선 · 나머지 가나다 / v210: 그림 등록 / v209: 끌어서 순서) — 부품 그림보드 화면 스크립트
  * 사내외가공 발주(mes_drawboard.js)가 sessionStorage 'mes_drawboard' 에 넣어 준 자료를 읽어 그린다.
  * 문서를 스크립트로 써 넣지 않고(document.write 없음) DOM 만 만든다. */
 (function(){
@@ -56,15 +56,29 @@
   const old=b.querySelector('.p');if(old)old.remove();b.classList.toggle('plan',!!s.plan.length);
   if(s.plan.length){const p=el('span','p','계획 '+s.plan.join(','));b.querySelector('.k').after(p)}
   const v=b.querySelector('.v');if(v)v.textContent=[s.vendor,s.state].filter(Boolean).join(' · ')})}
+ /* v215: QR — 제번_공정(조)_품번 을 담은 이 앱의 링크. 휴대폰 카메라로 읽으면 로그인 뒤 「외주가공 QR 스캔」 화면이 이 부품으로 열린다 */
+ function qrKey(){return [o.job||'',String(o.jo??'1').replace(/조$/,'')||'1',o.part||''].join('_')}
+ function qrUrl(){const base=location.href.replace(/[^/]*$/,'');return base+'index.html?go=qr&key='+encodeURIComponent(qrKey())}
+ function qrBox(){const box=el('div','qr');
+  try{if(window.qrcode){const q=qrcode(0,'M');q.addData(qrUrl());q.make();box.innerHTML=q.createSvgTag({cellSize:2,margin:0,scalable:true})}}catch(e){}
+  if(!box.firstChild)box.appendChild(el('div','none','QR'));
+  const cap=el('div','cap');cap.appendChild(el('b',null,'QR 스캔 → 작업완료'));cap.appendChild(el('span',null,qrKey()));box.appendChild(cap);
+  box.title='협력업체·사내 작업자가 휴대폰으로 읽으면 이 부품의 공정 목록이 열려 작업완료(입고 처리)를 할 수 있습니다\n'+qrUrl();return box}
  function draw(){
-  const st=$('strip');st.textContent='';st.appendChild(el('span','lab','가공공정 순서'));
-  if(!SEQ.length)st.appendChild(el('span','empty','오른쪽 공정 버튼을 누르거나 여기로 끌어 오면 순서대로 표시됩니다.'));
-  SEQ.forEach((i,k)=>{const s=STEPS[i];if(k)st.appendChild(el('span','arrow','→'));
-   const c=el('span','chip'+(s.inhouse?' house':''));c.title='누르면 뺍니다 · 끌어서 순서를 바꿉니다';c.dataset.i=i;
-   c.appendChild(el('span','n',String(k+1)));c.appendChild(document.createTextNode(s.name||s.code||''));
-   if(s.vendor){c.appendChild(document.createTextNode(' '));c.appendChild(el('small',null,s.vendor))}
+  const st=$('strip');st.textContent='';
+  const L=el('div','stripL');st.appendChild(L);
+  const lab=el('div','lab');lab.appendChild(el('b',null,'가공공정 순서'));lab.appendChild(el('small',null,'확인란: 작업자 · 일자'));L.appendChild(lab);
+  const grid=el('div','cells');L.appendChild(grid);
+  if(!SEQ.length)grid.appendChild(el('span','empty','오른쪽 공정 버튼을 누르거나 여기로 끌어 오면 순서대로 표시됩니다.'));
+  SEQ.forEach((i,k)=>{const s=STEPS[i];
+   const cell=el('div','cell'+(s.inhouse?' house':''));cell.dataset.i=i;
+   const c=el('span','chip');c.title='누르면 뺍니다 · 끌어서 순서를 바꿉니다';c.dataset.i=i;
+   c.appendChild(el('span','n',String(k+1)));c.appendChild(el('span','nm',s.name||s.code||''));
+   if(s.vendor||s.inhouse)c.appendChild(el('small',null,s.inhouse?'사내':s.vendor));
    c.addEventListener('click',()=>{if(SUPPRESS)return;tg(i)});
-   c.addEventListener('pointerdown',e=>{if(e.button)return;dragStart(e,i,'chip')});st.appendChild(c)});
+   c.addEventListener('pointerdown',e=>{if(e.button)return;dragStart(e,i,'chip')});
+   cell.appendChild(c);const sg=el('div','sign');sg.appendChild(el('i',null,'확인'));cell.appendChild(sg);grid.appendChild(cell)});
+  st.appendChild(qrBox());
   STEPS.forEach(s=>{const b=btns.querySelector('.pbtn[data-i="'+s.idx+'"]'),n=$('n'+s.idx);const k=SEQ.indexOf(s.idx);
    if(b)b.classList.toggle('on',k>=0);if(n)n.textContent=k>=0?String(k+1):''});
   sortBtns();
@@ -89,7 +103,7 @@
  function dropIndex(x,y){
   const st=$('strip'),r=st.getBoundingClientRect(),pad=24;
   if(x<r.left-pad||x>r.right+pad||y<r.top-pad||y>r.bottom+pad)return null;
-  const cs=[...st.querySelectorAll('.chip')];
+  const cs=[...st.querySelectorAll('.cell')];
   for(let k=0;k<cs.length;k++){const b=cs[k].getBoundingClientRect();
    if(y<b.top)return k;
    if(y<=b.bottom&&x<b.left+b.width/2)return k}
@@ -108,11 +122,11 @@
   const ons=SEQ.map(i=>btns.querySelector('.pbtn[data-i="'+i+'"]')).filter(Boolean);
   const ref=ons[k]||SEP;if(ref&&PMARK.nextSibling!==ref)btns.insertBefore(PMARK,ref)}
  function target(x,y){const a=dropIndex(x,y);if(a!=null)return {where:'strip',k:a};const b=panelIndex(x,y);if(b!=null)return {where:'panel',k:b};return null}
- function showMark(k){const st=$('strip');if(!MARK){MARK=el('span','dropmark')}
-  if(k==null){MARK.remove();st.classList.remove('dropon');return}
-  st.classList.add('dropon');const cs=[...st.querySelectorAll('.chip')];
-  const ref=cs[k]?(cs[k].previousElementSibling&&cs[k].previousElementSibling.classList.contains('arrow')?cs[k].previousElementSibling:cs[k]):null;
-  if(ref){if(MARK.nextSibling!==ref)st.insertBefore(MARK,ref)}else if(st.lastChild!==MARK)st.appendChild(MARK)}
+ function showMark(k){const st=$('strip'),grid=st.querySelector('.cells');if(!MARK){MARK=el('span','dropmark')}
+  if(k==null||!grid){MARK.remove();st.classList.remove('dropon');return}
+  st.classList.add('dropon');const cs=[...grid.querySelectorAll('.cell')];
+  const ref=cs[k]||null;
+  if(ref){if(MARK.nextSibling!==ref)grid.insertBefore(MARK,ref)}else if(grid.lastChild!==MARK)grid.appendChild(MARK)}
  function dragEnd(){if(GHOST){GHOST.remove();GHOST=null}if(MARK)MARK.remove();if(PMARK)PMARK.remove();btns.classList.remove('offdrop');$('strip').classList.remove('dropon');
   document.body.classList.remove('dragging');document.querySelectorAll('.dragsrc').forEach(x=>x.classList.remove('dragsrc'))}
  document.addEventListener('pointermove',e=>{if(!DRAG)return;

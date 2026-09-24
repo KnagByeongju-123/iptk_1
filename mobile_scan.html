@@ -103,7 +103,7 @@ button,input{font:inherit;color:inherit}button{cursor:pointer;touch-action:manip
    <input id="q" placeholder="제번 또는 품번 직접 입력" enterkeyhint="search" onkeydown="if(event.key==='Enter')manual()">
    <button onclick="manual()">검색</button>
   </div>
-  <div class="hint">공정이력카드의 QR(제번_공정_품번)을 스캔하면 해당 부품의 외주가공 공정이 바로 열립니다. 발주 상태는 <b>입고 처리</b>, 입고 상태는 <b>입고 확정</b>을 그 자리에서 실행합니다.</div>
+  <div class="hint">가공 공정 도면(그림보드)·공정이력카드의 QR(제번_공정_품번)을 스캔하면 해당 부품의 외주가공 공정이 바로 열립니다. 발주 상태는 <b>작업완료(입고 처리)</b>, 입고 상태는 <b>입고 확정</b>을 그 자리에서 실행합니다.</div>
  </div>
 
  <div id="res"></div>
@@ -259,7 +259,7 @@ function card(l,i,ls){
   action=`<div class="qtyrow"><label>입고수량</label>
     <input type="number" inputmode="numeric" id="qty_${l.line_id}" value="${rem}" min="1" max="${rem}">
     <small>발주 ${ord} · 기입고 ${got} · 잔량 ${rem}</small></div>
-   <div class="act"><button class="abtn rcv" onclick="doReceive(${l.line_id})">📥 입고 처리</button></div>`;
+   <div class="act"><button class="abtn rcv" onclick="doReceive(${l.line_id})" title="협력업체·사내 작업자가 작업을 끝냈을 때 누릅니다 — 입고 처리로 기록됩니다">✅ 작업완료 (입고 처리)</button></div>`;
  }else if(st==='in'){
   action=`<div class="act"><button class="abtn cfm" onclick="doConfirm(${l.line_id})">✅ 입고 확정</button></div>`;
  }else if(st==='done'){
@@ -300,7 +300,7 @@ async function doReceive(id){
  btnOff(id,true);
  try{
   await rpc('fn_osp_receive',{p_line_id:Number(id),p_qty:q,p_date:today(),p_short:0,p_source:'QR스캔',p_remark:null});
-  after(`입고 처리 완료 — ${l.part_no} 공정${n0(l.step_no)} (${q}개)`,l,'입고');
+  after(`작업완료 → 입고 처리 — ${l.part_no} 공정${n0(l.step_no)} (${q}개)`,l,'입고');
  }catch(e){btnOff(id,false);toast('입고 실패: '+String(e.message||e).slice(0,80),'ng')}
 }
 
@@ -343,7 +343,9 @@ function renderRecent(){
  window.addEventListener('pagehide',stopScan);
  document.addEventListener('visibilitychange',()=>{if(document.hidden)stopScan()});
 })();
-window.MES=Object.assign(window.MES||{},{search:()=>{if(ctx)search(ctx)},reload:()=>{if(ctx)search(ctx)}});
+window.MES=Object.assign(window.MES||{},{search:()=>{if(ctx)search(ctx)},reload:()=>{if(ctx)search(ctx)},
+ /* v196: 그림보드 QR 딥링크(index.html?go=qr&key=…)로 들어왔을 때 */
+ go:p=>{p=p||{};if(p.key)onCode(String(p.key));else if(p.job)search({job:p.job,part:p.part||''})}});
 </script>
 <script src="mes_db.js?v=171"></script>
 <script src="mes_jsqr.js?v=112" defer></script>

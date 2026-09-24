@@ -590,21 +590,35 @@ function renderFav(){
 
 /* ---------- 페이지 열기 ---------- */
 function slugify(name){return 'pending_'+Math.abs([...name].reduce((a,c)=>((a<<5)-a+c.charCodeAt(0))|0,0))}
-function openByName(name){
-  if(MENU_OFF.has(name)){statusMsg.textContent=`${name} 메뉴는 사용하지 않습니다.`;return}
+function openByName(name,force){
+  if(MENU_OFF.has(name)&&!force){statusMsg.textContent=`${name} 메뉴는 사용하지 않습니다.`;return}
   let p=pageRegistry[name];if(!p){p={id:slugify(name),title:name,file:null};pageRegistry[name]=p}
   const loc=locate(name);if(loc){p.menu=name;p.mod=loc.mod;p.sec=loc.sec;if(loc.mod!==activeModule){activeModule=loc.mod;buildTop()}}
   openPage(p);
 }
 /* v196: 근거 자료로 이동 — 화면을 열고, 그 화면(iframe)이 준비되면 MES.go(params) 를 불러 제번·부품을 찾아가게 한다 (mes_go.js) */
-window.MES_GO=function(name,params){
-  if(MENU_OFF.has(name)){statusMsg.textContent=`${name} 메뉴는 사용하지 않습니다.`;return}
-  openByName(name);const p=pageRegistry[name];if(!p||!p.file)return;
+window.MES_GO=function(name,params,force){
+  if(MENU_OFF.has(name)&&!force){statusMsg.textContent=`${name} 메뉴는 사용하지 않습니다.`;return}
+  openByName(name,force);const p=pageRegistry[name];if(!p||!p.file)return;
   const t0=Date.now();let sent=false;
   (function tick(){if(sent)return;const v=document.getElementById('view_'+p.id);let w=null;try{w=v&&v.contentWindow}catch(e){}
     try{if(w&&w.MES&&typeof w.MES.go==='function'&&w.document&&w.document.readyState!=='loading'){sent=true;w.MES.go(params||{});return}}catch(e){sent=true;return}
     if(Date.now()-t0<20000)setTimeout(tick,150);else statusMsg.textContent=`${name} 화면에서 해당 자료를 찾지 못했습니다.`})();
 };
+/* v196: QR 딥링크 — index.html?go=qr&key=제번_공정_품번  (그림보드 QR).  로그인이 끝난 뒤 「외주가공 QR 스캔」 을 그 부품으로 연다 (숨긴 메뉴여도 연다) */
+(function(){let done=false;
+  function run(){if(done)return;let q;try{q=new URLSearchParams(location.search)}catch(e){return}
+    const go=q.get('go');if(!go)return;
+    const a=window.MES_AUTH;if(a&&!a.session&&document.getElementById('loginGate'))return;   /* 로그인 뒤에 다시 시도 */
+    done=true;
+    if(go==='qr'){MES_GO('외주가공 QR스캔',{key:q.get('key')||'',job:q.get('job')||'',part:q.get('part')||''},true);
+      statusMsg.textContent='QR 스캔 화면을 열었습니다: '+(q.get('key')||'')}
+    else{const name=decodeURIComponent(go);if(pageRegistry[name])MES_GO(name,Object.fromEntries(q.entries()),true)}
+    try{history.replaceState(null,'',location.pathname)}catch(e){}}
+  window.addEventListener('mes-auth-ready',()=>setTimeout(run,100));
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(run,300));else setTimeout(run,300);
+  setTimeout(run,1500);
+})();
 function openPage(p){if(!openTabs.has(p.id))openTabs.set(p.id,p);if(activeId!==p.id)prevId=activeId;activeId=p.id;renderTabs();renderStage();buildTop();renderCrumb();saveTabs();
   statusMsg.textContent=p.home?'홈':p.file?`${p.title} 화면을 열었습니다.`:`${p.title} 화면은 준비 중입니다.`}
 function activate(id){if(activeId!==id)prevId=activeId;activeId=id;const p=openTabs.get(id);if(p&&p.mod)activeModule=p.mod;buildTop();renderTabs();renderStage();renderCrumb();saveTabs()}
