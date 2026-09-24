@@ -1240,6 +1240,13 @@ function drawBoard(ri){
  MESDRAW.open({job:j.job||'',item:j.item||'',part:r.part,name:r.name||'',qty:r.qty,image:PIMG[r.part]||'',steps,all:PROCLIST,by:OWNER,ri,jo:r.jo??null});
 }
 /* v207: 그림보드에서 고른 공정 순서를 이 부품의 가공계획(machining_plan_parts)에 적용 — 공정편집의 [가공계획 적용]과 같은 규칙 */
+/* v212: 그림보드 [기준공정 불러오기] — 가공 기준공정관리 목록을 읽어 보낸다 */
+window.addEventListener('message',ev=>{const d=ev.data;if(!d||d.type!=='mes_drawboard_std'||ev.origin!==location.origin)return;
+ const reply=(ok,x)=>{try{ev.source.postMessage({type:'mes_drawboard_std_done',id:d.id,ok,...(ok?{list:x}:{err:String(x&&x.message||x)})},location.origin)}catch(e){}};
+ (async()=>{if(!_online())throw new Error('DB 미연결');
+  const rs=await MESDB.table('machining_standard_routes').select('select=*&order=standard_process_no',{fresh:true});
+  return (rs||[]).map(r=>({no:r.standard_process_no,name:r.standard_process_name||r.standard_process||'',steps:(Array.isArray(r.steps)?r.steps:[]).map(stepCode).filter(Boolean).slice(0,MAXSTEP),inhouse:Array.isArray(r.inhouse)?r.inhouse:[]}))})()
+ .then(l=>reply(true,l),e=>reply(false,e))});
 /* v210: 그림보드에서 등록한 부품 그림 → PartList(원재료, 없으면 구매품) 의 이 부품 image_url 로 저장 */
 window.addEventListener('message',ev=>{const d=ev.data;if(!d||d.type!=='mes_drawboard_image'||ev.origin!==location.origin)return;
  const reply=(ok,x)=>{try{ev.source.postMessage({type:'mes_drawboard_image_done',id:d.id,ok,...(ok?{url:x}:{err:String(x&&x.message||x)})},location.origin)}catch(e){}};
@@ -1334,7 +1341,7 @@ window.MESLOOK_RELOAD_VENDORS=async()=>{MESLOOK.invalidate('vendor_outsourcing')
  if(typeof renderRoutes==='function')renderRoutes();};
 </script>
 <script src="mes_price.js?v=162"></script>
-<script src="mes_mail.js?v=175"></script><script src="mes_drawboard.js?v=210"></script>
+<script src="mes_mail.js?v=175"></script><script src="mes_drawboard.js?v=212"></script>
 <script src="mes_route_edit.js?v=168"></script>
 <script src="mes_vendorcheck.js?v=196"></script>
 <script>

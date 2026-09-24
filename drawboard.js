@@ -1,4 +1,4 @@
-/* drawboard.js (v210: 그림 등록 → PartList 반영 · v209: 순서 끌어서 바꾸기) — 부품 그림보드 화면 스크립트
+/* drawboard.js (v212: 오른쪽 목록 끌어서 순서·해제 · 기준공정 불러오기 / v211: 공정 목록 — 선택한 공정 위 · 구분선 · 나머지 가나다 / v210: 그림 등록 / v209: 끌어서 순서) — 부품 그림보드 화면 스크립트
  * 사내외가공 발주(mes_drawboard.js)가 sessionStorage 'mes_drawboard' 에 넣어 준 자료를 읽어 그린다.
  * 문서를 스크립트로 써 넣지 않고(document.write 없음) DOM 만 만든다. */
 (function(){
@@ -58,7 +58,19 @@
    c.addEventListener('pointerdown',e=>{if(e.button)return;dragStart(e,i,'chip')});st.appendChild(c)});
   STEPS.forEach(s=>{const b=btns.querySelector('.pbtn[data-i="'+s.idx+'"]'),n=$('n'+s.idx);const k=SEQ.indexOf(s.idx);
    if(b)b.classList.toggle('on',k>=0);if(n)n.textContent=k>=0?String(k+1):''});
+  sortBtns();
  }
+ /* v211: 오른쪽 공정 목록 — 띠에 들어간(적용된) 공정은 순서대로 위에, 구분선 아래 나머지는 가나다순 */
+ let SEP=null;
+ function sortBtns(){if(!STEPS.length)return;
+  if(!SEP){SEP=el('div','psep')}
+  const nm=s=>String(s.name||s.code||'');
+  const on=SEQ.map(i=>STEPS[i]).filter(Boolean);
+  const off=STEPS.filter(s=>SEQ.indexOf(s.idx)<0).sort((a,b)=>nm(a).localeCompare(nm(b),'ko',{numeric:true}));
+  SEP.textContent=on.length?`▲ 적용 ${on.length} · 나머지 ${off.length} (가나다순)`:`공정 ${off.length} (가나다순) — 누르거나 띠로 끌어 오면 위로 올라갑니다`;
+  const want=[...on.map(s=>btns.querySelector('.pbtn[data-i="'+s.idx+'"]')),SEP,...off.map(s=>btns.querySelector('.pbtn[data-i="'+s.idx+'"]'))].filter(Boolean);
+  const cur=[...btns.children];if(want.length===cur.length&&want.every((e,k)=>cur[k]===e))return;
+  want.forEach(e=>btns.appendChild(e))}
  function tg(i){const k=SEQ.indexOf(i);if(k>=0)SEQ.splice(k,1);else SEQ.push(i);draw()}
  /* v209: 끌어서 순서 바꾸기 — 순서 칸(chip)을 끌어 다른 자리에 놓으면 순서가 바뀐다.
   *   오른쪽 공정 버튼을 순서 줄로 끌어 오면 놓은 자리에 끼워 넣는다(이미 있으면 그 자리로 옮김).
@@ -73,12 +85,26 @@
    if(y<b.top)return k;
    if(y<=b.bottom&&x<b.left+b.width/2)return k}
   return cs.length}
+ /* v212: 오른쪽 목록 위 칸(적용된 공정) 안에서도 끌어서 순서를 바꾼다. 구분선 아래로 놓으면 해제 */
+ function panelIndex(x,y){
+  const r=btns.getBoundingClientRect();if(x<r.left-20||x>r.right+20||y<r.top-20||y>r.bottom+20)return null;
+  if(SEP&&SEP.parentNode&&y>SEP.getBoundingClientRect().top)return 'off';
+  const ons=SEQ.map(i=>btns.querySelector('.pbtn[data-i="'+i+'"]')).filter(Boolean);
+  for(let k=0;k<ons.length;k++){const b=ons[k].getBoundingClientRect();if(y<b.top+b.height/2)return k}
+  return ons.length}
+ let PMARK=null;
+ function showPMark(k){if(!PMARK)PMARK=el('div','pdrop');
+  btns.classList.toggle('offdrop',k==='off');
+  if(k==null||k==='off'){PMARK.remove();return}
+  const ons=SEQ.map(i=>btns.querySelector('.pbtn[data-i="'+i+'"]')).filter(Boolean);
+  const ref=ons[k]||SEP;if(ref&&PMARK.nextSibling!==ref)btns.insertBefore(PMARK,ref)}
+ function target(x,y){const a=dropIndex(x,y);if(a!=null)return {where:'strip',k:a};const b=panelIndex(x,y);if(b!=null)return {where:'panel',k:b};return null}
  function showMark(k){const st=$('strip');if(!MARK){MARK=el('span','dropmark')}
   if(k==null){MARK.remove();st.classList.remove('dropon');return}
   st.classList.add('dropon');const cs=[...st.querySelectorAll('.chip')];
   const ref=cs[k]?(cs[k].previousElementSibling&&cs[k].previousElementSibling.classList.contains('arrow')?cs[k].previousElementSibling:cs[k]):null;
   if(ref){if(MARK.nextSibling!==ref)st.insertBefore(MARK,ref)}else if(st.lastChild!==MARK)st.appendChild(MARK)}
- function dragEnd(){if(GHOST){GHOST.remove();GHOST=null}if(MARK)MARK.remove();$('strip').classList.remove('dropon');
+ function dragEnd(){if(GHOST){GHOST.remove();GHOST=null}if(MARK)MARK.remove();if(PMARK)PMARK.remove();btns.classList.remove('offdrop');$('strip').classList.remove('dropon');
   document.body.classList.remove('dragging');document.querySelectorAll('.dragsrc').forEach(x=>x.classList.remove('dragsrc'))}
  document.addEventListener('pointermove',e=>{if(!DRAG)return;
   if(!DRAG.on){if(Math.hypot(e.clientX-DRAG.x0,e.clientY-DRAG.y0)<6)return;
@@ -87,11 +113,13 @@
    const srcEl=DRAG.src==='chip'?$('strip').querySelector('.chip[data-i="'+DRAG.i+'"]'):btns.querySelector('.pbtn[data-i="'+DRAG.i+'"]');if(srcEl)srcEl.classList.add('dragsrc')}
   e.preventDefault();
   GHOST.style.left=(e.clientX+12)+'px';GHOST.style.top=(e.clientY+10)+'px';
-  showMark(dropIndex(e.clientX,e.clientY))});
+  const t=target(e.clientX,e.clientY);showMark(t&&t.where==='strip'?t.k:null);showPMark(t&&t.where==='panel'?t.k:null)});
  const finish=e=>{if(!DRAG)return;const d=DRAG;DRAG=null;if(!d.on)return;
   SUPPRESS=true;setTimeout(()=>{SUPPRESS=false},0);
-  const k0=e&&e.type==='pointerup'?dropIndex(e.clientX,e.clientY):null;dragEnd();
-  if(k0==null)return;let k=k0;const cur=SEQ.indexOf(d.i);
+  const t=e&&e.type==='pointerup'?target(e.clientX,e.clientY):null;dragEnd();
+  if(!t)return;const cur=SEQ.indexOf(d.i);
+  if(t.k==='off'){if(cur>=0){SEQ.splice(cur,1);draw()}return}   /* 구분선 아래로 놓으면 해제 */
+  let k=t.k;
   if(cur>=0){if(cur===k||cur+1===k)return;SEQ.splice(cur,1);if(cur<k)k--}
   SEQ.splice(k,0,d.i);draw()};
  document.addEventListener('pointerup',finish);document.addEventListener('pointercancel',finish);
@@ -124,6 +152,36 @@
   MESIMG.open({title:'부품 그림 등록 (PartList 에 저장)',job:o.job||'',part:o.part||'',name:o.name||'',mat:o.mat||'',spec:o.spec||'',by:o.by||'',
    onSave:async f=>{const url=await sendPic(f);o.image=url;ovImg=null;if($('ovB'))$('ovB').querySelectorAll('img').forEach(x=>x.remove());ORI_SET=false;setFig(url)}})}
  if($('bPic'))$('bPic').addEventListener('click',picOpen);
+ /* v212: 기준공정 불러오기 — 가공 기준공정관리의 기준공정을 골라 띠 순서로 넣는다 (자료는 사내외가공 발주 화면이 DB에서 읽어 보내 준다) */
+ let RQ_SEQ=0;const RQ_WAIT={};
+ window.addEventListener('message',ev=>{const d=ev.data;if(!d||d.type!=='mes_drawboard_std_done'||ev.origin!==location.origin)return;
+  const w=RQ_WAIT[d.id];if(!w)return;delete RQ_WAIT[d.id];d.ok?w.res(d.list||[]):w.rej(new Error(d.err||'조회 실패'))});
+ function askStd(){return new Promise((res,rej)=>{const op=window.opener;if(!op||op.closed)return rej(new Error('사내외가공 발주 화면이 닫혀 있어 기준공정을 불러올 수 없습니다.'));
+  const id=++RQ_SEQ;RQ_WAIT[id]={res,rej};setTimeout(()=>{if(RQ_WAIT[id]){delete RQ_WAIT[id];rej(new Error('응답이 없습니다.'))}},15000);
+  op.postMessage({type:'mes_drawboard_std',id},location.origin)})}
+ function stdClose(){const m=$('stdPop');if(m)m.remove()}
+ async function stdOpen(){
+  stdClose();const pop=el('div','stdpop');pop.id='stdPop';
+  const hd=el('div','sh');hd.appendChild(el('b',null,'기준공정 불러오기'));const x=el('button',null,'×');x.type='button';x.addEventListener('click',stdClose);hd.appendChild(x);pop.appendChild(hd);
+  const bd=el('div','sb',"불러오는 중…");pop.appendChild(bd);document.body.appendChild(pop);
+  let list=[];try{list=await askStd()}catch(e){bd.textContent=e.message;return}
+  if(!list.length){bd.textContent='등록된 기준공정이 없습니다. 기준정보 › 가공 기준공정관리에서 먼저 등록하세요.';return}
+  bd.textContent='';
+  const byCode=c=>STEPS.find(s=>s.code===c||s.code.toUpperCase()===String(c).toUpperCase());
+  list.forEach(r=>{const st=(r.steps||[]).map(c=>String(c||'').trim()).filter(Boolean);
+   const b=el('button','srow');b.type='button';
+   b.appendChild(el('b',null,(r.no!=null?r.no+'. ':'')+(r.name||'(이름 없음)')));
+   b.appendChild(el('span',null,st.map((c,i)=>{const s=byCode(c);return (i+1)+'.'+((s&&(s.name||s.code))||c)+(r.inhouse&&r.inhouse[i]?'(사내)':'')}).join(' → ')||'공정 없음'));
+   b.addEventListener('click',()=>{
+    if(SEQ.length&&!confirm('띠에 있는 공정 순서를 「'+(r.name||'')+'」 기준공정으로 바꿀까요?'))return;
+    const miss=[];SEQ=[];
+    st.forEach((c,i)=>{let s=byCode(c);if(!s){miss.push(c);return}if(SEQ.includes(s.idx))return;SEQ.push(s.idx);s.inhouse=!!(r.inhouse&&r.inhouse[i])});
+    btns.querySelectorAll('.pbtn').forEach(bn=>{const s=STEPS[Number(bn.dataset.i)];const hc=bn.querySelector('label.h input');if(s&&hc)hc.checked=!!s.inhouse});
+    stdClose();draw();
+    if(miss.length)alert('공정 마스터에 없는 공정은 빼고 넣었습니다: '+miss.join(', '))});
+   bd.appendChild(b)});
+ }
+ if($('bStd'))$('bStd').addEventListener('click',stdOpen);
  /* v208: 등록된 이미지만 보기 */
  const ov=$('ov'),ovB=$('ovB');let ovImg=null;
  function ovMode(real){ovB.classList.toggle('real',!!real)}

@@ -13,6 +13,16 @@ body{font-family:'Malgun Gothic','맑은 고딕',Arial,sans-serif;font-size:12px
 .pbtn.on .n{background:#2f75b5}
 .pbtn .k{font-weight:700;color:#20456b}
 .pbtn .v{margin-left:auto;font-size:11px;color:#7c8993;white-space:nowrap}
+.pdrop{height:4px;margin:-2px 0 3px;border-radius:2px;background:#e53935}
+#btns.offdrop .psep{color:#c62828;border-top-color:#e53935;background:#fdecea}
+#btns.offdrop .psep:after{content:'  ← 여기 놓으면 해제'}
+.stdpop{position:fixed;z-index:9000;right:18px;bottom:70px;width:min(460px,92vw);max-height:70vh;display:flex;flex-direction:column;background:#fff;border:1px solid #6f8396;box-shadow:0 10px 30px rgba(0,0,0,.3);border-radius:4px}
+.stdpop .sh{display:flex;align-items:center;padding:7px 10px;background:linear-gradient(#5f7f9f,#3f5f7d);color:#fff}.stdpop .sh button{margin-left:auto;border:0;background:transparent;color:#fff;font-size:18px;cursor:pointer}
+.stdpop .sb{overflow:auto;padding:8px;font-size:12px;color:#5d6e7d}
+.stdpop .srow{display:block;width:100%;text-align:left;margin:0 0 6px;padding:7px 9px;border:1px solid #9fb0bf;border-radius:4px;background:linear-gradient(#fff,#eef3f7);cursor:pointer;font:inherit}
+.stdpop .srow:hover{background:#e3eef8;border-color:#2f75b5}.stdpop .srow b{display:block;color:#1d3f63;margin-bottom:3px}.stdpop .srow span{font-size:11.5px;color:#4b5c6a}
+@media print{.stdpop{display:none!important}}
+.psep{margin:8px 0 7px;padding:4px 2px 3px;border-top:2px dashed #7f97ad;font-size:11px;color:#5d6e7d;font-weight:700}
 .pbtn.plan{border-color:#6a9ad0;background:linear-gradient(#fff,#e2edf9)}
 .pbtn .p{font-size:10.5px;color:#1d4f86;border:1px solid #9dbbe0;background:#e8f1fb;padding:0 4px;border-radius:2px;white-space:nowrap}
 #btns{max-height:calc(100vh - 190px);overflow:auto;padding-right:2px}
@@ -89,11 +99,12 @@ body.portrait .sheet{width:198mm}
  </div>
  <div class="side">
   <h3 id="sideTitle">가공공정</h3>
-  <div class="hint">공정 마스터 전체입니다. 누르는 순서대로 도면 위 띠에 번호가 붙고, 다시 누르면 빠집니다. 띠의 공정을 끌어 놓으면 순서가 바뀌고, 이 버튼을 띠로 끌어 오면 원하는 자리에 들어갑니다. 파란 「계획」 표시는 이 부품의 가공계획에 있는 공정입니다.</div>
+  <div class="hint">공정 마스터 전체입니다. 누르는 순서대로 도면 위 띠에 번호가 붙고, 다시 누르면 빠집니다. 띠나 이 목록 위 칸의 공정을 끌어 놓으면 순서가 바뀌고, 구분선 아래로 끌어 놓으면 빠집니다. 아래 칸 버튼을 띠·위 칸으로 끌어 오면 원하는 자리에 들어갑니다. 파란 「계획」 표시는 이 부품의 가공계획에 있는 공정입니다.</div>
   <div id="btns"></div>
   <div class="tools">
    <button id="bAll" title="이 부품의 가공계획 순서 그대로 넣습니다">▶ 계획 순서대로</button>
    <button id="bClr">지우기</button>
+   <button id="bStd" title="기준정보 › 가공 기준공정관리의 기준공정을 골라 띠 순서로 넣습니다">📋 기준공정 불러오기</button>
    <button id="bPic" title="캐드 캡쳐·이미지·PDF 로 부품 그림을 등록합니다. PartList 부품 그림에도 같이 저장됩니다">📷 그림 등록</button>
    <button id="bImg" title="공정 표시 없이 PartList 에 등록된 이미지만 크게 봅니다">🖼 이미지만 보기</button>
    <button id="bApply" class="go" style="background:linear-gradient(#5aa05a,#3d7f3d);border-color:#2f6a2f" title="띠에 표시된 순서를 이 부품의 부품별 가공공정 리스트(가공계획)에 저장합니다">▣ 가공계획 적용</button>
@@ -105,5 +116,5 @@ body.portrait .sheet{width:198mm}
 </div>
 <div class="ov" id="ov"><div class="bar"><b id="ovT">원본 이미지</b><span id="ovS"></span><span class="sp"></span><button id="ovFit">화면 맞춤</button><button id="ovReal">실제 크기</button><button id="ovClose">닫기 (Esc)</button></div><div class="body" id="ovB"></div></div>
 <script src="mes_imgedit.js?v=196"></script>
-<script src="drawboard.js?v=210"></script>
+<script src="drawboard.js?v=212"></script>
 </body></html>
