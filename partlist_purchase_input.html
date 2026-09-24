@@ -62,7 +62,7 @@ tbody tr.new td{color:#1d4f86}
  <button class="btn" onclick="del_()">✕ 삭제</button>
  <button class="btn red" onclick="bulkOpen()" title="제번 단위로 구매품 PartList 전체를 삭제합니다">⌧ 일괄삭제</button>
  <button class="btn" onclick="manOpen()" title="엑셀 없이 한 행씩 직접 입력합니다">＋ 수동등록</button>
- <button class="btn" onclick="imgPick()" title="체크한 부품의 그림 — 캐드 캡쳐를 Ctrl+V 로 붙여넣고 흰 바탕·A4 로 정리, 화살표·글자 표시 후 등록">📷 이미지</button>
+ <button class="btn" onclick="imgPick()" title="체크한 부품의 그림 — 캐드 캡쳐를 Ctrl+V 로 붙여넣고 흰 바탕·A4 로 정리, 화살표·글자 표시 후 등록">📷 이미지등록</button><button class="btn" onclick="imgDel()" title="체크한 부품(여러 개 가능)의 그림을 지웁니다">🗑 이미지삭제</button>
  <input type="file" id="imgFile" accept="image/*" style="display:none" onchange="imgUp(this.files[0])">
  <button class="btn" onclick="xls()">▤ 엑셀불러오기</button>
  <button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button>
@@ -381,11 +381,28 @@ async function imgUp(f,strict){
  const job=curJobNo();if(!job)return msg('제번을 먼저 선택하세요.');
  msg('이미지 올리는 중…');
  try{
-  const url=await MESDB.imgUpload(f,job,r.part_no);
+  const url=await MESDB.imgUpload(f,job,r.part_no),old=r.image_url||'';
   r.image_url=url;
   if(!r._new&&online()){await MESDB.table(TBL).update({row_no:Number(r.row_no)},{image_url:url});notify()}
+  if(old&&old!==url&&!r._new&&online()&&MESDB.imgDelete)MESDB.imgDelete(old).catch(()=>{});   /* v196: 바꾼 옛 그림 파일 정리 */
   render();msg(`${r.part_no} 이미지를 등록했습니다.`+(r._new?' (미등록 행 — [▤ 등록] 때 함께 저장됩니다)':''));
  }catch(e){msg('이미지 등록 실패: '+String(e.message||e).slice(0,140));if(strict)throw e}
+}
+/* v196: 이미지삭제 — 체크한 행(여러 개)의 그림을 지운다. DB 를 비우고, 다른 곳에서 안 쓰는 파일이면 저장소에서도 지운다 */
+async function imgDel(){
+ const rows=[...chk].map(rowById).filter(r=>r&&r.image_url);
+ if(!chk.size)return msg('그림을 지울 행을 체크하세요.');
+ if(!rows.length)return msg('체크한 행에 등록된 그림이 없습니다.');
+ if(!confirm(`${rows.map(r=>r.part_no).slice(0,8).join(', ')}${rows.length>8?' …':''}\n${rows.length}건의 부품 그림을 지울까요? (되돌릴 수 없습니다)`))return;
+ msg('그림 지우는 중…');let n=0,fail=0;
+ for(const r of rows){const url=r.image_url;
+  try{if(!r._new&&online())await MESDB.table(TBL).update({row_no:Number(r.row_no)},{image_url:null});
+   r.image_url=null;n++;
+   try{if(MESDB.imgDelete)await MESDB.imgDelete(url)}catch(e){}
+  }catch(e){fail++}
+ }
+ if(n&&online())notify();
+ render();msg(`그림 ${n}건을 지웠습니다.`+(fail?` (${fail}건 실패)`:''));
 }
 /* v117: 수동등록 — 엑셀 없이 한 행씩 리스트에 올린다 (추가 후 체크 → [▤ 등록]) */
 function manOpen(){

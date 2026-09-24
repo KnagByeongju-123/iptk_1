@@ -248,6 +248,24 @@ function thumbBlob(file,max){return new Promise(res=>{const u=URL.createObjectUR
 /* v196: 부품 그림 URL → 목록용 미리보기 URL (mes-attach 공개 그림만. 그 밖은 그대로) */
 MESDB.thumbUrl=function(url){const u=String(url||'');
   return u&&u.includes('/storage/v1/object/public/'+IMG_BUCKET+'/')&&!u.endsWith(THUMB_EXT)?u+THUMB_EXT:u};
+/* v196: 부품 그림 파일 지우기 — 원본 + 미리보기(.t.jpg).
+ *   같은 그림을 다른 행(다른 제번으로 복사된 PartList, 제작계획 제품그림)이 아직 쓰고 있으면 파일은 남긴다.
+ *   DB 의 image_url 을 먼저 비운 뒤 부른다. 조회가 실패하면 안전하게 지우지 않는다. → true(지움)/false(남김) */
+MESDB.imgDelete=async function(url){
+  const u=String(url||''),key='/storage/v1/object/public/'+IMG_BUCKET+'/';
+  const i=u.indexOf(key);if(i<0)return false;
+  const path=u.slice(i+key.length).split('?')[0].split('/').map(decodeURIComponent).join('/');
+  const base=path.endsWith(THUMB_EXT)?path.slice(0,-THUMB_EXT.length):path,full=MESDB.imgUrl(base);
+  for(const t of ['partlist_materials','partlist_purchases','sales_plans']){
+    try{const rs=await rest_(`${t}?select=image_url&image_url=eq.${encodeURIComponent(full)}&limit=1`);if(rs&&rs.length)return false}   /* 캐시 없이 */
+    catch(e){return false}
+  }
+  const tok=sbToken();
+  const r=await fetch(CFG.url+'/storage/v1/object/'+IMG_BUCKET,{method:'DELETE',
+    headers:{'apikey':CFG.key,'Authorization':'Bearer '+(tok||CFG.key),'Content-Type':'application/json'},
+    body:JSON.stringify({prefixes:[base,base+THUMB_EXT]})});
+  return r.ok;
+};
 /* 미리보기가 없는 옛 그림은 원본으로 한 번만 바꿔 보여준다 (<img onerror>) */
 MESDB.thumbFallback=function(img){const f=img&&img.getAttribute('data-full');if(f&&img.src!==f){img.removeAttribute('data-full');img.src=f}};
 MESDB.partImages=async function(job){
