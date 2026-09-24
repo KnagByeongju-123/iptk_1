@@ -272,7 +272,7 @@ const APP={
     ],
     menus:{
       '사내조립':[{name:'사내조립',items:['조립실적등록','조립실적현황','조립실적조회']}],
-      '검사':[{name:'검사',items:['검사실적등록','검사결과 상세']}]
+      '검사':[{name:'검사',items:['검사실적등록','검사결과 상세','검사실적조회']}]
     }
   },
   '원가관리':{
@@ -414,6 +414,7 @@ const pageRegistry={
 '업체별 가공비 합계':{id:'vendor_cost_summary',file:'vendor_cost_summary.html',title:'업체별 가공비 합계'},
 '매입현황':{id:'purchase_status',file:'purchase_status.html',title:'매입현황'},
 '조립실적조회':{id:'design_result_inquiry_assembly',file:'design_result_inquiry.html?mode=assembly',title:'조립실적조회'},
+'검사실적조회':{id:'design_result_inquiry_inspection',file:'design_result_inquiry.html?mode=inspection',title:'검사실적조회'},
 '조립실적현황':{id:'design_result_status_assembly',file:'design_result_status.html?mode=assembly',title:'조립실적현황'},
 '원재료 발주':{id:'material_order_input',file:'material_order_input.html',title:'원재료 발주'},
 '원재료 입고':{id:'material_receipt_input',file:'material_receipt_input.html',title:'원재료 입고'},
@@ -514,7 +515,8 @@ function locate(name){
 /* v116: 메뉴 비활성화 — 목록에는 흐리게 남기고 열리지 않게 한다 (외주가공은 QR스캔·외주가공 발주 화면에서 입고/입고확정 처리) */
 /* v119: 원재료·구매품 입고/입고확정은 발주 화면 우클릭(진행 칸)에서 처리 → 메뉴 비활성화. 가공계획등록·공정이력카드도 비활성화 */
 /* v195: 영업관리 › 조립외주 3개(조립외주발주·입고·현황) 비활성화 */
-const MENU_OFF=new Set(['외주가공 입고','외주가공 입고확정','원재료 입고','원재료 입고확정','구매품 입고','구매품 입고확정','가공계획등록','사내가공 실적등록','외주가공 QR스캔','설계계획등록','SET외주제작등록','SET발주입고','SET발주현황']);
+/* v196: 조립관리 › 사내조립 › 조립실적현황 비활성화 */
+const MENU_OFF=new Set(['외주가공 입고','외주가공 입고확정','원재료 입고','원재료 입고확정','구매품 입고','구매품 입고확정','가공계획등록','사내가공 실적등록','외주가공 QR스캔','설계계획등록','SET외주제작등록','SET발주입고','SET발주현황','조립실적현황']);
 /* 특정 모듈 안에서만 끄는 메뉴 (기준정보 › 작업지시의 공정이력카드는 그대로 쓴다) */
 const MENU_OFF_IN={'공정이력카드':'구매관리'};
 const menuOff=(n,mod)=>MENU_OFF.has(n)||(mod!=null&&MENU_OFF_IN[n]===mod);
