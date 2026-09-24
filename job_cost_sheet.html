@@ -55,7 +55,7 @@ tfoot tr:not(:last-child) td{bottom:var(--grandH,27px)}
  <span class="lb" style="margin-left:6px">품번</span><input id="partQ" class="field" style="width:150px" placeholder="품번/부품명" oninput="render()">
  <label style="display:flex;align-items:center;gap:4px" title="원재료·가공 기록이 하나도 없는 부품을 숨깁니다"><input type="checkbox" id="hideEmpty" onchange="render()"> 기록 있는 부품만</label>
  <button class="btn" onclick="load()">⌕ 조회</button>
- <span style="color:#6b7a86">공정 열은 기준정보 › 가공공정관리의 코드·순서를 따릅니다. 셀 위 =<b style="color:#1d5da3">사내 시간</b>, 아래 =<b style="color:#7a4a12">외주 금액</b>, <span style="color:#9aa5ad">(회색)</span> = 미확정 · <b>칸을 더블클릭하면 근거 화면으로 이동</b></span>
+ <span style="color:#6b7a86">공정 열은 공정명 가나다순입니다. 셀 위 =<b style="color:#1d5da3">사내 시간</b>, 아래 =<b style="color:#7a4a12">외주 금액</b>, <span style="color:#9aa5ad">(회색)</span> = 미확정 · <b>칸을 더블클릭하면 근거 화면으로 이동</b></span>
 </section>
 <div class="tabs">
  <button id="tab1" class="on" onclick="setTab('cost')">▤ 원가내역</button>
@@ -190,7 +190,7 @@ function build(plan,pl,lines,res,meta,exps){
  /* 4) 공정 열 = 이 제번에서 쓰인 공정 (가공계획 ∪ 발주 ∪ 실적), 마스터 순서대로 */
  const set=new Set();
  ROWS.forEach(x=>{x.steps.forEach(c=>set.add(c));Object.keys(x.proc).forEach(c=>set.add(c))});
- COLS=[...set].sort((a,b)=>(PROCORD[a]||999)-(PROCORD[b]||999)||String(a).localeCompare(String(b)));
+ COLS=[...set].sort((a,b)=>String(pn(a)).localeCompare(String(pn(b)),'ko',{numeric:true})||String(a).localeCompare(String(b)));   /* v196: 공정 열은 공정명 가나다순 */
 }
 
 /* v196: 더블클릭 → 근거 자료가 있는 화면으로 이동 (mes_go.js)
