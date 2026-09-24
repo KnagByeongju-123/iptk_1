@@ -58,7 +58,7 @@ tfoot td.sk{z-index:8}
 <div class="title"><h1>금형원가(내역)</h1><small>원가관리 · 제조원가 &nbsp;|&nbsp; 부품별 재료비 + 공정별 사내 가공시간 / 외주 가공비를 한 표에서 등록합니다</small></div>
 
 <section class="filt">
- <span class="lb">제번</span><input id="jobQ" class="field" style="width:180px" placeholder="제번 입력/선택">
+ <span class="lb">관리제번</span><input id="jobQ" class="field" style="width:250px" placeholder="제번 입력/선택">
  <label class="hd" title="같은 관리제번(공정 문자를 뺀 제번)의 A·B·C 공정을 한 표로 봅니다"><input type="checkbox" id="grpQ" onchange="load()"> 관리제번 전체</label>
  <button class="btn" onclick="load()">⌕ 조회</button>
  <span class="hd" style="margin-left:8px">도번 <b id="hdDraw">-</b></span>
@@ -86,7 +86,7 @@ tfoot td.sk{z-index:8}
 
 <script src="mes_db.js?v=171"></script>
 <script src="mes_price.js?v=162"></script>
-<script src="mes_jobpick.js?v=162"></script>
+<script src="mes_jobpick.js?v=196"></script>
 <script>
 /* ── v162 사내외가공 등록 ──────────────────────────────────────────────
  * 담당자가 엑셀(금형원가 내역)에서 하던 입력을 그대로 옮긴 화면.
@@ -448,8 +448,9 @@ function csv(){
 }
 
 window.addEventListener('beforeunload',e=>{if(DIRTY.size){e.preventDefault();e.returnValue=''}});
-window.MES={search:load,reload:j=>{if(j)$('jobQ').value=j;return load()},setMessage:msg};
-try{MESJOB.attach('jobQ',{onPick:()=>load()})}catch(e){}
+window.MES={search:load,reload:j=>{if(j){$('jobQ').value=j;try{MESJOB.syncSplit('jobQ')}catch(e){}}return load()},setMessage:msg};
+/* v196: 관리제번 ▼ | 제번 ▼ 두 칸 선택 */
+try{MESJOB.attachSplit('jobQ',{onPick:()=>load()}).then(()=>{document.querySelectorAll('.filt span.lb').forEach(e=>{if(e.textContent==='공정')e.textContent='제번'});const ss=$('jobQ_seq');if(ss)ss.style.width='150px'})}catch(e){}
 render();
 </script>
 <script src="mes_ctx.js?v=169"></script>
