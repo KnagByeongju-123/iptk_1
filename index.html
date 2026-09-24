@@ -410,7 +410,7 @@ const pageRegistry={
 'SET외주제작등록':{id:'set_order_registration',file:'set_order_registration.html',title:'조립외주발주'},
 '가공계획등록':{id:'machining_plan_input',file:'machining_plan_input.html',title:'가공계획등록'},
 '금형원가(내역)':{id:'inhouse_outsourcing_input',file:'inhouse_outsourcing_input.html',title:'금형원가(내역)'},
-'금형원가 내역(부품별)':{id:'job_cost_sheet',file:'job_cost_sheet.html',title:'금형원가 내역 (부품별)'},
+'금형원가 내역(부품별)':{id:'job_cost_sheet',file:'job_cost_sheet.html',title:'금형원가내역'},
 '업체별 가공비 합계':{id:'vendor_cost_summary',file:'vendor_cost_summary.html',title:'업체별 가공비 합계'},
 '매입현황':{id:'purchase_status',file:'purchase_status.html',title:'매입현황'},
 '조립실적조회':{id:'design_result_inquiry_assembly',file:'design_result_inquiry.html?mode=assembly',title:'조립실적조회'},
@@ -562,6 +562,7 @@ const MENU_LABEL={
   '외주설계발주등록':'설계외주발주','외주설계발주입고':'설계외주입고','외주설계발주현황':'설계외주현황',
   'SET외주제작등록':'조립외주발주','SET발주입고':'조립외주입고','SET발주현황':'조립외주현황',
   '경비등록':'경비등록','경비현황':'경비현황',
+  '금형원가 내역(부품별)':'금형원가내역',   /* v196: 표시 이름만 (메뉴 키·권한·즐겨찾기는 그대로) */
   /* v116: 메뉴 키(권한·즐겨찾기 기준)는 그대로 두고 표시 이름만 변경 */
   '원재료 발주현황':'원재료 발주입고현황','구매품 발주현황':'구매품 발주입고현황'};
 function menuLink(n,mod){
@@ -695,9 +696,9 @@ function homeHTML(){
   <div class="card" style="grid-column:span 8"><h3>업무 모듈 <span>상단 메뉴에 마우스를 올리면 세부 메뉴가 열립니다</span></h3>
    <div class="modcard">${mods.map(m=>`<button onclick="pinModule('${m}')"><b>${MOD_ICON[m]||'▪'} ${esc(m)}</b><small>${esc(MOD_DESC[m]||'')}</small></button>`).join('')}</div></div>
   <div class="card" style="grid-column:span 4"><h3>즐겨찾기 <span>★ ${favs.length}</span></h3>
-   <div class="favlist">${favs.filter(n=>locate(n)).length?favs.filter(n=>locate(n)).map(n=>{const l=locate(n);return `<button onclick="openByName('${esc(n)}')"><span>${esc(n)}</span><small>${l?esc(l.mod):''}</small></button>`}).join(''):'<small style="color:var(--ink-3)">상단 메뉴 항목의 ★ 를 눌러 추가</small>'}</div></div>
+   <div class="favlist">${favs.filter(n=>locate(n)).length?favs.filter(n=>locate(n)).map(n=>{const l=locate(n);return `<button onclick="openByName('${esc(n)}')"><span>${esc(MENU_LABEL[n]||n)}</span><small>${l?esc(l.mod):''}</small></button>`}).join(''):'<small style="color:var(--ink-3)">상단 메뉴 항목의 ★ 를 눌러 추가</small>'}</div></div>
   <div class="card" style="grid-column:span 8"><h3>바로가기</h3>
-   <div class="quick">${quick.filter(n=>{const l=locate(n);return l&&canView(l.mod+'/'+l.sec+'/'+n)}).map(n=>`<button onclick="openByName('${esc(n)}')"><span style="font-size:18px">${MOD_ICON[locate(n).mod]}</span>${esc(n)}</button>`).join('')}</div></div>
+   <div class="quick">${quick.filter(n=>{const l=locate(n);return l&&canView(l.mod+'/'+l.sec+'/'+n)}).map(n=>`<button onclick="openByName('${esc(n)}')"><span style="font-size:18px">${MOD_ICON[locate(n).mod]}</span>${esc(MENU_LABEL[n]||n)}</button>`).join('')}</div></div>
   <div class="card" style="grid-column:span 4"><h3>안내</h3>
    <div style="color:var(--ink-2);line-height:1.7">· <b>Ctrl+K</b> 메뉴 검색<br>· 좌측 상단 <b>⌂ 홈</b> 클릭: 이 홈 화면으로 이동<br>· 상단 메뉴(영업관리 등)에 마우스를 올리면 세부 메뉴가 펼쳐지고, <b>클릭</b>하면 마우스를 떼도 펼쳐진 채로 고정됩니다 (다시 클릭하면 해제)<br>· 열린 화면은 상단에 <b>탭</b>으로 쌓입니다. 탭을 <b>마우스 오른쪽 클릭</b>하면 고정(실수로 닫히지 않게) · 새로고침 · 닫기 메뉴가 나옵니다<br>· 탭을 <b>마우스 휠 버튼</b>으로 누르면 바로 닫힙니다<br>· <button onclick="openByName('사용메뉴얼')" style="color:var(--blue)">사용메뉴얼 열기</button><br>· <button onclick="openByName('수정요청게시판')" style="color:var(--blue)">수정요청게시판 열기</button></div></div>
   </div>`;
