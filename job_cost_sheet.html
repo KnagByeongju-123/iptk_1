@@ -55,7 +55,7 @@ tfoot tr:not(:last-child) td{bottom:var(--grandH,27px)}
  <span class="lb" style="margin-left:6px">품번</span><input id="partQ" class="field" style="width:150px" placeholder="품번/부품명" oninput="render()">
  <label style="display:flex;align-items:center;gap:4px" title="원재료·가공 기록이 하나도 없는 부품을 숨깁니다"><input type="checkbox" id="hideEmpty" onchange="render()"> 기록 있는 부품만</label>
  <button class="btn" onclick="load()">⌕ 조회</button>
- <span style="color:#6b7a86">공정 열은 공정명 가나다순입니다. 셀 위 =<b style="color:#1d5da3">사내 시간</b>, 아래 =<b style="color:#7a4a12">외주 금액</b>, <span style="color:#9aa5ad">(회색)</span> = 미확정 · <b>칸을 더블클릭하면 근거 화면으로 이동</b></span>
+ <span style="color:#6b7a86">공정 열은 공정명 가나다순입니다. 셀 위 =<b style="color:#1d5da3">사내 시간</b>, 아래 =<b style="color:#7a4a12">외주 금액</b>, <span style="color:#9aa5ad">(회색)</span> = 미확정 · <b>칸을 우클릭하면 근거 화면으로 이동</b></span>
 </section>
 <div class="tabs">
  <button id="tab1" class="on" onclick="setTab('cost')">▤ 원가내역</button>
@@ -213,7 +213,8 @@ function goTarget(td){
   if(s['설계'])return {name:'설계실적등록',p:{job,part}};
   return {name:'사내외가공 발주',p:{job,part,proc:c}}}
  return null}
-document.addEventListener('dblclick',e=>{const td=e.target.closest&&e.target.closest('#body td.go');if(!td||e.target.closest('img'))return;
+/* v222: 더블클릭 → 우클릭으로 변경 */
+document.addEventListener('contextmenu',e=>{const td=e.target.closest&&e.target.closest('#body td.go');if(!td||e.target.closest('img'))return;e.preventDefault();
  const t=goTarget(td);if(!t)return;
  if(!window.MESGO||!MESGO.open(t.name,t.p))return msg('메인 화면(IPTK MES)에서 열어야 이동할 수 있습니다.');
  msg(`${t.p.job}${t.p.part&&t.p.part!=='★'?' · '+t.p.part:''} → ${t.name} 화면으로 이동합니다.`)});
@@ -243,12 +244,12 @@ function render(){
     ${COLS.map(c=>{const q=x.proc[c];
       if(!q)return `<td class="pc go" data-go="proc" data-proc="${esc(c)}">${(x.steps.includes(c))?'<span style="color:#c3ccd4">·</span>':''}</td>`;
       const tip=`${pn(c)}${q.vendor?' · '+q.vendor:''}${q.st?' · '+q.st:''}${q.min?' · 사내 '+H(q.min)+'h':''}${q.wait?' · 미확정 '+F(q.wait)+'원':''}`;
-      return `<td class="pc go" data-go="proc" data-proc="${esc(c)}" title="${esc(tip)} — 더블클릭: 근거 화면으로">`+
+      return `<td class="pc go" data-go="proc" data-proc="${esc(c)}" title="${esc(tip)} — 우클릭: 근거 화면으로">`+
         (q.min?`<span class="h">${H(q.min)}</span><br>`:'')+
         (q.out?`<span class="o">${F(q.out)}</span>`:(q.wait?`<span class="w">(${F(q.wait)})</span>`:(q.cost&&!q.min?F(q.cost):'')))+'</td>'}).join('')||'<td></td>'}
     <td class="num">${x.procTot?F(x.procTot):''}</td><td class="num"><b>${x.total?F(x.total):''}</b></td></tr>`).join('')
    :`<tr><td colspan="${(showJob?11:10)+(COLS.length||1)+2}" class="c" style="height:110px;color:#8a97a2">${CURJOB?'부품이 없습니다. PartList 또는 가공계획을 먼저 등록하세요.':'제번을 선택하세요.'}</td></tr>`;
-  /* v196: 금형 공통비 — 부품 표 아래에 항목별로 (더블클릭하면 근거 화면) */
+  /* v196: 금형 공통비 — 부품 표 아래에 항목별로 (우클릭하면 근거 화면) */
   if(CURJOB&&COMMON){const all=(showJob?11:10)+(COLS.length||1)+2,C=COMMON,hh=m=>m?H(m)+'h':'';
    const items=[['dex','외주설계',`입고확정 ${F(C.dex.amt)||0}원`+(C.dex.wait?` · 미확정 ${F(C.dex.wait)}원`:'')+(C.dex.n?` · ${C.dex.n}건`:''),C.dex.amt],
     ['din','사내설계',C.din.n?`설계실적 ${hh(C.din.min)} · ${C.din.n}건`:'설계실적 없음',C.din.amt],
@@ -256,7 +257,7 @@ function render(){
     ['insp','검사 (금형 전체)',C.insp.n?`부품에 매지 않은 검사 ${hh(C.insp.min)} · ${C.insp.n}건`:'없음',C.insp.amt],
     ['exp','경비',C.exp.n?`경비 ${C.exp.n}건`:'경비 없음',C.exp.amt]];
    if(C.etc.n)items.push(['etc','기타 (부품 미지정)',`품번 없이 들어온 발주·실적 ${C.etc.n}건`+(C.etc.min?` · 사내 ${hh(C.etc.min)}`:''),C.etc.amt]);
-   body.innerHTML+=`<tr class="cmh"><td colspan="${all}">금형 공통비 <span>— 부품에 딸리지 않는 비용 · 더블클릭하면 근거 화면으로 이동</span></td></tr>`+
+   body.innerHTML+=`<tr class="cmh"><td colspan="${all}">금형 공통비 <span>— 부품에 딸리지 않는 비용 · 우클릭하면 근거 화면으로 이동</span></td></tr>`+
     items.map(([k,lab,det,amt])=>`<tr class="cm${amt?'':' zero'}" data-common="${k}"><td class="go" data-go="common" data-kind="${k}" colspan="${all-1}"><b>${lab}</b><span class="det">${esc(det)}</span></td><td class="num go" data-go="common" data-kind="${k}">${amt?F(amt):'0'}</td></tr>`).join('')}
   const S=k=>v.reduce((a,x)=>a+N(x[k]),0);
   const CT=COMMON?COMMON.total:0;
