@@ -1,4 +1,4 @@
-/* drawboard.js (v213: ◀ 이전 · 다음 ▶ 품번 — 가공계획이 등록된 부품은 등록된 순서로, 아니면 띠 공정 그대로 / v212: 오른쪽 목록 끌어서 순서·해제 · 기준공정 불러오기 / v211: 공정 목록 — 선택한 공정 위 · 구분선 · 나머지 가나다 / v210: 그림 등록 / v209: 끌어서 순서) — 부품 그림보드 화면 스크립트
+/* drawboard.js (v214: 이전·다음 품번은 열 때 받은 부품 리스트 순서로 · v213: ◀ 이전 · 다음 ▶ 품번 — 가공계획이 등록된 부품은 등록된 순서로, 아니면 띠 공정 그대로 / v212: 오른쪽 목록 끌어서 순서·해제 · 기준공정 불러오기 / v211: 공정 목록 — 선택한 공정 위 · 구분선 · 나머지 가나다 / v210: 그림 등록 / v209: 끌어서 순서) — 부품 그림보드 화면 스크립트
  * 사내외가공 발주(mes_drawboard.js)가 sessionStorage 'mes_drawboard' 에 넣어 준 자료를 읽어 그린다.
  * 문서를 스크립트로 써 넣지 않고(document.write 없음) DOM 만 만든다. */
 (function(){
@@ -155,7 +155,7 @@
   const id=++MV_SEQ;MV_WAIT[id]={res,rej};setTimeout(()=>{if(MV_WAIT[id]){delete MV_WAIT[id];rej(new Error('응답이 없습니다.'))}},10000);
   op.postMessage({type:'mes_drawboard_move',id,dir,job:o.job||'',part:o.part||'',jo:o.jo==null?null:o.jo,ri:o.ri},location.origin)})}
  function applyPart(n){
-  o=Object.assign({},o,n,{by:o.by,all:o.all});
+  o=Object.assign({},o,n,{by:o.by,all:o.all,item:o.item,list:o.list});
   PLAN=(o.steps||[]);STEPS.forEach(s=>{s.plan=[];s.vendor='';s.state=''});
   PLAN.forEach((ps,k)=>{const c=String(ps.code||'').trim();let t=STEPS.find(x=>x.code===c||x.code.toUpperCase()===c.toUpperCase());
    if(!t){t={idx:STEPS.length,code:c,name:ps.name||c,inhouse:!!ps.inhouse,vendor:'',state:'',plan:[]};STEPS.push(t);makeBtn(t)}
@@ -171,8 +171,13 @@
   planBadges();draw();try{$('note').textContent=''}catch(e){}
   const tip=$('moveTip');if(tip)tip.textContent=kept?`${o.part} — 가공계획 미등록 · 띠의 공정 순서를 그대로 두었습니다 ([▣ 가공계획 적용]으로 저장)`:`${o.part} — 등록된 가공계획 순서를 불러왔습니다`;
   try{sessionStorage.setItem('mes_drawboard',JSON.stringify(o))}catch(e){}}
+ /* v214: 열 때 받은 부품 리스트(사내외가공 발주 화면의 부품별 가공공정 리스트 순서)로 바로 넘긴다. 리스트가 없을 때만 발주 화면에 묻는다 */
+ function localMove(dir){const L=o.list;if(!Array.isArray(L)||!L.length)return null;
+  let cur=L.findIndex(x=>x.part===o.part&&String(x.jo??'')===String(o.jo??''));if(cur<0)cur=L.findIndex(x=>x.part===o.part);
+  const nx=cur+(dir<0?-1:1);if(nx<0)throw new Error('첫 번째 품번입니다.');if(nx>=L.length)throw new Error('마지막 품번입니다.');
+  return L[nx]}
  async function movePart(dir){const b=$(dir>0?'bNext':'bPrev');const t0=b?b.textContent:'';if(b){b.disabled=true;b.textContent='불러오는 중…'}
-  try{applyPart(await askMove(dir))}catch(e){alert(e.message)}
+  try{const n=localMove(dir);applyPart(n||await askMove(dir))}catch(e){alert(e.message)}
   finally{if(b){b.disabled=false;b.textContent=t0}}}
  if($('bPrev'))$('bPrev').addEventListener('click',()=>movePart(-1));
  if($('bNext'))$('bNext').addEventListener('click',()=>movePart(1));

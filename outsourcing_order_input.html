@@ -1240,7 +1240,10 @@ function boardData(ri){
 }
 function drawBoard(ri){
  if(!window.MESDRAW)return msg('그림보드 모듈(mes_drawboard.js)이 없습니다.');
- const d=boardData(ri);if(d)MESDRAW.open(d);
+ const d=boardData(ri);if(!d)return;
+ /* v214: 지금 화면의 부품별 가공공정 리스트 순서 그대로 함께 넘긴다 — 그림보드가 ◀ 이전 · 다음 ▶ 을 스스로 넘긴다 */
+ d.list=ROUTES.map((_,k)=>{const x=boardData(k);if(x){delete x.all;delete x.by;delete x.item}return x}).filter(Boolean);
+ MESDRAW.open(d);
 }
 /* v213: 그림보드 [◀ 이전 품번 / 다음 품번 ▶] — 이 화면의 부품 목록 순서대로 앞·뒤 부품 자료를 보낸다 */
 window.addEventListener('message',ev=>{const d=ev.data;if(!d||d.type!=='mes_drawboard_move'||ev.origin!==location.origin)return;
@@ -1352,7 +1355,7 @@ window.MESLOOK_RELOAD_VENDORS=async()=>{MESLOOK.invalidate('vendor_outsourcing')
  if(typeof renderRoutes==='function')renderRoutes();};
 </script>
 <script src="mes_price.js?v=162"></script>
-<script src="mes_mail.js?v=175"></script><script src="mes_drawboard.js?v=213"></script>
+<script src="mes_mail.js?v=175"></script><script src="mes_drawboard.js?v=214"></script>
 <script src="mes_route_edit.js?v=196"></script>
 <script src="mes_vendorcheck.js?v=196"></script>
 <script>
