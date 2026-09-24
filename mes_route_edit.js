@@ -340,17 +340,8 @@ async function saveStd() {
   } catch (e) { say('기준공정 저장 실패: ' + String(e.message || e).slice(0, 140)); }
 }
 
-/* ── 행 우클릭 연결 · 창 닫을 때 넓은 모드 해제 ──────────── */
-const _rr = renderRoutes;
-renderRoutes = function () {
-  const r = _rr.apply(this, arguments);
-  document.querySelectorAll('#routeBody tr').forEach(tr => {
-    const cb = tr.querySelector('input[type=checkbox][data-i]'); if (!cb) return;
-    const ri = Number(cb.dataset.i);
-    tr.oncontextmenu = ev => { if (ev.target.closest('td.route')) return; ev.preventDefault(); open(ev, ri); return false; };
-  });
-  return r;
-};
+/* ── v196: 부품 행(부품코드·부품명) 우클릭 → 공정 편집은 없앴다 (그림보드에서 순서·기준공정을 고친다).
+ *    공정 편집 창은 사내가공 칸의 [✎ 공정편집] 버튼으로는 계속 열린다. 창 닫을 때 넓은 모드 해제 ── */
 const _cc = ctxClose;
 ctxClose = function () { try { document.getElementById('ctxPop').classList.remove('wide'); } catch (e) {} E = null; return _cc.apply(this, arguments); };
 
