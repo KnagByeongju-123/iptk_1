@@ -1,4 +1,4 @@
-/* drawboard.js (v220: 공정 목록 3열 · v219: 확인란에 업체명(5자)·사내 표시, 공정명 한 줄 · v217: 그림에 박힌 머리글 자동 잘라내기 · v215: 공정 순서 띠 → 격자(확인란) + QR · v214: 이전·다음 품번은 열 때 받은 부품 리스트 순서로 · v213: ◀ 이전 · 다음 ▶ 품번 — 가공계획이 등록된 부품은 등록된 순서로, 아니면 띠 공정 그대로 / v212: 오른쪽 목록 끌어서 순서·해제 · 기준공정 불러오기 / v211: 공정 목록 — 선택한 공정 위 · 구분선 · 나머지 가나다 / v210: 그림 등록 / v209: 끌어서 순서) — 부품 그림보드 화면 스크립트
+/* drawboard.js (v221: 적용 공정 1열·나머지 3열 · v220: 공정 목록 3열 · v219: 확인란에 업체명(5자)·사내 표시, 공정명 한 줄 · v217: 그림에 박힌 머리글 자동 잘라내기 · v215: 공정 순서 띠 → 격자(확인란) + QR · v214: 이전·다음 품번은 열 때 받은 부품 리스트 순서로 · v213: ◀ 이전 · 다음 ▶ 품번 — 가공계획이 등록된 부품은 등록된 순서로, 아니면 띠 공정 그대로 / v212: 오른쪽 목록 끌어서 순서·해제 · 기준공정 불러오기 / v211: 공정 목록 — 선택한 공정 위 · 구분선 · 나머지 가나다 / v210: 그림 등록 / v209: 끌어서 순서) — 부품 그림보드 화면 스크립트
  * 사내외가공 발주(mes_drawboard.js)가 sessionStorage 'mes_drawboard' 에 넣어 준 자료를 읽어 그린다.
  * 문서를 스크립트로 써 넣지 않고(document.write 없음) DOM 만 만든다. */
 (function(){
@@ -139,7 +139,7 @@
   /* v220: 3열 격자 — 줄(세로) 먼저, 같은 줄이면 칸의 왼쪽/오른쪽 절반으로 앞·뒤를 정한다 */
   for(let k=0;k<ons.length;k++){const b=ons[k].getBoundingClientRect();
    if(y<b.top-2)return k;
-   if(y<=b.bottom+2){if(x<b.left+b.width/2)return k;continue}}
+   if(y<=b.bottom+2){if(y<b.top+b.height/2)return k;continue}}
   return ons.length}
  let PMARK=null;
  function showPMark(k){if(!PMARK)PMARK=el('div','pdrop');

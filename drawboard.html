@@ -18,7 +18,10 @@ body{font-family:'Malgun Gothic','맑은 고딕',Arial,sans-serif;font-size:12px
 #btns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;align-items:stretch}
 @media(max-width:1500px){#btns{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:1100px){#btns{grid-template-columns:minmax(0,1fr)}}
+/* 적용된 공정(위쪽)은 기존처럼 1열, 나머지(아래쪽)만 3열 */
+.pbtn.on{grid-column:1/-1}
 .pbtn.pdb{box-shadow:-3px 0 0 0 #e53935}.pbtn.pda{box-shadow:3px 0 0 0 #e53935}
+.pbtn.on.pdb{box-shadow:0 -3px 0 0 #e53935}.pbtn.on.pda{box-shadow:0 3px 0 0 #e53935}
 .psep.pdb{box-shadow:0 -3px 0 0 #e53935}
 .pdrop{display:none}
 #btns.offdrop .psep{color:#c62828;border-top-color:#e53935;background:#fdecea}
@@ -147,5 +150,5 @@ body.portrait .sheet{width:198mm}
 <div class="ov" id="ov"><div class="bar"><b id="ovT">원본 이미지</b><span id="ovS"></span><span class="sp"></span><button id="ovFit">화면 맞춤</button><button id="ovReal">실제 크기</button><button id="ovClose">닫기 (Esc)</button></div><div class="body" id="ovB"></div></div>
 <script src="mes_qr.js?v=92"></script>
 <script src="mes_imgedit.js?v=196"></script>
-<script src="drawboard.js?v=220"></script>
+<script src="drawboard.js?v=221"></script>
 </body></html>
