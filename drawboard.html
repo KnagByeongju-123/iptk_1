@@ -33,6 +33,10 @@ body{font-family:'Malgun Gothic','맑은 고딕',Arial,sans-serif;font-size:12px
 @media print{.movetip{display:none}}
 .tools button{height:28px;padding:0 10px;border:1px solid #8b9ba9;background:linear-gradient(#fff,#e9eef2);cursor:pointer;font:inherit;border-radius:3px}
 .tools button.go{font-weight:700;color:#fff;border-color:#2a5d95;background:linear-gradient(#4a8ad0,#2f6fb0)}
+/* v213: 다음·이전 품번, 기준공정 불러오기 — 하늘색 */
+.tools #bNext,.tools #bPrev,.tools #bStd{font-weight:700;color:#0b4a6f;border-color:#5aa9d6;background:linear-gradient(#e8f6fe,#bfe3f8)}
+.tools #bNext:hover,.tools #bPrev:hover,.tools #bStd:hover{background:#d6effc}
+.tools #bNext:disabled,.tools #bPrev:disabled{opacity:.6;cursor:wait}
 h1{font-size:18px;margin:0 0 6px;letter-spacing:3px;text-align:center}
 .meta{display:grid;grid-template-columns:auto 1fr auto 1fr auto 1fr;gap:3px 8px;font-size:12px;border:1px solid #444;padding:5px 8px;margin-bottom:6px}
 .meta b{color:#000;white-space:nowrap}
