@@ -135,9 +135,10 @@ tr.rdone td{color:#8b98a3}
 <div class="screen">
   <div class="title"><h1>사내외가공 발주</h1></div>
   <section class="filters">
-    <span class="label">제번</span><input id="jobQ" class="field" style="width:190px" placeholder="제번 입력/선택" autocomplete="off">
-    <span class="label">품번</span><input id="pnQ" class="field" style="width:190px" placeholder="품번 입력/선택" list="pnDL" autocomplete="off"><datalist id="pnDL"></datalist>
-    <span class="label">업체</span><input id="venF" class="field" style="width:190px">
+    <span class="label">관리제번</span><select id="baseQ" class="field" style="width:170px" onchange="basePick()"><option value="">전체</option></select>
+    <span class="label">제번</span><input id="jobQ" class="field" style="width:130px" placeholder="제번 입력/선택" autocomplete="off">
+    <span class="label">품번</span><input id="pnQ" class="field" style="width:120px" placeholder="품번 입력/선택" list="pnDL" autocomplete="off"><datalist id="pnDL"></datalist>
+    <span class="label">업체</span><input id="venF" class="field" style="width:130px" placeholder="업체 입력/선택" list="venDL" autocomplete="off"><datalist id="venDL"></datalist>
     <button class="btn" onclick="search()">⌕ 조회</button>
     <button class="btn" id="btnRefresh" onclick="refreshAll()" title="DB에서 제번·부품별 가공공정을 다시 불러옵니다 (다른 화면의 발주·입고 반영)">⟳ 새로고침</button><span class="ctxhint" title="공정 칸에서 마우스 오른쪽 버튼을 누르면 상태에 맞는 처리 창이 열립니다 (더블클릭도 같은 창).&#10;입고·완료 칸에서는 회차별 입고취소 · 입고 전체취소 · 확정취소, 같은 업체 발주건 함께 입고(다중입고)가 됩니다.&#10;연속 공정을 한 업체에 맡길 때는 마지막 공정 칸을 우클릭하면 그 사이 공정이 한꺼번에 발주됩니다.&#10;부품 행(부품코드·부품명)을 우클릭하면 기준공정 선택, 공정 추가·삭제·순서, 사내가공 표시를 바로 고쳐 가공계획으로 저장할 수 있습니다.">※ <b style="color:#7a4a12">외주 칸</b> 우클릭 → 발주 · 입고 · 확정 · 묶음 · <b>취소</b> <b>|</b> <b style="color:#8a6d3b">사내 칸</b> 우클릭 → <b>가공완료 등록</b> <b>|</b> 부품 행 우클릭 → <b>공정 편집</b></span>
   </section>
@@ -396,7 +397,23 @@ function pnPick(){const v=String(pnQ.value||'').trim();
 function jobPick(){const v=String(jobQ.value||'').trim();
  const x=JOBS.find(y=>y.job===v);if(x)pnQ.value=x.model||'';
  search();const i=jobView.findIndex(y=>y.job===v);if(i>=0)pickJob(i)}
-function search(){const j=jobQ.value.trim().toLowerCase(),pn=pnQ.value.trim().toLowerCase();jobView=JOBS.filter(x=>(!j||x.job.toLowerCase().includes(j))&&(!pn||(x.model||'').toLowerCase().includes(pn)));jobIdx=0;renderJobs();msg(`제번 ${jobView.length}건을 조회했습니다.`)}
+/* v196: 관리제번 드롭필터 — 제번리스트를 관리제번(A~F 공정 제번 묶음)으로 거른다 */
+const baseOf=j=>{const m=/^(.*\d)([A-Z])$/.exec(String(j||'').trim());return m?m[1]:String(j||'').trim()};
+const seqOf=j=>{const m=/^(.*\d)([A-Z])$/.exec(String(j||'').trim());return m?m[2]:''};
+function fillBase(){const sel=document.getElementById('baseQ');if(!sel)return;const cur=sel.value,G=new Map();
+ JOBS.forEach(x=>{const b=baseOf(x.job);let g=G.get(b);if(!g){g={m:x.model||'',seq:[]};G.set(b,g)}const q=seqOf(x.job);if(q&&!g.seq.includes(q))g.seq.push(q);if(!g.m)g.m=x.model||''});
+ const bs=[...G.keys()].sort((a,b)=>b.localeCompare(a));
+ const rng=a=>{a.sort();return !a.length?'':a.length>2?` (${a[0]}~${a[a.length-1]})`:` (${a.join('·')})`};
+ const e=v=>String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+ sel.innerHTML=`<option value="">전체 (${bs.length})</option>`+bs.map(b=>`<option value="${e(b)}">${e(b)}${rng(G.get(b).seq)}${G.get(b).m?' · '+e(G.get(b).m):''}</option>`).join('');
+ sel.value=G.has(cur)?cur:''}
+function basePick(){jobQ.value='';pnQ.value='';search();if(jobView.length)pickJob(0)}
+/* v196: 업체 — 협력업체 목록에서 고르거나 입력하면 오른쪽 협력업체 목록이 걸러지고, 정확히 맞으면 그 업체가 선택된다 */
+function venFillDL(){const dl=document.getElementById('venDL');if(!dl)return;
+ dl.innerHTML=VENDORS.map(v=>`<option value="${String(v).replace(/"/g,'')}"></option>`).join('')}
+function venPick(){const v=String(venF.value||'').trim();venQ.value=v;venFind();
+ const i=venView.findIndex(x=>String(x)===v);if(i>=0)pickVendor(i)}
+function search(){const j=jobQ.value.trim().toLowerCase(),pn=pnQ.value.trim().toLowerCase(),bq=(document.getElementById('baseQ')||{}).value||'';jobView=JOBS.filter(x=>(!bq||baseOf(x.job)===bq)&&(!j||x.job.toLowerCase().includes(j))&&(!pn||(x.model||'').toLowerCase().includes(pn)));jobIdx=0;renderJobs();msg(`제번 ${jobView.length}건을 조회했습니다.`)}
 async function pushDown(){const j=jobView[jobIdx];if(!j)return;
  const picks=[...routeBody.querySelectorAll('input:checked')].map(x=>Number(x.dataset.i)).filter(ri=>ROUTES[ri]);
  if(!picks.length)return msg('부품별 가공공정에서 발주할 부품(다음 공정)을 선택하세요.');
@@ -476,7 +493,7 @@ async function loadJobs(){
   const rs=await MESDB.table('job_pool').select('select=*&order=row_no');
   JOBS.length=0;
   rs.forEach(r=>JOBS.push({job:r.job_no,item:r.item_name||'',model:r.model||'',proc:'1',procName:'1/'+Math.max(1,Math.trunc(Number(r.set_qty))||1),setQty:Math.max(1,Math.trunc(Number(r.set_qty))||1)}));
-  jobView=[...JOBS];jobIdx=JOBS.length?0:-1;renderJobs();pnFillDL();
+  fillBase();{const bq=(document.getElementById('baseQ')||{}).value||'';jobView=JOBS.filter(x=>!bq||baseOf(x.job)===bq)}jobIdx=jobView.length?0:-1;renderJobs();pnFillDL();
   msg(JOBS.length?`제번 ${JOBS.length}건을 조회했습니다.`:'등록된 수주가 없습니다. 영업관리 > 수주등록을 먼저 하세요.');
   await loadRoutes();
  }catch(e){msg('제번리스트 조회 실패: '+String(e.message||e).slice(0,110))}
@@ -1282,6 +1299,7 @@ loadJobs();
   if(typeof venView!=='undefined'){venView=[...VENDORS]}
   if(typeof venIdx!=='undefined')venIdx=VENDORS.length?0:-1;
   if(typeof renderVendors==='function')renderVendors();
+  if(typeof venFillDL==='function')venFillDL();
   if(typeof renderRoutes==='function')renderRoutes();   /* v87: 업체가 정해져야 기발주 여부를 판정할 수 있다 */
  }catch(e){
   const m=document.getElementById('message');
@@ -1308,8 +1326,9 @@ function sampleFill(){
 <script>/* v121: 제번·품번 — 목록에서 고르거나 직접 입력 (둘 다) */
 try{MESJOB.attach("jobQ",{onPick:()=>{try{jobPick()}catch(e){}}})}catch(e){}
 /* v127: 제번 change 는 MESJOB.attach 가 처리한다 (중복 호출 방지) */
+try{venF.addEventListener("change",()=>{try{venPick()}catch(e){}});venF.addEventListener("input",()=>{if(!venF.value.trim()){try{venPick()}catch(e){}}});}catch(e){}
 try{pnQ.addEventListener("change",()=>{try{pnPick()}catch(e){}});
- [jobQ,pnQ].forEach(el=>el.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();el.blur()}}));}catch(e){}
+ [jobQ,pnQ,venF].forEach(el=>el.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();el.blur()}}));}catch(e){}
 </script>
 </body>
 </html>
