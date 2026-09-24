@@ -1,4 +1,4 @@
-/* drawboard.js (v215: 공정 순서 띠 → 격자(확인란) + QR · v214: 이전·다음 품번은 열 때 받은 부품 리스트 순서로 · v213: ◀ 이전 · 다음 ▶ 품번 — 가공계획이 등록된 부품은 등록된 순서로, 아니면 띠 공정 그대로 / v212: 오른쪽 목록 끌어서 순서·해제 · 기준공정 불러오기 / v211: 공정 목록 — 선택한 공정 위 · 구분선 · 나머지 가나다 / v210: 그림 등록 / v209: 끌어서 순서) — 부품 그림보드 화면 스크립트
+/* drawboard.js (v217: 그림에 박힌 머리글 자동 잘라내기 · v215: 공정 순서 띠 → 격자(확인란) + QR · v214: 이전·다음 품번은 열 때 받은 부품 리스트 순서로 · v213: ◀ 이전 · 다음 ▶ 품번 — 가공계획이 등록된 부품은 등록된 순서로, 아니면 띠 공정 그대로 / v212: 오른쪽 목록 끌어서 순서·해제 · 기준공정 불러오기 / v211: 공정 목록 — 선택한 공정 위 · 구분선 · 나머지 가나다 / v210: 그림 등록 / v209: 끌어서 순서) — 부품 그림보드 화면 스크립트
  * 사내외가공 발주(mes_drawboard.js)가 sessionStorage 'mes_drawboard' 에 넣어 준 자료를 읽어 그린다.
  * 문서를 스크립트로 써 넣지 않고(document.write 없음) DOM 만 만든다. */
 (function(){
@@ -26,8 +26,26 @@
  renderMeta();
  /* 그림 */
  const fig=$('fig');
+ /* v217: 그림 편집기가 그림 위에 넣은 머리글(제번·품번 · 품명·재질·규격 · 일자 + 가로줄)은 그림보드 머리글과 겹치므로 잘라낸다.
+  *   편집기가 그린 가로줄(#9aa8b5, 폭 M~W-M, y=M+HH-30)을 찾으면 그 아래부터 보여준다. 못 찾으면(캡쳐 원본 등) 그대로. */
+ function trimHeader(im){
+  try{const w=im.naturalWidth,h=im.naturalHeight;if(!w||!h)return null;
+   const K=Math.min(w,h)/1240,M=Math.round(40*K),y0=Math.round(70*K),y1=Math.round(190*K);   /* 편집기 A4 짧은 변 = 1240×K */
+   const c=document.createElement('canvas');c.width=w;c.height=Math.min(h,y1+4);const x=c.getContext('2d');x.drawImage(im,0,0);
+   const d=x.getImageData(0,0,w,c.height).data;
+   let hit=-1;
+   for(let y=y0;y<Math.min(c.height,y1);y++){let gray=0,n=0;
+    for(let px=M+4;px<w-M-4;px+=3){const k=(y*w+px)*4,r=d[k],g=d[k+1],b=d[k+2];n++;if(r>130&&r<185&&g>145&&g<195&&b>160&&b<210&&b>=r)gray++}
+    if(n&&gray/n>0.85){hit=y;break}}
+   if(hit<0)return null;
+   const top=Math.min(h-1,hit+Math.round(6*K));
+   const o2=document.createElement('canvas');o2.width=w;o2.height=h-top;o2.getContext('2d').drawImage(im,0,top,w,h-top,0,0,w,h-top);
+   return o2.toDataURL('image/png')}catch(e){return null}}
  function setFig(url){fig.textContent='';
-  if(url){const im=el('img');im.alt=o.part||'';im.addEventListener('load',()=>{if(!ORI_SET)setOri(bestOri(im.naturalWidth,im.naturalHeight))});im.src=url;fig.appendChild(im)}
+  if(url){const im=el('img');im.alt=o.part||'';im.crossOrigin='anonymous';
+   im.addEventListener('load',()=>{if(!im.__trim){im.__trim=1;const t=trimHeader(im);if(t){im.src=t;return}}if(!ORI_SET)setOri(bestOri(im.naturalWidth,im.naturalHeight))});
+   im.addEventListener('error',()=>{if(im.crossOrigin){im.crossOrigin=null;im.__trim=1;im.src=url}});
+   im.src=url;fig.appendChild(im)}
   else{const n=el('div','none');n.appendChild(el('div',null,'PartList 에 등록된 부품 그림이 없습니다.'));
    const b=el('button','addpic','📷 그림 등록 (캡쳐·이미지·PDF)');b.type='button';b.addEventListener('click',picOpen);n.appendChild(b);
    n.appendChild(el('small',null,'여기서 등록하면 PartList 부품 그림에도 같이 저장됩니다.'));fig.appendChild(n)}}
@@ -56,14 +74,14 @@
   const old=b.querySelector('.p');if(old)old.remove();b.classList.toggle('plan',!!s.plan.length);
   if(s.plan.length){const p=el('span','p','계획 '+s.plan.join(','));b.querySelector('.k').after(p)}
   const v=b.querySelector('.v');if(v)v.textContent=[s.vendor,s.state].filter(Boolean).join(' · ')})}
- /* v215: QR — 제번_공정(조)_품번 을 담은 이 앱의 링크. 휴대폰 카메라로 읽으면 로그인 뒤 「외주가공 QR 스캔」 화면이 이 부품으로 열린다 */
+ /* v215: QR — 제번_공정(조)_품번 을 담은 현장용 링크(qr_work.html · 로그인 없음). 휴대폰 카메라로 읽으면 이 부품의 공정 목록이 열려 작업완료(외주=입고 처리 · 사내=가공 실적)를 할 수 있다 */
  function qrKey(){return [o.job||'',String(o.jo??'1').replace(/조$/,'')||'1',o.part||''].join('_')}
- function qrUrl(){const base=location.href.replace(/[^/]*$/,'');return base+'index.html?go=qr&key='+encodeURIComponent(qrKey())}
+ function qrUrl(){const base=location.href.replace(/[^/]*$/,'');return base+'qr_work.html?key='+encodeURIComponent(qrKey())}
  function qrBox(){const box=el('div','qr');
   try{if(window.qrcode){const q=qrcode(0,'M');q.addData(qrUrl());q.make();box.innerHTML=q.createSvgTag({cellSize:2,margin:0,scalable:true})}}catch(e){}
   if(!box.firstChild)box.appendChild(el('div','none','QR'));
   const cap=el('div','cap');cap.appendChild(el('b',null,'QR 스캔 → 작업완료'));cap.appendChild(el('span',null,qrKey()));box.appendChild(cap);
-  box.title='협력업체·사내 작업자가 휴대폰으로 읽으면 이 부품의 공정 목록이 열려 작업완료(입고 처리)를 할 수 있습니다\n'+qrUrl();return box}
+  box.title='협력업체·사내 작업자가 휴대폰으로 읽으면(로그인 없음) 이 부품의 공정 목록이 열려 작업완료를 할 수 있습니다 — 외주: 입고 처리 · 사내: 가공 실적\n'+qrUrl();return box}
  function draw(){
   const st=$('strip');st.textContent='';
   const L=el('div','stripL');st.appendChild(L);

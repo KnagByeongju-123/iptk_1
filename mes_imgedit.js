@@ -47,7 +47,7 @@ function ensureUI(){
   <span class="sep"></span>
   <label>바탕 <select id="miMode" onchange="MESIMG.rebuild()"><option value="bw">흰 바탕(흑백 · 출력용)</option><option value="inv">흰 바탕(컬러 반전)</option><option value="raw">원본 그대로</option></select></label>
   <label>용지 <select id="miPaper" onchange="MESIMG.rebuild()"><option value="auto">A4 자동</option><option value="p">A4 세로</option><option value="l">A4 가로</option></select></label>
-  <label><input type="checkbox" id="miHead" checked onchange="MESIMG.rebuild()"> 머리글</label>
+  <label title="그림 위에 제번·품번·품명·일자 글자를 넣습니다. 그림보드·PartList 가 따로 보여주므로 기본은 끕니다"><input type="checkbox" id="miHead" onchange="MESIMG.rebuild()"> 머리글</label>
   <span class="sep"></span>
   <span>표시:</span>
   <button data-t="arrow" class="on" onclick="MESIMG.tool('arrow',this)">➜ 화살표</button>
