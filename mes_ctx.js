@@ -1540,3 +1540,73 @@ window.MESCTX={confirm:dlgConfirm};
  document.addEventListener('visibilitychange',set);
  [200,800,1600].forEach(t=>setTimeout(set,t));
 })();
+
+/* ── v196: 표 머리글 정렬 (전 화면 공용) ──────────────────────────────────
+ * 머리글(th)을 누르면 그 열로 오름차순 ▲ → 내림차순 ▼ → 원래 순서.
+ *   · No/번호 열은 정렬 대상이 아니고, 정렬 뒤 보이는 순서대로 1,2,3… 을 다시 붙인다
+ *   · 숫자(쉼표·%) 는 숫자로, 글자는 가나다순(숫자 포함 자연 정렬). 빈 칸·0 은 오름·내림 모두 맨 아래
+ *   · 합계·안내·소계 행(칸 수가 다르거나 colspan)은 정렬에서 빼고 제자리에 둔다
+ *   · 화면이 표를 다시 그려도 정렬 상태를 유지한다
+ * 제외: 이미 정렬 기능이 있는 머리글(onclick · .sortable · .srt), 체크박스 머리글, 2단 이상 머리글의 묶음 칸,
+ *       rowspan 이 있는 표, 입력칸(text/select)이 있는 편집용 표, <table data-nosort> */
+(function(){
+ if(window.MESSORT)return;
+ const st=document.createElement('style');
+ st.textContent='th.mss{cursor:pointer;user-select:none}th.mss:hover{background:#d9e7f3!important}th.mss[data-mss]:after{content:attr(data-mss);margin-left:4px;font-size:10px;color:#2f75b5}';
+ (document.head||document.documentElement).appendChild(st);
+ const NOH=/^(no\.?|번호)$/i, NUM=/^-?[\d,]+(\.\d+)?\s*%?$/;
+ const txt=td=>{const i=td.querySelector('input:not([type=checkbox]):not([type=radio]),select');if(i)return String(i.value||'').trim();
+  return (td.textContent||'').replace(/\s+/g,' ').trim()};
+ const key=s=>{if(!s)return null;if(NUM.test(s)){const n=parseFloat(s.replace(/[,%\s]/g,''));return isNaN(n)?s:n}return s};
+ const cmp=(a,b,d)=>{const ea=a==null||a===''||a===0,eb=b==null||b===''||b===0;   /* 빈 칸·0 은 항상 아래 */
+  if(ea&&eb)return 0;if(ea)return 1;if(eb)return -1;
+  if(typeof a==='number'&&typeof b==='number')return (a-b)*d;
+  return String(a).localeCompare(String(b),'ko',{numeric:true})*d};
+ /* 머리글 격자 → 각 th 의 열 번호 (마지막 줄까지 내려오는 단일 열만 정렬 대상) */
+ function leaves(thead){const rows=[...thead.rows],out=[],grid=[];
+  rows.forEach((r,ri)=>{let c=0;grid[ri]=grid[ri]||[];[...r.cells].forEach(th=>{while(grid[ri][c])c++;const cs=th.colSpan||1,rs=th.rowSpan||1;
+   for(let y=0;y<rs;y++)for(let x=0;x<cs;x++){grid[ri+y]=grid[ri+y]||[];grid[ri+y][c+x]=1}
+   if(cs===1&&ri+rs===rows.length)out.push({th,col:c});c+=cs})});
+  return out}
+ function dataRows(tb,n){return [...tb.rows].filter(tr=>tr.cells.length===n&&![...tr.cells].some(c=>(c.colSpan||1)>1))}
+ function skip(t){if(t.dataset.nosort!=null||!t.tHead||!t.tBodies.length)return true;
+  const tb=t.tBodies[0];if(tb.querySelector('td[rowspan]'))return true;
+  const inp=tb.querySelectorAll('input:not([type=checkbox]):not([type=radio]),select,textarea').length;
+  return inp>Math.max(2,tb.rows.length*0.3)}
+ function setup(t){if(t.__mss||skip(t))return;t.__mss={col:-1,dir:0,busy:false,lv:[]};
+  bind(t);
+  /* 화면이 머리글을 다시 그리면(thead.innerHTML) 새 th 에 다시 붙인다 */
+  new MutationObserver(()=>{clearTimeout(t.__mss.h);t.__mss.h=setTimeout(()=>{bind(t);if(t.__mss.dir)apply(t)},30)}).observe(t.tHead,{childList:true,subtree:true});
+  new MutationObserver(()=>{const s=t.__mss;if(s.busy||!s.dir)return;clearTimeout(s.t);s.t=setTimeout(()=>apply(t),30)}).observe(t.tBodies[0],{childList:true})}
+ function bind(t){const s=t.__mss;if(!t.tHead||!t.tHead.rows.length)return;
+  const lv=leaves(t.tHead);s.lv=lv;s.no=null;
+  s.n=[...t.tHead.rows].reduce((m,r)=>Math.max(m,[...r.cells].reduce((a,c)=>a+(c.colSpan||1),0)),0);
+  lv.forEach(({th,col})=>{const tx=(th.textContent||'').replace(/[▲▼]/g,'').trim();
+   if(NOH.test(tx)){s.no=col;return}
+   if(th.__mss)return;
+   if(th.getAttribute('onclick')||th.classList.contains('sortable')||th.classList.contains('srt')||th.querySelector('input,button'))return;
+   th.__mss=1;th.classList.add('mss');th.title=th.title?th.title+' · 누르면 정렬':'누르면 정렬';
+   th.addEventListener('click',e=>{if(e.target.closest('input,button,a'))return;const c=s.lv.find(x=>x.th===th);if(!c)return;
+    if(s.col!==c.col){s.col=c.col;s.dir=1}else s.dir=s.dir===1?-1:s.dir===-1?0:1;
+    if(!s.dir)s.col=-1;apply(t);mark(t,s.lv)})});
+  mark(t,lv)}
+ function mark(t,lv){lv.forEach(({th,col})=>{const s=t.__mss;if(s.col===col&&s.dir)th.dataset.mss=s.dir>0?'▲':'▼';else th.removeAttribute('data-mss')})}
+ function apply(t){const s=t.__mss,tb=t.tBodies[0];if(!s)return;
+  const rows=dataRows(tb,s.n);if(rows.length<2)return;
+  rows.forEach((r,i)=>{if(r.__ord==null)r.__ord=i});
+  const sorted=rows.slice();
+  if(s.dir){const k=rows.map(r=>key(txt(r.cells[s.col])));const ix=rows.map((_,i)=>i);
+   ix.sort((a,b)=>cmp(k[a],k[b],s.dir)||(rows[a].__ord-rows[b].__ord));sorted.length=0;ix.forEach(i=>sorted.push(rows[i]))}
+  else sorted.sort((a,b)=>a.__ord-b.__ord);
+  s.busy=true;
+  const anchor=rows[0];const mark0=document.createComment('mss');tb.insertBefore(mark0,anchor);
+  sorted.forEach(r=>tb.insertBefore(r,mark0));mark0.remove();
+  if(s.no!=null)sorted.forEach((r,i)=>{const c=r.cells[s.no];if(c&&/^\d+$/.test((c.textContent||'').trim()))c.textContent=String(i+1)});
+  setTimeout(()=>{s.busy=false},0)}
+ function scan(root){(root||document).querySelectorAll('table').forEach(setup)}
+ const run=()=>{try{scan()}catch(e){}};
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run);else run();
+ [400,1500].forEach(t=>setTimeout(run,t));
+ new MutationObserver(ms=>{for(const m of ms)for(const n of m.addedNodes)if(n.nodeType===1&&(n.tagName==='TABLE'||n.querySelector&&n.querySelector('table'))){run();return}}).observe(document.documentElement,{childList:true,subtree:true});
+ window.MESSORT={scan,apply};
+})();
