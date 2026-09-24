@@ -49,6 +49,7 @@ td.route.s-out{background:#ffe9d1!important;color:#7a4a12;font-weight:700}td.rou
 #ctxPop .ch.k-order{background:linear-gradient(#5e9e46,#3f7a2c)}#ctxPop .ch.k-in{background:linear-gradient(#e08a2b,#b8681a)}#ctxPop .ch.k-cfm{background:linear-gradient(#3f7fc4,#2a5d95)}
 #ctxPop .ch .x{margin-left:auto;border:0;background:transparent;color:#fff;cursor:pointer;font:inherit;font-size:14px}
 #ctxPop .cb{padding:9px 11px 6px}
+#ctxPop .cxnote{margin:0 0 8px;padding:6px 9px;border:1px solid #9fc3e6;background:#eaf3fb;color:#1d4f86;border-radius:3px;font-weight:700;white-space:pre-wrap;word-break:break-all}#ctxPop .cxnote.bad{border-color:#e08a8a;background:#fdeeee;color:#a12727}
 #ctxPop .sub{color:#4d5c69;margin-bottom:7px;line-height:1.5}
 #ctxPop .sub b{color:#20456b}
 #ctxPop .g{display:grid;grid-template-columns:76px minmax(0,1fr) 76px minmax(0,1fr);gap:5px 7px;align-items:center}
@@ -476,7 +477,12 @@ async function save(){if(!REQ.length)return msg('저장할 발주 자료가 없�
  const dup=await dupCheck('외주가공',REQ[0].job,REQ);if(dup.length)return msg(`발주할 수 없는 공정이 있습니다: ${[...new Set(dup)].join(', ')} — 요청 리스트에서 제외하세요.`);
  await MESDB.newLines(REQ.map(r=>({category:'외주가공',status:'발주',vendor_name:r.vendor,job_no:r.job,item_name:r.item||null,process_code:r.proc,process_name:r.procName,part_no:r.part,part_name:r.partName,machining_process_code:r.mp,machining_process_name:r.mpName||null,step_no:Number(r.sn)||null,order_qty:Number(r.qty)||1,unit_price:Number(r.price)||null,quote_price:Number(r.amount)||null,order_date:r.odate||null,required_date:r.rdate||null,owner_name:r.writer||null,remark:withCycleRemark(r.remark,r.cycleId||'')})));const n=REQ.length;const _j=REQ[0].job;REQ.length=0;renderReq();try{MESDB.notify&&MESDB.notify(['order_lines'])}catch(e){}await loadOrdered(_j);renderRoutes();PICK.clear();msg(`외주가공 발주 ${n}건을 DB에 등록했습니다. (공정 리스트에 출고 표시) 입고되면 다음 공정을 발주할 수 있습니다.`)}catch(e){msg('DB 등록 실패: '+e.message.slice(0,120))}}
 function exportCsv(){const out=[['협력업체','제번','공정','품번','부품명','순번','가공공정코드','가공공정','발주수량','발주월','입고요구월','작성자'],...REQ.map(r=>[r.vendor,r.job,r.proc,r.part,r.partName,(r.sn||'')+(r.snOf?'/'+r.snOf:''),r.mp,r.mpName,r.qty??1,r.odate,r.rdate,r.writer])];const csv='\ufeff'+out.map(a=>a.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='outsourcing_order_input.csv';a.click();URL.revokeObjectURL(a.href)}
-function msg(t){message.textContent=t}
+function msg(t){message.textContent=t;ctxNote(t)}
+/* v222: 발주·입고 창이 떠 있는 동안의 안내(실패·막힘 이유)는 창 안 위쪽에도 띄운다 — 아래 안내줄은 창에 가려 안 보였다 */
+function ctxNote(t){const pop=document.getElementById('ctxPop'),bd=document.getElementById('ctxBody');if(!pop||!bd||!pop.classList.contains('on')||!t)return;
+ let n=bd.querySelector('.cxnote');if(!n){n=document.createElement('div');n.className='cxnote';bd.insertBefore(n,bd.firstChild)}
+ n.className='cxnote'+(/실패|없습니다|않습니다|없어|먼저|취소하세요|초과|오류|Error/i.test(t)?' bad':'');n.textContent=t;
+ try{n.scrollIntoView({block:'nearest'})}catch(e){}}
 reqDate.value=new Date(Date.now()+12*864e5).toISOString().slice(0,10);
 renderJobs();renderVendors();renderRoutes();renderReq();
 
