@@ -42,7 +42,7 @@ function ensureUI(){
  const p=document.createElement('div');p.id='miPop';p.innerHTML=`
  <div class="mh"><span id="miTitle">부품 그림</span><span id="miSub" style="font-weight:400;opacity:.9"></span><button class="x" onclick="MESIMG.close()">×</button></div>
  <div class="tb">
-  <button onclick="MESIMG.pickFile()" title="이미지 파일 선택">📁 파일</button>
+  <button onclick="MESIMG.pickFile()" title="이미지(PNG·JPG) 또는 PDF 파일 선택">📁 파일</button>
   <button onclick="MESIMG.pasteHint()" title="캐드 화면을 캡쳐한 뒤 이 창에서 Ctrl+V">📋 붙여넣기(Ctrl+V)</button>
   <span class="sep"></span>
   <label>바탕 <select id="miMode" onchange="MESIMG.rebuild()"><option value="bw">흰 바탕(흑백 · 출력용)</option><option value="inv">흰 바탕(컬러 반전)</option><option value="raw">원본 그대로</option></select></label>
@@ -61,9 +61,9 @@ function ensureUI(){
   <button onclick="MESIMG.undo()" title="마지막 표시 지우기">↶ 되돌리기</button>
   <button onclick="MESIMG.clearMarks()" title="표시 전부 지우기">⌫ 표시 지움</button>
  </div>
- <div class="body"><div class="cv" id="miCv" style="position:relative"><div class="drop" id="miDrop"><div><b>캐드 화면을 캡쳐(Win+Shift+S)한 뒤 여기서 Ctrl+V</b><br>또는 이미지 파일을 끌어다 놓거나 [📁 파일]로 고르세요<br><span style="opacity:.8">검은 바탕은 자동으로 흰 바탕으로 바꿔 A4 크기로 정리합니다</span></div></div><canvas id="miC" style="display:none"></canvas><input id="miTxt" placeholder="글자 입력 후 Enter"></div></div>
+ <div class="body"><div class="cv" id="miCv" style="position:relative"><div class="drop" id="miDrop"><div><b>캐드 화면을 캡쳐(Win+Shift+S)한 뒤 여기서 Ctrl+V</b><br>또는 이미지·PDF 파일을 끌어다 놓거나 [📁 파일]로 고르세요<br><span style="opacity:.8">캐드 플롯(DWG To PDF · PublishToWeb PNG)으로 뽑은 파일이 가장 선명합니다</span><br><span style="opacity:.8">검은 바탕은 자동으로 흰 바탕으로 바꿔 A4 크기로 정리합니다</span></div></div><canvas id="miC" style="display:none"></canvas><input id="miTxt" placeholder="글자 입력 후 Enter"></div></div>
  <div class="mf"><span class="msg" id="miMsg">그림을 붙여넣으세요.</span><button onclick="MESIMG.download()">⬇ PNG</button><button onclick="MESIMG.printCur()">🖨 인쇄(A4)</button><button class="go" id="miSave" onclick="MESIMG.save()">▣ 저장(등록)</button><button onclick="MESIMG.close()">닫기</button></div>
- <input type="file" id="miFile" accept="image/*" style="display:none">`;
+ <input type="file" id="miFile" accept="image/*,application/pdf,.pdf" style="display:none">`;
  document.body.appendChild(p);
  $('miFile').onchange=e=>{const f=e.target.files&&e.target.files[0];if(f)loadFile(f)};
  const cv=$('miCv');
@@ -83,8 +83,49 @@ const tp=e=>{const t=e.touches[0]||e.changedTouches[0];return {clientX:t.clientX
 const say=t=>{const m=$('miMsg');if(m)m.textContent=t};
 
 /* ── 이미지 읽기 · 처리 ── */
+/* v196: PDF 도 받는다 — 캐드에서 DWG To PDF 로 뽑은 도면을 그림으로 바꿔(긴 변 2400px) 편집기에 올린다 */
+const isPdf=f=>/pdf/i.test(f&&f.type||'')||/\.pdf$/i.test(f&&f.name||'');
+function pdfLib(){return new Promise((res,rej)=>{if(window.pdfjsLib)return res(window.pdfjsLib);
+ const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+ s.onload=()=>{try{window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'}catch(e){}window.pdfjsLib?res(window.pdfjsLib):rej(new Error('PDF 모듈 로드 실패'))};
+ s.onerror=()=>rej(new Error('인터넷 연결이 필요합니다 (PDF 모듈).'));document.head.appendChild(s)})}
+/* PDF 용지 여백(흰 곳)을 뺀 도면 범위 (여백 1.5% 포함) — 도면이 A4 에 크게 들어가게 한다 */
+function inkBox(c){
+ const x=c.getContext('2d'),w=c.width,h=c.height,d=x.getImageData(0,0,w,h).data;
+ let l=w,r=-1,t=h,b=-1;
+ for(let y=0;y<h;y++)for(let i=0;i<w;i++){const k=(y*w+i)*4;if(d[k]<235||d[k+1]<235||d[k+2]<235){if(i<l)l=i;if(i>r)r=i;if(y<t)t=y;if(y>b)b=y}}
+ if(r<0)return null;
+ const pad=Math.round(Math.max(w,h)*.015);
+ return {l:Math.max(0,l-pad),t:Math.max(0,t-pad),r:Math.min(w-1,r+pad),b:Math.min(h-1,b+pad)}}
+async function loadPdf(f){
+ say('PDF 를 그림으로 바꾸는 중…');
+ try{
+  const lib=await pdfLib();
+  const pdf=await lib.getDocument({data:await f.arrayBuffer()}).promise;
+  let no=1;
+  if(pdf.numPages>1){const a=prompt(`PDF 가 ${pdf.numPages}쪽입니다. 몇 쪽을 올릴까요?`,'1');if(a===null)return say('취소했습니다.');
+   no=Math.min(pdf.numPages,Math.max(1,parseInt(a,10)||1))}
+  const pg=await pdf.getPage(no),v1=pg.getViewport({scale:1});
+  const draw=async sc=>{const vp=pg.getViewport({scale:sc}),c=document.createElement('canvas');c.width=Math.ceil(vp.width);c.height=Math.ceil(vp.height);
+   const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);await pg.render({canvasContext:x,viewport:vp}).promise;return c};
+  /* ① 작게 그려 도면 범위(여백 제외)를 찾고 ② 그 범위가 긴 변 2400px 이 되게 다시 그려 잘라낸다 */
+  const s0=Math.min(4,1200/Math.max(v1.width,v1.height)),c0=await draw(s0),b0=inkBox(c0);
+  let t;
+  if(!b0)t=await draw(Math.min(8,2400/Math.max(v1.width,v1.height)));
+  else{const bw=(b0.r-b0.l+1)/s0,bh=(b0.b-b0.t+1)/s0;                 /* PDF 단위 */
+   let s1=2400/Math.max(bw,bh);
+   const maxPx=36e6;if(v1.width*v1.height*s1*s1>maxPx)s1=Math.sqrt(maxPx/(v1.width*v1.height));   /* 캔버스 한계 */
+   s1=Math.min(s1,12);
+   const c1=await draw(s1),k=s1/s0,o=document.createElement('canvas');
+   const L=Math.floor(b0.l*k),T=Math.floor(b0.t*k);o.width=Math.min(c1.width-L,Math.ceil((b0.r-b0.l+1)*k));o.height=Math.min(c1.height-T,Math.ceil((b0.b-b0.t+1)*k));
+   o.getContext('2d').drawImage(c1,L,T,o.width,o.height,0,0,o.width,o.height);c1.width=c1.height=0;t=o}
+  ST.src=t;ST.marks=[];rebuild();
+  say(`PDF ${no}/${pdf.numPages}쪽을 ${t.width}×${t.height} 그림으로 받았습니다. 표시를 넣고 [▣ 저장]을 누르세요.`);
+ }catch(e){say('PDF 를 읽지 못했습니다: '+String(e.message||e).slice(0,100))}
+}
 function loadFile(f){
- if(!f||!/^image\//.test(f.type||''))return say('이미지 파일이 아닙니다.');
+ if(f&&isPdf(f))return loadPdf(f);
+ if(!f||!/^image\//.test(f.type||''))return say('이미지 또는 PDF 파일이 아닙니다.');
  const img=new Image();img.onload=()=>{ST.src=img;ST.marks=[];rebuild();say(`${img.width}×${img.height} 그림을 받았습니다. 표시를 넣고 [▣ 저장]을 누르세요.`)};
  img.onerror=()=>say('그림을 읽지 못했습니다.');img.src=URL.createObjectURL(f);
 }
