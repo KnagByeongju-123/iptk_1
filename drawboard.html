@@ -30,6 +30,13 @@ h1{font-size:18px;margin:0 0 6px;letter-spacing:3px;text-align:center}
 .chip{display:inline-flex;align-items:center;gap:6px;border:1.5px solid #2f5f8a;border-radius:4px;padding:3px 8px;font-size:13px;font-weight:700;color:#1d3f63;background:#f3f8fd;cursor:pointer}
 .chip .n{display:inline-block;min-width:20px;height:20px;line-height:20px;border-radius:10px;background:#2f5f8a;color:#fff;text-align:center;font-size:12px}
 .chip small{font-weight:400;color:#5c6b76;font-size:11px}
+/* v209: 끌어서 순서 바꾸기 */
+.chip{touch-action:none;user-select:none}.chip:hover{box-shadow:0 0 0 2px rgba(47,95,138,.18)}
+.chip.dragsrc,.pbtn.dragsrc{opacity:.35}
+.strip.dropon{background:#f4f9ff;border-style:dashed}
+.dropmark{display:inline-block;width:4px;align-self:stretch;min-height:26px;border-radius:2px;background:#e53935}
+.dragghost{position:fixed;z-index:9999;pointer-events:none;padding:4px 10px;border:1.5px solid #2f5f8a;border-radius:4px;background:#fff;font-weight:700;font-size:13px;color:#1d3f63;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+body.dragging,body.dragging *{user-select:none!important;cursor:grabbing!important}
 .chip.house{border-color:#8a6d3b;color:#5a4400;background:#fbf4e3}.chip.house .n{background:#8a6d3b}
 .arrow{color:#888;font-size:14px}
 .fig{border:1px solid #999;background:#fff;height:150mm;display:flex;align-items:center;justify-content:center;overflow:hidden}
@@ -79,7 +86,7 @@ body.portrait .sheet{width:198mm}
  </div>
  <div class="side">
   <h3 id="sideTitle">가공공정</h3>
-  <div class="hint">공정 마스터 전체입니다. 누르는 순서대로 도면 위 띠에 번호가 붙고, 다시 누르면 빠집니다. 파란 「계획」 표시는 이 부품의 가공계획에 있는 공정입니다.</div>
+  <div class="hint">공정 마스터 전체입니다. 누르는 순서대로 도면 위 띠에 번호가 붙고, 다시 누르면 빠집니다. 띠의 공정을 끌어 놓으면 순서가 바뀌고, 이 버튼을 띠로 끌어 오면 원하는 자리에 들어갑니다. 파란 「계획」 표시는 이 부품의 가공계획에 있는 공정입니다.</div>
   <div id="btns"></div>
   <div class="tools">
    <button id="bAll" title="이 부품의 가공계획 순서 그대로 넣습니다">▶ 계획 순서대로</button>
@@ -93,5 +100,5 @@ body.portrait .sheet{width:198mm}
  </div>
 </div>
 <div class="ov" id="ov"><div class="bar"><b id="ovT">원본 이미지</b><span id="ovS"></span><span class="sp"></span><button id="ovFit">화면 맞춤</button><button id="ovReal">실제 크기</button><button id="ovClose">닫기 (Esc)</button></div><div class="body" id="ovB"></div></div>
-<script src="drawboard.js?v=208"></script>
+<script src="drawboard.js?v=209"></script>
 </body></html>
