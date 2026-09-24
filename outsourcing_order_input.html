@@ -1002,6 +1002,8 @@ async function ctxHistLoad(ids,canCancel){
   rows.map((m,k)=>`<tr${CTX&&CTX.o&&CTX.o.line&&Number(m.line_id)===Number(CTX.o.line.line_id)?' class="cur"':''}><td class="c">${k+1}</td>${many?`<td class="c">#${m.line_id}</td>`:''}<td class="c">${_dt(m.move_date)}</td><td class="r">${_n(m.in_qty)}</td><td class="r">${_n(m.short_qty)||''}</td><td class="c">${_esc(m.source||'')}</td><td>${_esc(m.remark||'')}</td>${
    canCancel?`<td class="c"><button class="xb" onclick="ctxRoundCancel(${Number(m.line_id)},${Number(m.move_id)})" title="이 회차 입고만 취소합니다 (입고수량이 그만큼 줄고, 전량 입고가 아니게 되면 발주(출고) 상태로 돌아갑니다)">✖ 회차취소</button></td>`:''}</tr>`).join('')}</tbody></table>`;
 }
+/* v223: 추가발주 건(같은 공정에 이미 입고된 다른 발주건이 있는 발주)은 뒤 공정과 무관하므로 뒤 공정 진행 여부를 따지지 않는다 */
+function ctxIsExtra(l){if(!l||!l.line_id)return false;return ctxLines().some(x=>Number(x.line_id)!==Number(l.line_id)&&(_n(x.receipt_qty)>0||/입고/.test(String(x.status||''))))}
 /* 뒤 공정이 이미 진행 중이면 이 공정의 입고를 되돌릴 수 없다 (사내가공 칸은 건너뜀) */
 function ctxLaterBusy(r,i){
  const n=(r.steps||[]).map(stepCode).filter(Boolean).length;
@@ -1063,7 +1065,7 @@ async function ctxOrderCancel(){
  if(!_online())return msg('DB 미연결 - 발주취소를 할 수 없습니다.');
  if(/입고/.test(String(l.status||'')))return msg('이미 입고된 발주건입니다. 입고취소를 먼저 하세요.');
  if(_n(l.receipt_qty)>0)return msg(`이 발주건은 이미 ${_n(l.receipt_qty)}개가 부분입고됐습니다. [입고취소]를 먼저 하세요.`);
- const busy=ctxLaterBusy(r,i);if(busy)return msg(busy);
+ if(!ctxIsExtra(l)){const busy=ctxLaterBusy(r,i);if(busy)return msg(busy)}
  if(!confirm(`${r.part} 공정${i+1} ${procName(c)} → ${l.vendor_name||o.vendor||''} 발주 ${Number(l.order_qty)||0}개 (${_won(l.quote_price)}원) 를 취소(삭제)합니다.\n되돌릴 수 없습니다. 계속할까요?`))return;
  try{
   await MESDB.delLines([Number(l.line_id)]);
@@ -1229,7 +1231,7 @@ async function ctxRecvCancelLine(id){
  if(!l.line_id)return msg('발주건을 먼저 고르세요.');
  if(!_online())return msg('DB 미연결 - 입고취소를 할 수 없습니다.');
  if(!(_n(l.receipt_qty)>0||/입고/.test(String(l.status||''))))return msg(`발주건 #${l.line_id} 은(는) 입고된 것이 없습니다.`);
- const busy=ctxLaterBusy(r,i);if(busy)return msg(busy);
+ if(!ctxIsExtra(l)){const busy=ctxLaterBusy(r,i);if(busy)return msg(busy)}
  const fixed=String(l.status||'')==='입고확정';
  if(!confirm(`${r.part} 공정${i+1} ${procName(c)} 발주건 #${l.line_id} (${l.vendor_name||o.vendor||''}) 의 입고 ${_n(l.receipt_qty)}개를 취소합니다.\n발주(출고) 상태로 되돌아가며 입고수량·입고일이 지워집니다.${fixed?'\n입고확정도 풀립니다 — 확정일·확정가가 지워져 제조원가에서 빠집니다.':''}\n계속할까요?`))return;
  try{
@@ -1266,7 +1268,6 @@ function ctxDone(ev,head){
    ${fixed.length>1?`<button class="btn k-cancel" onclick="ctxConfirmCancel(true)" title="이 공정의 입고확정 ${fixed.length}건을 모두 취소합니다">✖ 확정 전체취소 (${fixed.length})</button>`:''}
    <button class="btn k-cancel" onclick="ctxRecvCancelLine()" title="위에서 고른 발주건 #${l.line_id} 의 입고(확정 포함)를 취소하고 발주(출고) 상태로 되돌립니다">✖ 입고취소 (#${l.line_id})</button>
    <button class="btn" style="border-color:#3f7a2c;color:#2f6a1f;background:linear-gradient(#f4fbf0,#dff3d3)" onclick="ctxExtraOrder()" title="입고가 끝난 이 공정에 발주를 한 건 더 냅니다 (재가공·추가 수량). 이력은 그대로 두고 뒤 공정도 바뀌지 않습니다">↻ 추가발주 (이 공정)</button>
-   <button class="btn" style="border-color:#b8681a;color:#7a4a12;background:linear-gradient(#fff7ea,#fbe6c8)" onclick="ctxClose();ctxStartNewCycle(${CTX.ri})" title="이 부품을 새 차수로 첫 외주공정부터 다시 발주합니다. 지금까지의 진행은 이전 차수로 남습니다">↻ 신규발주 (새 차수)</button>
    ${SHEET_BTN}<button class="btn" onclick="ctxClose()">닫기</button>`);
  ctxHistLoad(all.map(x=>x.line_id),true);
  return false;
