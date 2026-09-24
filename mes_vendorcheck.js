@@ -24,7 +24,8 @@
   /* 차단 대상 — 심사에서 '부적격 업체 발주 통제'로 확인하는 항목 */
   var BLOCK = ['거래중지 검토'];
   /* 경고 대상 */
-  var WARN = { 'D등급': 1, '인증만료': 1, '평가만료': 1, '인증임박': 1, '미평가': 1, '개선요구': 1 };
+  /* v196: '미평가'(평가 이력 없음)는 확인 대상에서 뺀다 — 발주 때 묻지 않는다 */
+  var WARN = { 'D등급': 1, '인증만료': 1, '평가만료': 1, '인증임박': 1, '개선요구': 1 };
 
   /* 검증 강도 : localStorage.mes_vchk
    *   'on'(기본) 위 전 항목 경고 / 'lite' 미평가·인증임박 제외 / 'off' 검증 안 함
@@ -33,6 +34,7 @@
     try { return localStorage.getItem('mes_vchk') || 'on'; } catch (e) { return 'on'; }
   }
   function warned(a) {
+    if (a === '미평가') return false;
     if (mode() === 'lite' && (a === '미평가' || a === '인증임박')) return false;
     return !!WARN[a];
   }

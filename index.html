@@ -496,9 +496,12 @@ function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;',
 
 /* ---------- 권한 ---------- */
 function canView(path){if((path||'').includes('사용메뉴얼'))return true;const a=window.MES_AUTH;return !a||!a.session?true:a.can(path,'view')}
-function visibleModules(){return MODULES.filter(m=>{if(m==='사용메뉴얼')return true;const a=window.MES_AUTH;if(!a||!a.session||a.role==='admin'||a.role==='master')return true;
+/* v196: 숨김 모듈 — 상단 메뉴·홈·메뉴검색·즐겨찾기에서 모두 뺀다 (화면 파일은 그대로) */
+const MODULE_HIDE=new Set(['SQ']);
+function visibleModules(){return MODULES.filter(m=>{if(MODULE_HIDE.has(m))return false;if(m==='사용메뉴얼')return true;const a=window.MES_AUTH;if(!a||!a.session||a.role==='admin'||a.role==='master')return true;
   return Object.entries(APP[m]?.menus||{}).some(([sec,gs])=>gs.some(g=>g.items.some(n=>a.can(m+'/'+sec+'/'+n,'view'))))})}
-function groupsOf(mod,sec){return (APP[mod]?.menus?.[sec]||[]).map(g=>({name:g.name,items:g.items.filter(n=>canView(mod+'/'+sec+'/'+n))})).filter(g=>g.items.length)}
+/* v196: 비활성 메뉴(MENU_OFF)는 흐리게 두지 않고 목록에서 숨긴다. 모두 숨겨진 소제목·섹션도 사라진다 */
+function groupsOf(mod,sec){return (APP[mod]?.menus?.[sec]||[]).map(g=>({name:g.name,items:g.items.filter(n=>!menuOff(n,mod)&&canView(mod+'/'+sec+'/'+n))})).filter(g=>g.items.length)}
 /* 화면파일 → 메뉴경로 (iframe의 mes_db.js가 권한 판단에 사용) */
 window.MES_MENU_OF=function(file){
   for(const [mod,cfg] of Object.entries(APP))
@@ -509,7 +512,7 @@ window.MES_MENU_OF=function(file){
 };
 /* 메뉴명 → {mod,sec,group} */
 function locate(name){
-  for(const mod of MODULES)for(const [sec,gs] of Object.entries(APP[mod]?.menus||{}))for(const g of gs)if(g.items.includes(name)&&!menuOff(name,mod))return{mod,sec,group:g.name};
+  for(const mod of MODULES)if(!MODULE_HIDE.has(mod))for(const [sec,gs] of Object.entries(APP[mod]?.menus||{}))for(const g of gs)if(g.items.includes(name)&&!menuOff(name,mod))return{mod,sec,group:g.name};
   return null;
 }
 /* v116: 메뉴 비활성화 — 목록에는 흐리게 남기고 열리지 않게 한다 (외주가공은 QR스캔·외주가공 발주 화면에서 입고/입고확정 처리) */
@@ -692,7 +695,7 @@ function homeHTML(){
   <div class="card" style="grid-column:span 8"><h3>업무 모듈 <span>상단 메뉴에 마우스를 올리면 세부 메뉴가 열립니다</span></h3>
    <div class="modcard">${mods.map(m=>`<button onclick="pinModule('${m}')"><b>${MOD_ICON[m]||'▪'} ${esc(m)}</b><small>${esc(MOD_DESC[m]||'')}</small></button>`).join('')}</div></div>
   <div class="card" style="grid-column:span 4"><h3>즐겨찾기 <span>★ ${favs.length}</span></h3>
-   <div class="favlist">${favs.length?favs.map(n=>{const l=locate(n);return `<button onclick="openByName('${esc(n)}')"><span>${esc(n)}</span><small>${l?esc(l.mod):''}</small></button>`}).join(''):'<small style="color:var(--ink-3)">상단 메뉴 항목의 ★ 를 눌러 추가</small>'}</div></div>
+   <div class="favlist">${favs.filter(n=>locate(n)).length?favs.filter(n=>locate(n)).map(n=>{const l=locate(n);return `<button onclick="openByName('${esc(n)}')"><span>${esc(n)}</span><small>${l?esc(l.mod):''}</small></button>`}).join(''):'<small style="color:var(--ink-3)">상단 메뉴 항목의 ★ 를 눌러 추가</small>'}</div></div>
   <div class="card" style="grid-column:span 8"><h3>바로가기</h3>
    <div class="quick">${quick.filter(n=>{const l=locate(n);return l&&canView(l.mod+'/'+l.sec+'/'+n)}).map(n=>`<button onclick="openByName('${esc(n)}')"><span style="font-size:18px">${MOD_ICON[locate(n).mod]}</span>${esc(n)}</button>`).join('')}</div></div>
   <div class="card" style="grid-column:span 4"><h3>안내</h3>
