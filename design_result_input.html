@@ -45,7 +45,8 @@ tr.all td{background:#fff9ea;font-weight:700}tr.all td.asm{background:#f3e3b8}tr
 <div class="screen">
  <div class="title"><h1>설계실적등록</h1><small>설계관리 · 사내설계</small></div>
  <div class="filters">
-  <span class="label">제번</span><input id="jobQ" class="field" style="width:190px" placeholder="제번 입력/선택">
+  <span class="label">관리제번</span><select id="baseQ" class="field" style="width:190px" onchange="basePick()" title="관리제번을 고르면 그 관리제번의 공정(A·B·C…) 제번만 보입니다"><option value="">전체</option></select>
+  <span class="label">제번</span><input id="jobQ" class="field" style="width:150px" placeholder="제번 입력/선택">
   <span class="label">품번</span><input id="modelQ" class="field" style="width:170px" placeholder="품번 입력/선택">
   <label style="display:flex;gap:4px;align-items:center;margin-left:8px"><input type="radio" name="mode" value="진행" checked onchange="search()"> 진행</label>
   <label style="display:flex;gap:4px;align-items:center"><input type="radio" name="mode" value="완료" onchange="search()"> 완료</label>
@@ -109,6 +110,7 @@ async function loadJobs(keep){
    const q=SP[r.job_no]||{};JOBS.push({job:r.job_no,model:p.model||'',item:r.item_name||p.item_name||'',due:q.design_end_date||'',s1:q.s1_planned_date||r.s1_date||'',
     insp:Number(r.inspection_count||0),done:!!r.assembly_completed,min:0,cost:0})});
   await loadSums();
+  fillBase();
   search(keep);
  }catch(e){msg('제번 조회 실패: '+String(e.message||e).slice(0,110))}
 }
@@ -118,10 +120,20 @@ async function loadSums(){
   const S={};(rs||[]).forEach(r=>{const s=S[r.job_no]||(S[r.job_no]={m:0,c:0});s.m+=N(r.work_minutes);s.c+=N(r.labor_cost)});
   JOBS.forEach(j=>{const s=S[j.job]||{m:0,c:0};j.min=s.m;j.cost=s.c})}catch(e){}
 }
+/* v210: 관리제번(공정 문자를 뺀 제번) 드롭다운 — 고르면 그 관리제번의 A·B·C… 제번만 제번리스트에 남는다 */
+const baseOf=j=>{const m=/^(.*\d)([A-Z])$/.exec(String(j||'').trim());return m?m[1]:String(j||'').trim()};
+const seqOf=j=>{const m=/^(.*\d)([A-Z])$/.exec(String(j||'').trim());return m?m[2]:''};
+function fillBase(){const sel=$('baseQ');if(!sel)return;const cur=sel.value,G=new Map();
+ JOBS.forEach(x=>{const b=baseOf(x.job);let g=G.get(b);if(!g){g={m:x.model||x.item||'',seq:[]};G.set(b,g)}const q=seqOf(x.job);if(q&&!g.seq.includes(q))g.seq.push(q);if(!g.m)g.m=x.model||x.item||''});
+ const bs=[...G.keys()].sort((a,b)=>b.localeCompare(a));
+ const rng=a=>{a.sort();return !a.length?'':a.length>2?` (${a[0]}~${a[a.length-1]})`:` (${a.join('·')})`};
+ sel.innerHTML=`<option value="">전체 (${bs.length})</option>`+bs.map(b=>`<option value="${esc(b)}">${esc(b)}${rng(G.get(b).seq)}${G.get(b).m?' · '+esc(G.get(b).m):''}</option>`).join('');
+ sel.value=G.has(cur)?cur:''}
+function basePick(){$('jobQ').value='';$('modelQ').value='';search()}
 function search(keep){
  const mode=(document.querySelector('input[name=mode]:checked')||{}).value||'진행';
- const j=$('jobQ').value.trim().toLowerCase(),m=$('modelQ').value.trim().toLowerCase();
- jobView=JOBS.filter(x=>(mode==='완료'?x.done:!x.done)&&(!j||x.job.toLowerCase().includes(j))&&(!m||(x.model||'').toLowerCase().includes(m)||(x.item||'').toLowerCase().includes(m)));
+ const j=$('jobQ').value.trim().toLowerCase(),m=$('modelQ').value.trim().toLowerCase(),bq=($('baseQ')||{}).value||'';
+ jobView=JOBS.filter(x=>(mode==='완료'?x.done:!x.done)&&(!bq||baseOf(x.job)===bq)&&(!j||x.job.toLowerCase().includes(j))&&(!m||(x.model||'').toLowerCase().includes(m)||(x.item||'').toLowerCase().includes(m)));
  let i=keep?jobView.findIndex(x=>x.job===keep):-1;
  if(i<0&&j)i=jobView.findIndex(x=>x.job.toLowerCase()===j);
  jobIdx=i>=0?i:(jobView.length?0:-1);
