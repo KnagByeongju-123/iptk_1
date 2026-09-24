@@ -37,13 +37,13 @@ tfoot th{position:sticky;bottom:0;background:linear-gradient(#e6eef5,#d3e0ea)}
     <button class="btn" onclick="search()">⌕ 조회</button>
   </section>
   <div class="gridbox"><div class="tablewrap"><table>
-    <colgroup><col style="width:44px"><col style="width:120px"><col style="width:70px"><col style="width:170px"><col style="width:170px"><col style="width:50px"><col style="width:74px"><col style="width:96px"><col style="width:120px"><col style="width:120px"><col style="width:110px"><col style="width:120px"><col style="width:120px"></colgroup>
+    <colgroup><col style="width:44px"><col style="width:120px"><col style="width:70px"><col style="width:170px"><col style="width:170px"><col style="width:50px"><col style="width:74px"><col style="width:96px"><col style="width:120px"><col style="width:120px"><col style="width:120px"><col style="width:120px"></colgroup>
     <thead>
-      <tr><th rowspan="2">No</th><th rowspan="2">제번</th><th rowspan="2">구분</th><th rowspan="2">고객사</th><th rowspan="2">품번</th><th rowspan="2">조수</th><th rowspan="2">개발유형</th><th rowspan="2">완료일</th><th colspan="2">매출</th><th colspan="3">매입</th></tr>
-      <tr><th>수주가</th><th>판매가</th><th>SET외주업체</th><th>당월 매입금액</th><th>총매입금액</th></tr>
+      <tr><th rowspan="2">No</th><th rowspan="2">제번</th><th rowspan="2">구분</th><th rowspan="2">고객사</th><th rowspan="2">품번</th><th rowspan="2">조수</th><th rowspan="2">개발유형</th><th rowspan="2">완료일</th><th colspan="2">매출</th><th colspan="2">매입</th></tr>
+      <tr><th>수주가</th><th>판매가</th><th>당월 매입금액</th><th>총매입금액</th></tr>
     </thead>
     <tbody id="body"></tbody>
-    <tfoot><tr><th colspan="8" class="r">합계</th><th class="r" id="sumOrder">0</th><th class="r" id="sumSale">0</th><th></th><th class="r" id="sumMonth">0</th><th class="r" id="sumTotal">0</th></tr></tfoot>
+    <tfoot><tr><th colspan="8" class="r">합계</th><th class="r" id="sumOrder">0</th><th class="r" id="sumSale">0</th><th class="r" id="sumMonth">0</th><th class="r" id="sumTotal">0</th></tr></tfoot>
   </table></div></div>
   <footer class="foot"><button class="btn" onclick="search()">⌕ 검 색</button><button class="btn primary" onclick="exportCsv()">▤ EXCEL</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫 기</button><span class="msg" id="message">매출현황을 조회했습니다.</span><span class="right" id="countText"></span></footer>
 </div>
@@ -52,7 +52,7 @@ const rows=[];
 let view=[...rows];
 const money=v=>Number(v||0).toLocaleString('ko-KR');
 function within(v,a,b){if(!a&&!b)return true;if(!v)return false;return (!a||v>=a)&&(!b||v<=b)}
-function render(){body.innerHTML=view.map((r,i)=>`<tr onclick="sel(this)"><td class="c">${i+1}</td><td>${r.job}</td><td class="c">${r.type}</td><td>${r.cust}</td><td>${esc(r.model)}</td><td class="r">${r.set}</td><td class="c">${r.dev}</td><td class="c">${r.cdate}</td><td class="r">${money(r.order)}</td><td class="r">${money(r.sale)}</td><td>${r.partner}</td><td class="r">${money(r.month)}</td><td class="r">${money(r.total)}</td></tr>`).join('');
+function render(){body.innerHTML=view.map((r,i)=>`<tr onclick="sel(this)"><td class="c">${i+1}</td><td>${r.job}</td><td class="c">${r.type}</td><td>${r.cust}</td><td>${esc(r.model)}</td><td class="r">${r.set}</td><td class="c">${r.dev}</td><td class="c">${r.cdate}</td><td class="r">${money(r.order)}</td><td class="r">${money(r.sale)}</td><td class="r">${money(r.month)}</td><td class="r">${money(r.total)}</td></tr>`).join('');
 sumOrder.textContent=money(view.reduce((a,r)=>a+(Number(r.order)||0),0));sumSale.textContent=money(view.reduce((a,r)=>a+(Number(r.sale)||0),0));sumMonth.textContent=money(view.reduce((a,r)=>a+(Number(r.month)||0),0));sumTotal.textContent=money(view.reduce((a,r)=>a+(Number(r.total)||0),0));countText.textContent=`${view.length}건`}
 function sel(tr){document.querySelectorAll('#body tr').forEach(x=>x.classList.remove('sel'));tr.classList.add('sel')}
 /* v139: 개발유형 체크박스(복수) · 제번/품번 콤보(드롭+직접입력, 상호연동) · 품명→품번 */
@@ -86,7 +86,7 @@ const d=ds.size===2?'전체':[...ds].join('/');
 msg(!ds.size?'개발유형을 하나 이상 선택하세요.':view.length?`${d} 기준 ${view.length}건을 조회했습니다.`
  :(rows.length?`조회 결과가 없습니다. (전체 ${rows.length}건 · 완료일 기간 또는 개발유형 조건을 확인하세요)`
    :'등록된 수주가 없습니다. 영업관리 > 수주등록을 먼저 하세요.'))}
-function exportCsv(){const out=[['제번','구분','고객사','품번','조수','개발유형','완료일','수주가','판매가','SET외주업체','당월 매입금액','총매입금액'],...view.map(r=>[r.job,r.type,r.cust,r.model,r.set,r.dev,r.cdate,r.order,r.sale,r.partner,r.month,r.total])];const csv='\ufeff'+out.map(a=>a.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='sales_status.csv';a.click();URL.revokeObjectURL(a.href);msg('EXCEL(CSV) 파일을 생성했습니다.')}
+function exportCsv(){const out=[['제번','구분','고객사','품번','조수','개발유형','완료일','수주가','판매가','당월 매입금액','총매입금액'],...view.map(r=>[r.job,r.type,r.cust,r.model,r.set,r.dev,r.cdate,r.order,r.sale,r.month,r.total])];const csv='\ufeff'+out.map(a=>a.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='sales_status.csv';a.click();URL.revokeObjectURL(a.href);msg('EXCEL(CSV) 파일을 생성했습니다.')}
 function msg(t){message.textContent=t}
 /* v39: 완료일 기본기간을 당월로 고정하면 완료일이 없는 신규 수주가 조회되지 않는다.
    초기값은 '전체 기간'으로 두고, 필요할 때 사용자가 좁히도록 한다. */
