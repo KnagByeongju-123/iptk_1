@@ -375,7 +375,7 @@ function listLines(ev) {
         CTX.extraLines = ks.slice(1).map(k => a[k]); return formReceive(e, a[ks[0]]); } },
      { t: '✖ 발주취소 (체크)', cls: 'warn', id: 'oxLnDel', title: '체크한 발주건을 모두 삭제합니다', fn: () => doOrderCancelMany(lnChecked().map(k => a[k])) },
      { t: '＋ 추가 발주', cls: 'go k-order', fn: e => formOrder(e) },
-     { t: '↻ 신규발주', cls: 'warn', title: '현재 차수가 모두 완료된 뒤 기존 이력을 남기고 새 발주차수로 다시 시작합니다', fn: e => startNewCycle(e) },
+     /* v196: 신규발주 버튼 제거 — 추가발주로 대신한다 (차수 집계 코드는 그대로) */
      { t: '닫기', fn: close }]);
   $('oxLn').querySelectorAll('tr').forEach(tr => {
     tr.onclick = e => { CTX.extraLines = null; formLine(e, a[Number(tr.dataset.k)]); };
@@ -658,7 +658,7 @@ function formReceive(ev, l) {
    [{ t: '▣ 입고 처리' + (bN() ? ` (+${bN()}건)` : ''), cls: 'go k-in', id: 'oxGo', fn: () => doReceive(false) },
     { t: '▣ 입고+확정' + (bN() ? ` (+${bN()}건)` : ''), cls: 'go', id: 'oxGo2', title: '입고 처리와 입고확정(위의 확정가·네고율)을 한 번에 끝냅니다', fn: () => doReceive(true) },
     { t: '＋ 추가 발주', cls: 'go k-order', title: '같은 품번을 다른 업체에 나눠 발주하거나 재발주합니다', fn: e => formOrder(e) },
-    { t: '↻ 신규발주', cls: 'warn', title: '기존 이력을 남기고 새 발주차수를 시작합니다. 현재 차수가 미완료면 안내 후 실행되지 않습니다.', fn: e => startNewCycle(e) },
+    /* v196: 신규발주 버튼 제거 — 추가발주로 대신한다 (차수 집계 코드는 그대로) */
     { t: '✖ 발주취소', cls: 'warn', title: '이 발주 라인을 삭제합니다', fn: doOrderCancel },
     sheetBtn(l), { t: '닫기', fn: close }]);
   /* v158: 입고 중량 — 발주 중량(order_weight)을 입고수량에 맞춰 환산, 없으면 설계치수로 자동계산.
@@ -776,7 +776,7 @@ function formConfirm(ev, l) {
    <div class="note">확정가가 제조원가(${CFG.category}비)에 반영됩니다. 네고율을 넣으면 확정가가, 확정가를 고치면 네고율이 맞춰집니다.</div>`,
    [{ t: '▣ 입고확정' + (cN() ? ` (+${cN()}건)` : ''), cls: 'go', id: 'oxGo', fn: doConfirm },
     { t: '＋ 추가 발주', cls: 'go k-order', title: '같은 품번을 다른 업체에 나눠 발주하거나 재발주합니다', fn: e => formOrder(e) },
-    { t: '↻ 신규발주', cls: 'warn', title: '기존 이력을 남기고 새 발주차수를 시작합니다. 현재 차수가 미완료면 안내 후 실행되지 않습니다.', fn: e => startNewCycle(e) },
+    /* v196: 신규발주 버튼 제거 — 추가발주로 대신한다 (차수 집계 코드는 그대로) */
     { t: '✖ 입고취소', cls: 'warn', title: '입고를 취소하고 발주 상태로 되돌립니다', fn: doReceiveCancel },
     sheetBtn(l), { t: '닫기', fn: close }]);
   $('oxRate').onchange = () => { const q = _n(_v('oxQuote')); $('oxFix').value = _won(Math.round(q * (1 - _n(_v('oxRate')) / 100))); };
@@ -842,7 +842,7 @@ function formDone(ev, l) {
     <b>확정가</b><span>${_won(l.confirm_price)}원</span></div>
    <div class="note">확정취소를 하면 「입고」 상태로 돌아가 확정가를 다시 잡을 수 있습니다.</div>`,
    [{ t: '＋ 추가 발주', cls: 'go k-order', title: '같은 품번을 다른 업체에 나눠 발주하거나 재발주합니다', fn: e => formOrder(e) },
-    { t: '↻ 신규발주', cls: 'warn', title: '기존 이력을 남기고 소요수량 전체를 기준으로 새 발주차수를 시작합니다', fn: e => startNewCycle(e) },
+    /* v196: 신규발주 버튼 제거 — 추가발주로 대신한다 (차수 집계 코드는 그대로) */
     { t: '✖ 확정취소', cls: 'warn', fn: doConfirmCancel },
     sheetBtn(l), { t: '닫기', fn: close }]);
   return false;
@@ -952,7 +952,7 @@ function init(opt) {
       const s = document.createElement('span');
       s.className = 'oxhint';
       s.title = '자재표 리스트에서 마우스 오른쪽 버튼(또는 더블클릭)을 누르면 상태에 맞는 처리 창이 열립니다';
-      s.innerHTML = '※ 자재표 <b>우클릭</b> → 발주 · 입고 · 입고확정 · 취소 · 신규발주 &nbsp;<b>☑ 체크</b>한 품번은 함께 처리';
+      s.innerHTML = '※ 자재표 <b>우클릭</b> → 발주 · 입고 · 입고확정 · 취소 · 추가발주 &nbsp;<b>☑ 체크</b>한 품번은 함께 처리';
       bar.appendChild(s);
     }
     /* 옛 배치(협력업체리스트·구매요청 리스트·PRINT 발주서) 토글 — 선택은 브라우저에 기억 */
