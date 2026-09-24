@@ -1,4 +1,4 @@
-/* drawboard.js (v209: 가공공정 순서 끌어서 바꾸기) — 부품 그림보드 화면 스크립트
+/* drawboard.js (v210: 그림 등록 → PartList 반영 · v209: 순서 끌어서 바꾸기) — 부품 그림보드 화면 스크립트
  * 사내외가공 발주(mes_drawboard.js)가 sessionStorage 'mes_drawboard' 에 넣어 준 자료를 읽어 그린다.
  * 문서를 스크립트로 써 넣지 않고(document.write 없음) DOM 만 만든다. */
 (function(){
@@ -23,8 +23,12 @@
  $('footL').textContent=(o.job||'')+' · '+(o.part||'')+' '+(o.name||'');
  /* 그림 */
  const fig=$('fig');
- if(o.image){const im=el('img');im.alt=o.part||'';im.addEventListener('load',()=>{if(!ORI_SET)setOri(bestOri(im.naturalWidth,im.naturalHeight))});im.src=o.image;fig.appendChild(im)}
- else fig.appendChild(el('div','none','PartList 에 등록된 부품 그림이 없습니다.'));
+ function setFig(url){fig.textContent='';
+  if(url){const im=el('img');im.alt=o.part||'';im.addEventListener('load',()=>{if(!ORI_SET)setOri(bestOri(im.naturalWidth,im.naturalHeight))});im.src=url;fig.appendChild(im)}
+  else{const n=el('div','none');n.appendChild(el('div',null,'PartList 에 등록된 부품 그림이 없습니다.'));
+   const b=el('button','addpic','📷 그림 등록 (캡쳐·이미지·PDF)');b.type='button';b.addEventListener('click',picOpen);n.appendChild(b);
+   n.appendChild(el('small',null,'여기서 등록하면 PartList 부품 그림에도 같이 저장됩니다.'));fig.appendChild(n)}}
+ setFig(o.image);
  /* 용지 방향: 세로 도면이면 자동 세로. @page 는 스타일을 바꿔 넣어 인쇄 방향을 맞춘다 */
  let ORI='landscape',ORI_SET=false;const pageSt=el('style');document.head.appendChild(pageSt);
  /* 도면 화소 비율로 가로·세로 중 도면이 더 크게 실리는 쪽을 고른다 (머리글 약 48mm 제외한 도면 영역: 가로 285×150, 세로 198×237) */
@@ -104,6 +108,22 @@
   $('bApply').textContent='✔ 적용 보냄';setTimeout(()=>{$('bApply').textContent='▣ 가공계획 적용'},2500);
  });
  $('bClose').addEventListener('click',()=>window.close());
+ /* v210: 그림 등록 — 그림 편집기(캡쳐·이미지·PDF)로 만든 그림을 사내외가공 발주 화면(연 창)에 보내
+  *   PartList(원재료/구매품)의 이 부품 그림으로 저장한다. 저장이 끝나면 그 그림으로 다시 그린다. */
+ let PIC_SEQ=0;const PIC_WAIT={};
+ window.addEventListener('message',ev=>{const d=ev.data;if(!d||d.type!=='mes_drawboard_image_done'||ev.origin!==location.origin)return;
+  const w=PIC_WAIT[d.id];if(!w)return;delete PIC_WAIT[d.id];d.ok?w.res(d.url):w.rej(new Error(d.err||'저장 실패'))});
+ function sendPic(f){return new Promise((res,rej)=>{const op=window.opener;
+  if(!op||op.closed)return rej(new Error('사내외가공 발주 화면이 닫혀 있어 PartList 에 저장할 수 없습니다.'));
+  const id=++PIC_SEQ;PIC_WAIT[id]={res,rej};
+  setTimeout(()=>{if(PIC_WAIT[id]){delete PIC_WAIT[id];rej(new Error('응답이 없습니다. 사내외가공 발주 화면을 확인하세요.'))}},60000);
+  op.postMessage({type:'mes_drawboard_image',id,job:o.job||'',part:o.part||'',file:f},location.origin)})}
+ function picOpen(){
+  if(!window.MESIMG)return alert('그림 편집기(mes_imgedit.js)를 불러오지 못했습니다.');
+  if(o.image&&!confirm(o.part+' 에 이미 그림이 있습니다. 새 그림으로 바꿀까요?'))return;
+  MESIMG.open({title:'부품 그림 등록 (PartList 에 저장)',job:o.job||'',part:o.part||'',name:o.name||'',mat:o.mat||'',spec:o.spec||'',by:o.by||'',
+   onSave:async f=>{const url=await sendPic(f);o.image=url;ovImg=null;if($('ovB'))$('ovB').querySelectorAll('img').forEach(x=>x.remove());ORI_SET=false;setFig(url)}})}
+ if($('bPic'))$('bPic').addEventListener('click',picOpen);
  /* v208: 등록된 이미지만 보기 */
  const ov=$('ov'),ovB=$('ovB');let ovImg=null;
  function ovMode(real){ovB.classList.toggle('real',!!real)}

@@ -42,7 +42,10 @@ body.dragging,body.dragging *{user-select:none!important;cursor:grabbing!importa
 .fig{border:1px solid #999;background:#fff;height:150mm;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .fig img{max-width:100%;max-height:100%;object-fit:contain;image-rendering:auto}
 body.portrait .fig{height:200mm}
-.fig .none{color:#999;border:1px dashed #bbb;padding:40px 60px}
+.fig .none{color:#999;border:1px dashed #bbb;padding:34px 60px;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center}
+.fig .none .addpic{padding:8px 16px;border:1px solid #2f5f8a;border-radius:4px;background:linear-gradient(#fff,#e6f0f8);color:#1d3f63;font:inherit;font-weight:700;cursor:pointer}
+.fig .none small{font-size:11px;color:#8a97a2}
+@media print{.fig .none .addpic,.fig .none small{display:none}}
 .foot{display:flex;justify-content:space-between;margin-top:6px;font-size:11px;color:#555}
 .note{margin-top:6px;border:1px solid #444;padding:4px 8px;min-height:30px;font-size:12px}
 .note[contenteditable]:empty:before{content:'비고 (클릭해 입력)';color:#aaa}
@@ -91,6 +94,7 @@ body.portrait .sheet{width:198mm}
   <div class="tools">
    <button id="bAll" title="이 부품의 가공계획 순서 그대로 넣습니다">▶ 계획 순서대로</button>
    <button id="bClr">지우기</button>
+   <button id="bPic" title="캐드 캡쳐·이미지·PDF 로 부품 그림을 등록합니다. PartList 부품 그림에도 같이 저장됩니다">📷 그림 등록</button>
    <button id="bImg" title="공정 표시 없이 PartList 에 등록된 이미지만 크게 봅니다">🖼 이미지만 보기</button>
    <button id="bApply" class="go" style="background:linear-gradient(#5aa05a,#3d7f3d);border-color:#2f6a2f" title="띠에 표시된 순서를 이 부품의 부품별 가공공정 리스트(가공계획)에 저장합니다">▣ 가공계획 적용</button>
    <button id="bOri" title="도면 방향에 맞춰 자동으로 정해집니다. 눌러서 바꿀 수 있습니다">용지: 가로</button>
@@ -100,5 +104,6 @@ body.portrait .sheet{width:198mm}
  </div>
 </div>
 <div class="ov" id="ov"><div class="bar"><b id="ovT">원본 이미지</b><span id="ovS"></span><span class="sp"></span><button id="ovFit">화면 맞춤</button><button id="ovReal">실제 크기</button><button id="ovClose">닫기 (Esc)</button></div><div class="body" id="ovB"></div></div>
-<script src="drawboard.js?v=209"></script>
+<script src="mes_imgedit.js?v=196"></script>
+<script src="drawboard.js?v=210"></script>
 </body></html>

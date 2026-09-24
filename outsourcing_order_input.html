@@ -1240,6 +1240,27 @@ function drawBoard(ri){
  MESDRAW.open({job:j.job||'',item:j.item||'',part:r.part,name:r.name||'',qty:r.qty,image:PIMG[r.part]||'',steps,all:PROCLIST,by:OWNER,ri,jo:r.jo??null});
 }
 /* v207: 그림보드에서 고른 공정 순서를 이 부품의 가공계획(machining_plan_parts)에 적용 — 공정편집의 [가공계획 적용]과 같은 규칙 */
+/* v210: 그림보드에서 등록한 부품 그림 → PartList(원재료, 없으면 구매품) 의 이 부품 image_url 로 저장 */
+window.addEventListener('message',ev=>{const d=ev.data;if(!d||d.type!=='mes_drawboard_image'||ev.origin!==location.origin)return;
+ const reply=(ok,x)=>{try{ev.source.postMessage({type:'mes_drawboard_image_done',id:d.id,ok,...(ok?{url:x}:{err:String(x&&x.message||x)})},location.origin)}catch(e){}};
+ boardImage(d).then(u=>reply(true,u),e=>{msg('그림 저장 실패: '+String(e&&e.message||e).slice(0,120));reply(false,e)})});
+async function boardImage(d){
+ if(!_online())throw new Error('DB 미연결 - 그림을 저장할 수 없습니다.');
+ if(!d.job||!d.part||!d.file)throw new Error('제번·품번·그림이 없습니다.');
+ const q=`select=row_no,image_url&job_no=eq.${encodeURIComponent(d.job)}&part_no=eq.${encodeURIComponent(d.part)}`;
+ let tbl='',rows=[];
+ for(const t of ['partlist_materials','partlist_purchases']){rows=await MESDB.table(t).select(q,{fresh:true}).catch(()=>[]);if(rows&&rows.length){tbl=t;break}}
+ if(!tbl)throw new Error(d.job+' 의 PartList 에 '+d.part+' 부품이 없습니다. 설계관리 › PartList 등록에서 부품을 먼저 등록하세요.');
+ msg(d.part+' 그림 올리는 중…');
+ const url=await MESDB.imgUpload(d.file,d.job,d.part);
+ await MESDB.table(tbl).update({job_no:d.job,part_no:d.part},{image_url:url});
+ const olds=[...new Set(rows.map(r=>r.image_url).filter(u=>u&&u!==url))];
+ if(MESDB.imgDelete)olds.forEach(u=>MESDB.imgDelete(u).catch(()=>{}));   /* 바꾼 옛 그림 파일 정리 */
+ PIMG[d.part]=url;try{renderRoutes()}catch(e){}
+ try{MESDB.notify&&MESDB.notify([tbl])}catch(e){}
+ msg(d.part+' 그림을 PartList('+(tbl==='partlist_materials'?'원재료':'구매품')+')에 저장했습니다.');
+ return url;
+}
 window.addEventListener('message',ev=>{const d=ev.data;if(!d||d.type!=='mes_drawboard_apply')return;if(ev.origin!==location.origin)return;boardApply(d).catch(e=>msg('가공계획 적용 실패: '+(e&&e.message||e)))});
 async function boardApply(d){
  const j=jobView[jobIdx]||{};if(!j.job||j.job!==d.job)return msg('그림보드의 제번('+d.job+')과 화면의 제번이 달라 적용하지 않았습니다.');
@@ -1313,7 +1334,7 @@ window.MESLOOK_RELOAD_VENDORS=async()=>{MESLOOK.invalidate('vendor_outsourcing')
  if(typeof renderRoutes==='function')renderRoutes();};
 </script>
 <script src="mes_price.js?v=162"></script>
-<script src="mes_mail.js?v=175"></script><script src="mes_drawboard.js?v=209"></script>
+<script src="mes_mail.js?v=175"></script><script src="mes_drawboard.js?v=210"></script>
 <script src="mes_route_edit.js?v=168"></script>
 <script src="mes_vendorcheck.js?v=92"></script>
 <script>
