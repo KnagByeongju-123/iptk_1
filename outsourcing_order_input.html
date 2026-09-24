@@ -186,6 +186,7 @@ const ST_DB={'발주':'출고','입고':'입고','입고확정':'완료'};
    remark 의 [신규발주:차수ID] 표식 이후/같은 차수의 발주만 현재 진행으로 본다.
    별도 DB 컬럼을 추가하지 않아 기존 데이터/화면과 호환된다. */
 const CYCLE=new Map();                                      /* 품번 → 현재 신규발주 차수ID */
+const CYCLEN=new Map();                                     /* v196: 품번 → 차수 수 (1차=처음, 신규발주마다 +1) */
 const CYCLE_RE=/\[신규발주:([^\]]+)\]/;
 const cycleKey=p=>String(p||'');
 const cycleOf=l=>{const m=String(l&&l.remark||'').match(CYCLE_RE);return m?m[1]:''};
@@ -225,6 +226,8 @@ async function loadOrdered(job){
  try{
   const ex=await MESDB.table('order_lines')
     .select(`select=line_id,part_no,vendor_name,machining_process_code,step_no,status,order_qty,receipt_qty,unit_price,quote_price,confirm_price,nego_rate,order_date,required_date,receipt_date,confirm_date,remark&category=eq.${encodeURIComponent('외주가공')}&job_no=eq.${encodeURIComponent(job)}&order=line_id`,{fresh:true});
+  /* v196: 차수 수 — 표식 없는 처음 발주 1 + 서로 다른 신규발주 표식 수 */
+  CYCLEN.clear();{const ids=new Map();(ex||[]).forEach(e=>{const k=cycleKey(e.part_no),s=ids.get(k)||new Set();s.add(cycleOf(e)||'');ids.set(k,s)});ids.forEach((s,k)=>CYCLEN.set(k,s.size))}
   const groups=new Map();
   activeCycleRows(ex||[],true).forEach(e=>{if(!ST_DB[String(e.status||'')])return;
    const k=e.step_no?okey(e.part_no,'#'+e.step_no):okey(e.part_no,e.machining_process_code);
@@ -334,7 +337,8 @@ function renderRoutes(){
   /* v112: 입고는 됐지만 입고확정(전표)이 안 끝난 공정 수 — 진행은 막지 않고 표시만 한다 */
   const unfix=codes.filter((c,i)=>stepState(r,i)==='입고').length;
   const fixTag=unfix?`<span class="tagd" style="background:#dbeaf8;color:#1a4f7a" title="현품은 입고됐지만 입고확정(전표)이 남아 있습니다. 그 칸을 우클릭해 확정하세요.">확정대기 ${unfix}</span>`:'';
-  const tag=(n===0?'':allDone?'<span class="tagd">전공정 완료</span>':wait?`<span class="tagd">공정${wp+1} ${wp>=0?stepState(r,wp):''} 대기</span>`:nx>0?`<span class="tagd">${nx}/${n} 진행</span>`:'')+fixTag;
+  const cyc=(CYCLEN.get(cycleKey(r.part))||1)>1?`<span class="tagd" style="background:#fbe6c8;color:#7a4a12" title="신규발주로 차수를 ${CYCLEN.get(cycleKey(r.part))}번 시작한 부품 — 공정 칸은 현재 차수만 보입니다">${CYCLEN.get(cycleKey(r.part))}차</span>`:'';
+  const tag=cyc+(n===0?'':allDone?'<span class="tagd">전공정 완료</span>':wait?`<span class="tagd">공정${wp+1} ${wp>=0?stepState(r,wp):''} 대기</span>`:nx>0?`<span class="tagd">${nx}/${n} 진행</span>`:'')+fixTag;
   const tip=allDone?'모든 가공공정이 입고되었습니다':wait?'직전 공정이 아직 입고되지 않아 다음 공정을 발주할 수 없습니다 (직전 공정 칸 우클릭 → 입고 처리)':'';
   return `<tr class="${dis&&n?'rdone':''}"${tip?` title="${_esc(tip)}"`:''} oncontextmenu="return rowCtx(event,${ri})">`+
    `<td class="c"><input type="checkbox" data-i="${ri}"${dis?' disabled':''}${picks.length?' checked':''} onchange="pickRow(${ri},this.checked)"></td>`+
@@ -769,7 +773,7 @@ async function ctxHouseDel(rowNo){
    · 셀을 눌러 범위를 잡아 두었으면(PICK) 그 범위 전체
    · 아니면 다음 공정(nx)부터 우클릭한 공정(i)까지 — 중간에 이미 발주된 공정이 있으면 그 칸 하나만 */
 function ctxSteps(){
- const {ri,r,i}=CTX;if(CTX&&CTX.newCycle)return [i];const nx=nextStep(r);
+ const {ri,r,i}=CTX;if(CTX&&(CTX.newCycle||CTX.extra))return [i];const nx=nextStep(r);
  if(nx<0||i<nx)return [i];
  const picks=PICK.has(ri)?pickSteps(r):[];
  if(picks.length>1&&picks.includes(i))return picks;
@@ -785,7 +789,8 @@ async function ctxOrder(ev,head){
  const today=T0(),rd=reqDate.value||new Date(Date.now()+12*864e5).toISOString().slice(0,10);
  const hb=houseTodoBefore(r,(ctxSteps()[0]??i));
  const houseWarn=hb>=0?`<div class="note" style="border-color:#c9a45a;background:#fdf6e6;color:#7a5410">앞 <b>공정${hb+1} ${_esc(procName(stepCode(r.steps[hb])))}</b>(사내)의 <b>가공시간이 아직 입력되지 않았습니다</b>. 그 칸을 우클릭해 실적을 먼저 넣어 주세요. (발주는 그대로 진행할 수 있습니다)</div>`:'';
- const cycleNote=CTX.newCycle?`<div class="note" style="border-color:#e5ad62;background:#fff7ea;color:#8a4f08"><b>신규발주</b> — 기존 가공 진행 이력은 삭제하지 않고 이전 차수로 남깁니다. 이 발주부터 새 차수로 공정1부터 다시 진행합니다.</div>`:'';
+ const cycleNote=CTX.newCycle?`<div class="note" style="border-color:#e5ad62;background:#fff7ea;color:#8a4f08"><b>신규발주</b> — 기존 가공 진행 이력은 삭제하지 않고 이전 차수로 남깁니다. 이 발주부터 새 차수로 공정1부터 다시 진행합니다.</div>`
+  :CTX.extra?`<div class="note" style="border-color:#e5ad62;background:#fff7ea;color:#8a4f08"><b>추가발주</b> — 입고가 끝난 이 공정에 발주를 한 건 더 냅니다(재가공·추가 수량). 기존 발주·입고 이력은 그대로 두고, 공정 칸에는 합계 발주/입고 수량이 보이며 새 건이 입고될 때까지 <b>출고</b> 상태가 됩니다. 뒤 공정은 바뀌지 않습니다.</div>`:'';
  const common=`
    <label>협력업체</label><select id="cxVendor" class="full" onchange="ctxPrice()"><option value="">(업체 선택)</option>${vopts}</select>
    <label>발주수량</label><input id="cxQty" class="r" value="${Number(r.qty)||1}" inputmode="numeric" onchange="ctxAmt()">
@@ -811,7 +816,7 @@ async function ctxOrder(ev,head){
    ${houseWarn}${cycleNote}<div class="note" id="cxNote">공정 ${idx.length}개를 한 업체에 순서대로 발주합니다. 공정별 단가는 업체를 고르면 자동 조회됩니다.</div>`;
  }else{
   const c=stepCode(r.steps[i]);
-  title=`${CTX.newCycle?'신규발주 · ':''}공정${i+1} ${procName(c)} — 발주`;
+  title=`${CTX.newCycle?'신규발주 · ':CTX.extra?'추가발주 · ':''}공정${i+1} ${procName(c)} — 발주`;
   body=`<div class="g">${common}
     <label>단가</label><input id="cxPrice" class="r" value="" placeholder="예: 45,000" inputmode="numeric" onchange="ctxPriceEdit(this)">
     <label>발주금액</label><input id="cxAmt" class="r" value="" placeholder="단가 입력 시 자동" readonly>
@@ -1226,9 +1231,19 @@ function ctxDone(ev,head){
   `<button class="btn k-cancel" onclick="ctxConfirmCancel(false)" title="이 발주건의 입고확정만 취소합니다 (입고 상태로 복귀)">✖ 확정취소</button>
    ${fixed.length>1?`<button class="btn k-cancel" onclick="ctxConfirmCancel(true)" title="이 공정의 입고확정 ${fixed.length}건을 모두 취소합니다">✖ 확정 전체취소 (${fixed.length})</button>`:''}
    <button class="btn k-cancel" onclick="ctxRecvCancel()" title="이 공정의 입고 회차를 모두 지우고 발주(출고) 상태로 되돌립니다">✖ 입고 전체취소</button>
+   <button class="btn" style="border-color:#3f7a2c;color:#2f6a1f;background:linear-gradient(#f4fbf0,#dff3d3)" onclick="ctxExtraOrder()" title="입고가 끝난 이 공정에 발주를 한 건 더 냅니다 (재가공·추가 수량). 이력은 그대로 두고 뒤 공정도 바뀌지 않습니다">↻ 추가발주 (이 공정)</button>
+   <button class="btn" style="border-color:#b8681a;color:#7a4a12;background:linear-gradient(#fff7ea,#fbe6c8)" onclick="ctxClose();ctxStartNewCycle(${CTX.ri})" title="이 부품을 새 차수로 첫 외주공정부터 다시 발주합니다. 지금까지의 진행은 이전 차수로 남습니다">↻ 신규발주 (새 차수)</button>
    ${SHEET_BTN}<button class="btn" onclick="ctxClose()">닫기</button>`);
  ctxHistLoad(all.map(x=>x.line_id),true);
  return false;
+}
+/* v196: 완료(입고확정)된 공정에 발주를 한 건 더 — 같은 차수 안의 추가발주. dupCheck 는 '완료' 공정의 재발주를 허용한다 */
+function ctxExtraOrder(){
+ const {ri,i,r,c,job}=CTX;if(!r)return;
+ const ev=window.__ctxLastEv||{clientX:Math.round(window.innerWidth*.42),clientY:Math.round(window.innerHeight*.28)};
+ PICK.clear();CTX={ri,i,r,c,o:{st:'',vendor:CTX.o&&CTX.o.vendor||'',orderQty:0,receiptQty:0,remainQty:0,lines:[]},st:'',job,extra:true,idx:[i]};
+ const head=`<div class="sub"><b>${_esc(job.job||'')}</b> · ${_esc(r.part)} ${_esc(r.name||'')} · <b>추가발주</b> · 공정${i+1} ${_esc(procName(c))}</div>`;
+ return ctxOrder(ev,head);
 }
 
 /* v196: 부품 행(그림·부품코드·부품명·소요수량 칸) 우클릭 → 그림보드. 공정 칸은 기존 우클릭 메뉴(발주·입고…) 그대로 */
