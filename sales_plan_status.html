@@ -197,7 +197,7 @@ function render(){
   const idCell=`<td rowspan="3" class="c">${i+1}</td>
    <td rowspan="3" title="${esc((r.jobs||[r.job_no]).join(', '))}"><b>${esc(r.base||r.job_no)}</b>${r.label&&r.label!==r.base?`<div style="color:#2a6191;font-weight:700">${esc(r.label.slice(r.base.length).trim())}</div>`:''}${lt?`<div class="latebadge" title="가능일정이 목표보다 최대 ${lt}일 늦음">지연 +${lt}일</div>`:''}</td>
    <td rowspan="3" class="idn"><div class="l1">${esc(pl.drawing_no||'')}</div><div class="l2">${esc(pl.product_name||r.item_name||'')}</div><div class="l3">${esc(pl.model||'')}</div>${pl.customer_contact?`<div class="l4">${esc(pl.customer_contact)}</div>`:''}${pl.material_spec||pl.size_spec?`<div class="l4">${esc([pl.material_spec,pl.size_spec].filter(Boolean).join(' · '))}</div>`:''}</td>
-   <td rowspan="3" class="c">${pl.image_url?`<img class="thumb" src="${esc(pl.image_url)}" onclick="event.stopPropagation();window.open(this.src,'_blank')" title="클릭하면 크게">`:''}</td>
+   <td rowspan="3" class="c">${pl.image_url?`<img class="thumb" src="${esc(window.MESDB&&MESDB.thumbUrl?MESDB.thumbUrl(pl.image_url):pl.image_url)}" data-full="${esc(pl.image_url)}" onerror="window.MESDB&&MESDB.thumbFallback&&MESDB.thumbFallback(this)" data-u="${esc(pl.image_url)}" onclick="event.stopPropagation();window.open(this.dataset.u,'_blank')" title="클릭하면 크게">`:''}</td>
    <td rowspan="3" class="c">${esc(pl.make_type||'')}</td>
    <td rowspan="3" class="c">${esc(pl.process_set_qty??r.process_set_qty??'')}</td>`;
   const evRow=(lab,cls,get)=>`<th class="rl ${cls}">${lab}</th>`+EV.map(([k,g])=>{
@@ -338,7 +338,7 @@ function csv(){
  const t='\ufeff'+[h,...rows].map(a=>a.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\n');
  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv;charset=utf-8'}));
  a.download='sales_plan_status.csv';a.click();URL.revokeObjectURL(a.href);msg(`${view.length}건을 엑셀로 내보냈습니다.`)}
-window.MES={search,csv,editPlan,delPlan,setMessage:msg};render();</script><script src="mes_db.js?v=171"></script>
+window.MES={search,csv,editPlan,delPlan,setMessage:msg};render();</script><script src="mes_db.js?v=196"></script>
 <script>
 
 /* v60: 제작계획등록에서 저장하면 자동으로 다시 불러온다 */

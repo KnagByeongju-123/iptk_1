@@ -7,7 +7,8 @@
  */
 (function(){
 if(window.MESIMG)return;
-const A4={w:1240,h:1754};                 /* A4 150dpi (px) */
+const A4={w:1654,h:2339};                 /* v196: A4 200dpi (px) — 150dpi(1240×1754)보다 선이 선명 */
+const K=A4.w/1240;                        /* 150dpi 기준으로 잡아둔 여백·글자·선 굵기 배율 */
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let ST=null;                              /* 편집 상태 */
@@ -101,34 +102,41 @@ function processed(img,mode){
  const dark=isDark(img);
  const im=x.getImageData(0,0,c.width,c.height),d=im.data;
  if(mode==='inv'){ if(dark)for(let i=0;i<d.length;i+=4){d[i]=255-d[i];d[i+1]=255-d[i+1];d[i+2]=255-d[i+2]} }
- else{ /* bw : 밝기 → 검정 선/흰 바탕 (검은 바탕이면 반전) — 인쇄용 대비 강화 */
-  for(let i=0;i<d.length;i+=4){let l=d[i]*.3+d[i+1]*.59+d[i+2]*.11;if(dark)l=255-l;
-   l=l<150?Math.max(0,(l-150)*1.4+60):Math.min(255,150+(l-150)*1.6);   /* 대비 */
-   if(l>235)l=255; d[i]=d[i+1]=d[i+2]=l}
+ else{ /* bw : 밝기 → 회색조 (검은 바탕이면 반전). 대비는 A4 크기로 줄인 뒤 inkCurve 로 준다 */
+  for(let i=0;i<d.length;i+=4){let l=d[i]*.3+d[i+1]*.59+d[i+2]*.11;if(dark)l=255-l;d[i]=d[i+1]=d[i+2]=l}
  }
  x.putImageData(im,0,0);return c;
 }
+/* v196: 흑백 대비 곡선 — 줄이면서 회색이 된 가는 선을 검정 쪽으로 살리고, 거의 흰 곳은 순백으로.
+ *   예전 곡선은 밝기 150 이상을 흰색 쪽으로 밀어 가는 캐드 선이 옅어지거나 끊겼다. */
+const INK=(()=>{const t=new Uint8ClampedArray(256);for(let l=0;l<256;l++){t[l]=l>=246?255:Math.round(255*Math.pow(l/255,3))}return t})();
+function inkCurve(x,dx,dy,dw,dh){if(dw<1||dh<1)return;
+ const im=x.getImageData(dx,dy,dw,dh),d=im.data;
+ for(let i=0;i<d.length;i+=4){const l=INK[d[i]];d[i]=d[i+1]=d[i+2]=l}
+ x.putImageData(im,dx,dy)}
 /* A4 캔버스에 배치 : 여백·머리글·그림 */
 function rebuild(){
  if(!ST||!ST.src)return;
  const mode=$('miMode').value,paper=$('miPaper').value,head=$('miHead').checked;
  const pc=processed(ST.src,mode);
  let land=paper==='l'||(paper==='auto'&&pc.width>pc.height*1.1);
- const W=land?A4.h:A4.w,H=land?A4.w:A4.h,M=40,HH=head?110:0;
+ const W=land?A4.h:A4.w,H=land?A4.w:A4.h,M=Math.round(40*K),HH=head?Math.round(110*K):0;
  const c=$('miC');c.width=W;c.height=H;const x=c.getContext('2d');
  x.fillStyle='#fff';x.fillRect(0,0,W,H);
  if(head){
-  x.fillStyle='#1c2b3a';x.font='bold 34px "Malgun Gothic",sans-serif';x.textBaseline='top';
-  x.fillText(`${ST.o.job||''}  ${ST.o.part||''}`.trim(),M,M-8);
-  x.font='26px "Malgun Gothic",sans-serif';x.fillStyle='#34495e';
-  x.fillText([ST.o.name,ST.o.mat,ST.o.spec].filter(Boolean).join('  ·  '),M,M+36);
-  x.textAlign='right';x.font='22px "Malgun Gothic",sans-serif';x.fillStyle='#6b7a87';
-  x.fillText(new Date().toLocaleDateString('sv-SE')+(ST.o.by?'  '+ST.o.by:''),W-M,M-2);x.textAlign='left';
-  x.strokeStyle='#9aa8b5';x.lineWidth=2;x.beginPath();x.moveTo(M,M+HH-30);x.lineTo(W-M,M+HH-30);x.stroke();
+  const f=v=>Math.round(v*K);
+  x.fillStyle='#1c2b3a';x.font=`bold ${f(34)}px "Malgun Gothic",sans-serif`;x.textBaseline='top';
+  x.fillText(`${ST.o.job||''}  ${ST.o.part||''}`.trim(),M,M-f(8));
+  x.font=`${f(26)}px "Malgun Gothic",sans-serif`;x.fillStyle='#34495e';
+  x.fillText([ST.o.name,ST.o.mat,ST.o.spec].filter(Boolean).join('  ·  '),M,M+f(36));
+  x.textAlign='right';x.font=`${f(22)}px "Malgun Gothic",sans-serif`;x.fillStyle='#6b7a87';
+  x.fillText(new Date().toLocaleDateString('sv-SE')+(ST.o.by?'  '+ST.o.by:''),W-M,M-f(2));x.textAlign='left';
+  x.strokeStyle='#9aa8b5';x.lineWidth=f(2);x.beginPath();x.moveTo(M,M+HH-f(30));x.lineTo(W-M,M+HH-f(30));x.stroke();
  }
  const aw=W-2*M,ah=H-2*M-HH,sc=Math.min(aw/pc.width,ah/pc.height);
  const dw=Math.round(pc.width*sc),dh=Math.round(pc.height*sc),dx=Math.round(M+(aw-dw)/2),dy=Math.round(M+HH+(ah-dh)/2);
- x.imageSmoothingQuality='high';x.drawImage(pc,dx,dy,dw,dh);
+ x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';x.drawImage(pc,dx,dy,dw,dh);
+ if(mode==='bw')inkCurve(x,dx,dy,dw,dh);
  ST.base=x.getImageData(0,0,W,H);ST.fit={dx,dy,dw,dh,sc};
  c.style.display='block';$('miDrop').style.display='none';
  fitView();drawAll();
@@ -143,7 +151,7 @@ function drawMark(x,m){
  if(m.t==='pen'){x.beginPath();m.pts.forEach((p,i)=>i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1]));x.stroke()}
  else if(m.t==='rect'){x.strokeRect(Math.min(m.x0,m.x1),Math.min(m.y0,m.y1),Math.abs(m.x1-m.x0),Math.abs(m.y1-m.y0))}
  else if(m.t==='ell'){x.beginPath();x.ellipse((m.x0+m.x1)/2,(m.y0+m.y1)/2,Math.abs(m.x1-m.x0)/2,Math.abs(m.y1-m.y0)/2,0,0,Math.PI*2);x.stroke()}
- else if(m.t==='arrow'){const a=Math.atan2(m.y1-m.y0,m.x1-m.x0),h=Math.max(14,m.w*4);
+ else if(m.t==='arrow'){const a=Math.atan2(m.y1-m.y0,m.x1-m.x0),h=Math.max(14*K,m.w*4);
   x.beginPath();x.moveTo(m.x0,m.y0);x.lineTo(m.x1,m.y1);x.stroke();
   x.beginPath();x.moveTo(m.x1,m.y1);x.lineTo(m.x1-h*Math.cos(a-.45),m.y1-h*Math.sin(a-.45));x.lineTo(m.x1-h*Math.cos(a+.45),m.y1-h*Math.sin(a+.45));x.closePath();x.fill()}
  else if(m.t==='text'){x.font=`bold ${m.fs}px "Malgun Gothic",sans-serif`;x.textBaseline='top';
@@ -152,7 +160,7 @@ function drawMark(x,m){
 }
 /* ── 마우스 ── */
 function pos(e){const c=$('miC'),r=c.getBoundingClientRect();return [Math.round((e.clientX-r.left)/r.width*c.width),Math.round((e.clientY-r.top)/r.height*c.height)]}
-function down(e){if(!ST||!ST.base)return;e.preventDefault();const [x,y]=pos(e);const color=$('miColor').value,w=Number($('miW').value);
+function down(e){if(!ST||!ST.base)return;e.preventDefault();const [x,y]=pos(e);const color=$('miColor').value,w=Number($('miW').value)*K;
  if(ST.tool==='text'){openText(e,x,y);return}
  ST.cur=ST.tool==='pen'?{t:'pen',color,w,pts:[[x,y]]}:{t:ST.tool,color,w,x0:x,y0:y,x1:x,y1:y};}
 function move(e){if(!ST||!ST.cur)return;const [x,y]=pos(e);if(ST.cur.t==='pen')ST.cur.pts.push([x,y]);else{ST.cur.x1=x;ST.cur.y1=y}drawAll()}
@@ -161,7 +169,7 @@ function up(){if(!ST||!ST.cur)return;const m=ST.cur;ST.cur=null;
 function openText(e,x,y){const t=$('miTxt'),c=$('miC'),cv=$('miCv');const r=c.getBoundingClientRect(),rc=cv.getBoundingClientRect();
  t.style.left=(e.clientX-rc.left+cv.scrollLeft)+'px';t.style.top=(e.clientY-rc.top+cv.scrollTop)+'px';t.style.display='block';t.value='';t.dataset.x=x;t.dataset.y=y;setTimeout(()=>t.focus(),20)}
 function commitText(){const t=$('miTxt');const s=t.value.trim();t.style.display='none';if(!s)return;
- ST.marks.push({t:'text',s,x0:Number(t.dataset.x),y0:Number(t.dataset.y),color:$('miColor').value,fs:Number($('miFs').value),w:2});drawAll()}
+ ST.marks.push({t:'text',s,x0:Number(t.dataset.x),y0:Number(t.dataset.y),color:$('miColor').value,fs:Math.round(Number($('miFs').value)*K),w:2*K});drawAll()}
 
 /* ── 출력 ── */
 function blob(){return new Promise(r=>$('miC').toBlob(r,'image/png'))}

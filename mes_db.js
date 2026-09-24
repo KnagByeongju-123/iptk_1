@@ -230,8 +230,26 @@ MESDB.imgUpload=async function(file,job,part){
     {method:'POST',headers:{'apikey':CFG.key,'Authorization':'Bearer '+(tok||CFG.key),
       'Content-Type':file.type||'application/octet-stream','x-upsert':'true'},body:file});
   if(!r.ok){const t=await r.text();throw new Error((tok?'':'로그인 후 이미지를 올릴 수 있습니다. ')+t.slice(0,120))}
+  /* v196: 목록용 미리보기(긴 변 240px JPEG, 약 10KB)를 같은 경로 + ".t.jpg" 로 함께 올린다.
+     실패해도 원본 등록은 그대로 — 목록은 미리보기가 없으면 원본을 보여준다. */
+  try{const tb=await thumbBlob(file,240);
+    if(tb)await fetch(CFG.url+'/storage/v1/object/'+IMG_BUCKET+'/'+(path+THUMB_EXT).split('/').map(encodeURIComponent).join('/'),
+      {method:'POST',headers:{'apikey':CFG.key,'Authorization':'Bearer '+(tok||CFG.key),'Content-Type':'image/jpeg','x-upsert':'true'},body:tb});
+  }catch(e){}
   return MESDB.imgUrl(path);
 };
+const THUMB_EXT='.t.jpg';
+function thumbBlob(file,max){return new Promise(res=>{const u=URL.createObjectURL(file),im=new Image();
+  im.onload=()=>{try{const s=Math.min(1,max/Math.max(im.width,im.height)),w=Math.max(1,Math.round(im.width*s)),h=Math.max(1,Math.round(im.height*s));
+    const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,w,h);
+    x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';x.drawImage(im,0,0,w,h);
+    c.toBlob(b=>{URL.revokeObjectURL(u);res(b)},'image/jpeg',.82)}catch(e){URL.revokeObjectURL(u);res(null)}};
+  im.onerror=()=>{URL.revokeObjectURL(u);res(null)};im.src=u})}
+/* v196: 부품 그림 URL → 목록용 미리보기 URL (mes-attach 공개 그림만. 그 밖은 그대로) */
+MESDB.thumbUrl=function(url){const u=String(url||'');
+  return u&&u.includes('/storage/v1/object/public/'+IMG_BUCKET+'/')&&!u.endsWith(THUMB_EXT)?u+THUMB_EXT:u};
+/* 미리보기가 없는 옛 그림은 원본으로 한 번만 바꿔 보여준다 (<img onerror>) */
+MESDB.thumbFallback=function(img){const f=img&&img.getAttribute('data-full');if(f&&img.src!==f){img.removeAttribute('data-full');img.src=f}};
 MESDB.partImages=async function(job){
   const out={};if(!job||!online)return out;
   const q=`select=part_no,image_url&job_no=eq.${encodeURIComponent(job)}`;
@@ -348,8 +366,9 @@ MESDB.partMeta=async function(job){
 MESDB.imgBox=function(url,size){
   if(!url)return '';
   const s=size||28;
-  return `<img src="${String(url).replace(/"/g,'&quot;')}" style="width:${s}px;height:${s}px;object-fit:cover;border:1px solid #c5d0d8;border-radius:3px;cursor:zoom-in;vertical-align:middle" `+
-   `onclick="event.stopPropagation();window.open(this.src,'_blank')" title="클릭하면 큰 그림으로 봅니다">`;
+  const q=v=>String(v).replace(/"/g,'&quot;'),full=q(url);   /* v196: 목록엔 미리보기, 클릭하면 원본 */
+  return `<img src="${q(MESDB.thumbUrl(url))}" data-full="${full}" loading="lazy" onerror="MESDB.thumbFallback(this)" style="width:${s}px;height:${s}px;object-fit:cover;border:1px solid #c5d0d8;border-radius:3px;cursor:zoom-in;vertical-align:middle" `+
+   `data-u="${full}" onclick="event.stopPropagation();window.open(this.dataset.u,'_blank')" title="클릭하면 큰 그림으로 봅니다">`;
 };
 MESDB.jobSplit=function(job){
   const j=String(job||'').trim();const m=JOB_SEQ_RE.exec(j);
