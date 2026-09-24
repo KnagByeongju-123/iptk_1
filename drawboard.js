@@ -90,9 +90,10 @@
   /* 공정이 많을수록 글자를 조금 줄여 한 줄에 맞춘다 (4개 이하 12px … 10개 10px) */
   grid.style.setProperty('--fs',Math.max(9.5,Math.min(12,13-SEQ.length*0.3)).toFixed(1)+'px');grid.classList.toggle('many',SEQ.length>=8);
   if(!SEQ.length)grid.appendChild(el('span','empty','오른쪽 공정 버튼을 누르거나 여기로 끌어 오면 순서대로 표시됩니다.'));
+  const LK=lockN();
   SEQ.forEach((i,k)=>{const s=STEPS[i];
    const cell=el('div','cell'+(s.inhouse?' house':''));cell.dataset.i=i;
-   const c=el('span','chip');c.title='누르면 뺍니다 · 끌어서 순서를 바꿉니다';c.dataset.i=i;
+   const lk=k<LK;const c=el('span','chip'+(lk?' lock':''));c.title=lk?(isDone(i)?'완료된 공정 — 빼기·옮기기 불가':'완료 공정 앞 순서 — 빼기·옮기기 불가'):'누르면 뺍니다 · 끌어서 순서를 바꿉니다';c.dataset.i=i;
    c.appendChild(el('span','n',String(k+1)));const nm=el('span','nm',s.name||s.code||'');nm.title=(s.name||s.code||'')+(s.vendor?' · '+s.vendor:'')+(s.inhouse?' · 사내':'');c.appendChild(nm);
    c.addEventListener('click',()=>{if(SUPPRESS)return;tg(i)});
    c.addEventListener('pointerdown',e=>{if(e.button)return;dragStart(e,i,'chip')});
@@ -103,7 +104,7 @@
    sg.appendChild(el('i',null,'확인'));cell.appendChild(sg);grid.appendChild(cell)});
   st.appendChild(qrBox());
   STEPS.forEach(s=>{const b=btns.querySelector('.pbtn[data-i="'+s.idx+'"]'),n=$('n'+s.idx);const k=SEQ.indexOf(s.idx);
-   if(b)b.classList.toggle('on',k>=0);if(n)n.textContent=k>=0?String(k+1):''});
+   if(b){b.classList.toggle('on',k>=0);b.classList.toggle('lock',k>=0&&k<LK);b.classList.toggle('done',isDone(s.idx))}if(n)n.textContent=k>=0?String(k+1):''});
   sortBtns();
  }
  /* v211: 오른쪽 공정 목록 — 띠에 들어간(적용된) 공정은 순서대로 위에, 구분선 아래 나머지는 가나다순 */
@@ -117,12 +118,18 @@
   const want=[...on.map(s=>btns.querySelector('.pbtn[data-i="'+s.idx+'"]')),SEP,...off.map(s=>btns.querySelector('.pbtn[data-i="'+s.idx+'"]'))].filter(Boolean);
   const cur=[...btns.children];if(want.length===cur.length&&want.every((e,k)=>cur[k]===e))return;
   want.forEach(e=>btns.appendChild(e))}
- function tg(i){const k=SEQ.indexOf(i);if(k>=0)SEQ.splice(k,1);else SEQ.push(i);draw()}
+ /* v197: 완료(입고확정)된 공정은 잠금 — 띠의 맨 뒤 완료 공정까지(그 앞 공정 포함)는 빼기·옮기기 불가.
+  *   그 뒤 공정만 넣기·빼기·앞뒤 이동이 되고, 잠긴 자리 앞으로는 끼워 넣을 수 없다 */
+ const isDone=i=>{const s=STEPS[i];return !!s&&/^완료$|입고확정/.test(String(s.state||'').trim())};
+ function lockN(){let n=0;SEQ.forEach((i,k)=>{if(isDone(i))n=k+1});return n}
+ const isLocked=i=>{const k=SEQ.indexOf(i);return k>=0&&k<lockN()};
+ function lockMsg(i){const s=STEPS[i];try{$('moveTip').textContent=`「${(s&&(s.name||s.code))||''}」 — 완료된 공정(또는 그 앞 공정)은 빼거나 옮길 수 없습니다. 완료 이후 공정만 순서를 바꿀 수 있습니다.`}catch(e){}}
+ function tg(i){const k=SEQ.indexOf(i);if(k>=0){if(k<lockN()){lockMsg(i);return}SEQ.splice(k,1)}else SEQ.push(i);draw()}
  /* v209: 끌어서 순서 바꾸기 — 순서 칸(chip)을 끌어 다른 자리에 놓으면 순서가 바뀐다.
   *   오른쪽 공정 버튼을 순서 줄로 끌어 오면 놓은 자리에 끼워 넣는다(이미 있으면 그 자리로 옮김).
   *   6px 이상 움직여야 끌기로 보고, 그보다 적으면 예전처럼 클릭(넣기/빼기)이다. 마우스·터치 모두. */
  let DRAG=null,SUPPRESS=false,GHOST=null,MARK=null;
- function dragStart(e,i,src){DRAG={i,src,x0:e.clientX,y0:e.clientY,on:false}}
+ function dragStart(e,i,src){if(isLocked(i)){DRAG=null;return}DRAG={i,src,x0:e.clientX,y0:e.clientY,on:false}}
  function dropIndex(x,y){
   const st=$('strip'),r=st.getBoundingClientRect(),pad=24;
   if(x<r.left-pad||x>r.right+pad||y<r.top-pad||y>r.bottom+pad)return null;
@@ -148,7 +155,7 @@
   if(k==null||k==='off')return;
   const ons=SEQ.map(i=>btns.querySelector('.pbtn[data-i="'+i+'"]')).filter(Boolean);
   if(ons[k])ons[k].classList.add('pdb');else if(ons.length)ons[ons.length-1].classList.add('pda');else if(SEP)SEP.classList.add('pdb')}
- function target(x,y){const a=dropIndex(x,y);if(a!=null)return {where:'strip',k:a};const b=panelIndex(x,y);if(b!=null)return {where:'panel',k:b};return null}
+ function target(x,y){const L=lockN();const a=dropIndex(x,y);if(a!=null)return {where:'strip',k:Math.max(a,L)};const b=panelIndex(x,y);if(b!=null)return {where:'panel',k:b==='off'?b:Math.max(b,L)};return null}
  function showMark(k){const st=$('strip'),grid=st.querySelector('.cells');if(!MARK){MARK=el('span','dropmark')}
   if(k==null||!grid){MARK.remove();st.classList.remove('dropon');return}
   st.classList.add('dropon');const cs=[...grid.querySelectorAll('.cell')];
@@ -173,8 +180,8 @@
   if(cur>=0){if(cur===k||cur+1===k)return;SEQ.splice(cur,1);if(cur<k)k--}
   SEQ.splice(k,0,d.i);draw()};
  document.addEventListener('pointerup',finish);document.addEventListener('pointercancel',finish);
- $('bAll').addEventListener('click',()=>{SEQ=PLANSEQ.slice();draw()});
- $('bClr').addEventListener('click',()=>{SEQ=[];draw()});
+ $('bAll').addEventListener('click',()=>{const keep=SEQ.slice(0,lockN());SEQ=keep.concat(PLANSEQ.filter(i=>!keep.includes(i)));draw()});
+ $('bClr').addEventListener('click',()=>{SEQ=SEQ.slice(0,lockN());draw()});   /* 완료 공정까지는 남긴다 */
  $('bPrint').addEventListener('click',()=>window.print());
  /* v207: 고른 순서를 사내외가공 발주 화면(연 창)으로 보내 가공계획에 적용 */
  $('bApply').addEventListener('click',()=>{
@@ -260,7 +267,7 @@
    b.appendChild(el('span',null,st.map((c,i)=>{const s=byCode(c);return (i+1)+'.'+((s&&(s.name||s.code))||c)+(r.inhouse&&r.inhouse[i]?'(사내)':'')}).join(' → ')||'공정 없음'));
    b.addEventListener('click',()=>{
     if(SEQ.length&&!confirm('띠에 있는 공정 순서를 「'+(r.name||'')+'」 기준공정으로 바꿀까요?'))return;
-    const miss=[];SEQ=[];
+    const miss=[];SEQ=SEQ.slice(0,lockN());
     st.forEach((c,i)=>{let s=byCode(c);if(!s){miss.push(c);return}if(SEQ.includes(s.idx))return;SEQ.push(s.idx);s.inhouse=!!(r.inhouse&&r.inhouse[i])});
     btns.querySelectorAll('.pbtn').forEach(bn=>{const s=STEPS[Number(bn.dataset.i)];const hc=bn.querySelector('label.h input');if(s&&hc)hc.checked=!!s.inhouse});
     stdClose();draw();

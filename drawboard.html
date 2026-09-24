@@ -72,6 +72,10 @@ h1{font-size:18px;margin:0 0 6px;letter-spacing:3px;text-align:center}
 .strip .qr .none{color:#999;font-size:11px}
 /* v209: 끌어서 순서 바꾸기 */
 .chip{touch-action:none;user-select:none}.chip:hover{box-shadow:0 0 0 2px rgba(47,95,138,.18)}
+/* v197: 완료 공정 잠금 — 번호 회색 · 클릭/끌기 불가 */
+@media screen{.pbtn.lock{cursor:not-allowed;background:#eef1f3;border-color:#aab6c0}.pbtn.lock .n{background:#9aa6b1}.pbtn.lock .k{color:#5d6b77}
+.pbtn.lock.done .v{color:#2e7d32;font-weight:700}
+.chip.lock{cursor:not-allowed;background:#eef1f3;color:#5d6b77}.chip.lock .n{background:#9aa6b1}.chip.lock:hover{box-shadow:none}}
 .chip.dragsrc,.pbtn.dragsrc{opacity:.35}
 .strip.dropon{background:#f4f9ff;border-style:dashed}
 .dropmark{display:inline-block;width:4px;align-self:stretch;min-height:26px;border-radius:2px;background:#e53935}
@@ -150,5 +154,5 @@ body.portrait .sheet{width:198mm}
 <div class="ov" id="ov"><div class="bar"><b id="ovT">원본 이미지</b><span id="ovS"></span><span class="sp"></span><button id="ovFit">화면 맞춤</button><button id="ovReal">실제 크기</button><button id="ovClose">닫기 (Esc)</button></div><div class="body" id="ovB"></div></div>
 <script src="mes_qr.js?v=92"></script>
 <script src="mes_imgedit.js?v=196"></script>
-<script src="drawboard.js?v=221"></script>
+<script src="drawboard.js?v=224"></script>
 </body></html>
