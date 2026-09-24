@@ -204,6 +204,11 @@ async function waitDB(){
  if(window.MESDB&&MESDB.ready){try{await MESDB.ready}catch(e){}}
 }
 
+/* v196: 공정 코드 → 공정명 (기준정보 › 가공공정관리). 이름을 못 찾으면 코드 그대로 */
+let PN={};
+async function loadPN(){if(Object.keys(PN).length||!online())return;
+ try{const ps=await MESDB.table('processes').select('select=process_code,process_name');(ps||[]).forEach(p=>{const c=String(p.process_code||'').trim();if(c)PN[c.toUpperCase()]=p.process_name||c})}catch(e){}}
+const pname=c=>{const k=String(c||'').trim();if(!k)return '-';return PN[k.toUpperCase()]||k};
 async function search(key){
  ctx=key;
  const res=document.getElementById('res');
@@ -215,6 +220,7 @@ async function search(key){
   return render();
  }
  setLive(true);
+ await loadPN();
  try{
   let q='select=*&category=eq.외주가공&order=part_no,step_no,line_id';
   if(key.job&&key.part)q+=`&job_no=eq.${encodeURIComponent(key.job)}&part_no=eq.${encodeURIComponent(key.part)}`;
@@ -268,7 +274,7 @@ function card(l,i,ls){
   action=`<div class="blockline">${canOrderNext?'⚑ 직전 공정 입고 완료 — PC 발주 화면에서 발주할 수 있습니다.':'⏳ 직전 공정 입고 대기 — 순차 발주 규칙에 따라 대기'}</div>`;
  }
  return `<div class="lcard${late?' late':''}" id="lc_${l.line_id}">
-  <div class="l1"><span class="stepn">공정${n0(l.step_no)||i+1}</span><b>${esc(l.machining_process_code||l.process_code||'-')}</b>
+  <div class="l1"><span class="stepn">공정${n0(l.step_no)||i+1}</span><b>${esc(pname(l.machining_process_code||l.process_code))}</b>
    <span class="stag ${late?'lt':st}">${late?'지연':STN[st]}</span></div>
   <div class="l2">${esc(l.vendor_name||'업체 미지정')} <em>·</em> 납기 ${esc(String(l.required_date||'').slice(0,10)||'-')}
    ${l.receipt_date?` <em>·</em> 입고 ${esc(String(l.receipt_date).slice(0,10))}`:''}</div>
@@ -300,7 +306,7 @@ async function doReceive(id){
  btnOff(id,true);
  try{
   await rpc('fn_osp_receive',{p_line_id:Number(id),p_qty:q,p_date:today(),p_short:0,p_source:'QR스캔',p_remark:null});
-  after(`작업완료 → 입고 처리 — ${l.part_no} 공정${n0(l.step_no)} (${q}개)`,l,'입고');
+  after(`작업완료 → 입고 처리 — ${l.part_no} ${pname(l.machining_process_code)} (${q}개)`,l,'입고');
  }catch(e){btnOff(id,false);toast('입고 실패: '+String(e.message||e).slice(0,80),'ng')}
 }
 
@@ -312,7 +318,7 @@ async function doConfirm(id){
  try{
   await MESDB.table('order_lines').upsert([{line_id:Number(id),status:'입고확정',confirm_date:today(),
    confirm_price:n0(l.confirm_price)||n0(l.quote_price)||null,updated_at:new Date().toISOString()}],'line_id');
-  after(`입고 확정 완료 — ${l.part_no} 공정${n0(l.step_no)} · 제조원가에 반영됩니다`,l,'입고확정');
+  after(`입고 확정 완료 — ${l.part_no} ${pname(l.machining_process_code)} · 제조원가에 반영됩니다`,l,'입고확정');
  }catch(e){btnOff(id,false);toast('확정 실패: '+String(e.message||e).slice(0,80),'ng')}
 }
 function btnOff(id,off){document.querySelectorAll(`#lc_${id} .abtn`).forEach(b=>b.disabled=off)}
