@@ -41,7 +41,7 @@ tfoot td{position:sticky;bottom:0;background:#dfe9f2!important;font-weight:700;b
 </style></head><body><div class="screen">
 <div class="title"><h1>금형원가 내역 <span id="hdJob" style="font-size:16px;color:#1d5da3;margin-left:10px"></span></h1><small>원가관리 · 제조원가 &nbsp;|&nbsp; 부품(품번)별 재료비 + 공정별 가공비 · 진행현황</small></div>
 <section class="filt">
- <span class="lb">제번</span><input id="jobQ" class="field" style="width:190px" placeholder="제번 입력/선택">
+ <span class="lb">관리제번</span><input id="jobQ" class="field" style="width:250px" placeholder="제번 입력/선택">
  <label style="display:flex;align-items:center;gap:4px" title="같은 관리제번(공정 문자를 뺀 제번)의 A·B·C 공정을 한 표로 묶어 봅니다"><input type="checkbox" id="grpQ" onchange="load()"> 관리제번 전체</label>
  <span class="lb" style="margin-left:6px">품번</span><input id="partQ" class="field" style="width:150px" placeholder="품번/부품명" oninput="render()">
  <label style="display:flex;align-items:center;gap:4px" title="원재료·가공 기록이 하나도 없는 부품을 숨깁니다"><input type="checkbox" id="hideEmpty" onchange="render()"> 기록 있는 부품만</label>
@@ -265,8 +265,9 @@ render();
 </script>
 <script src="mes_db.js?v=196"></script>
 <script src="mes_ctx.js?v=169"></script>
-<script src="mes_jobpick.js?v=162"></script>
-<script>try{MESJOB.attach("jobQ",{onPick:j=>{jobQ.value=j;load()}})}catch(e){}
+<script src="mes_jobpick.js?v=196"></script>
+<script>/* v196: 관리제번 ▼ | 제번 ▼ 두 칸 선택 (금형원가(내역)과 같은 방식) */
+try{MESJOB.attachSplit("jobQ",{onPick:()=>load()}).then(()=>{document.querySelectorAll('span.lb').forEach(e=>{if(e.textContent==='공정')e.textContent='제번'});const ss=document.getElementById('jobQ_seq');if(ss)ss.style.width='150px'})}catch(e){}
 jobQ.addEventListener('keydown',e=>{if(e.key==='Enter')load()});
 try{MESDB.onChange&&MESDB.onChange(['order_lines','design_results','machining_plan_parts'],()=>{clearTimeout(window.__jt);window.__jt=setTimeout(()=>{if(CURJOB)load()},500)})}catch(e){}</script>
 </body></html>

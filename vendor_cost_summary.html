@@ -25,6 +25,7 @@ tbody tr:nth-child(even) td{background:#fafcfd}tbody tr:hover td{background:#edf
  <span class="fgrp"><span class="lb">상태</span><select id="st" class="field" style="width:120px" onchange="search()"><option value="입고확정" selected>입고확정만</option><option value="입고">입고 이상</option><option value="">전체(발주 포함)</option></select></span>
  <span class="fgrp"><span class="lb">집계</span><select id="by" class="field" style="width:120px" onchange="search()"><option value="vendor">업체별</option><option value="month">업체 × 월별</option><option value="job">업체 × 제번별</option></select></span>
  <span class="fgrp"><span class="lb">업체</span><input id="vq" class="field" style="width:140px" placeholder="업체명" oninput="search()"></span>
+ <span class="fgrp"><span class="lb">관리제번</span><select id="bq" class="field" style="width:180px" onchange="search()"><option value="">전체</option></select></span>
  <span class="fgrp"><span class="lb">제번</span><input id="jq" class="field" style="width:120px" placeholder="제번/관리제번" oninput="search()"></span>
  <span class="fgrp"><button class="btn" onclick="setMonth(0)">이번 달</button><button class="btn" onclick="setMonth(-1)">지난 달</button><button class="btn" onclick="setYear()">올해</button></span>
 </section>
@@ -55,18 +56,25 @@ async function load(){
   let q='select=line_id,category,status,job_no,item_name,vendor_name,part_no,part_name,process_code,process_name,order_qty,quote_price,confirm_price,nego_rate,order_date,receipt_date,confirm_date,remark&order=vendor_name,confirm_date';
   if(cat.value)q+=`&category=eq.${encodeURIComponent(cat.value)}`;
   LINES=await MESDB.table('order_lines').select(q);
-  search();msg(`${cat.value||'전체'} 발주 ${LINES.length}건을 읽었습니다.`);
+  fillBase();search();msg(`${cat.value||'전체'} 발주 ${LINES.length}건을 읽었습니다.`);
  }catch(e){msg('조회 실패: '+String(e.message||e).slice(0,120))}
 }
 function baseOf(j){try{return MESDB.jobSplit(j).base}catch(e){return String(j||'')}}
+/* v196: 관리제번 드롭 — 읽어 온 발주의 제번을 관리제번(A~F 공정 묶음)으로 */
+function fillBase(){const sel=document.getElementById('bq');if(!sel)return;const cur=sel.value,G=new Map();
+ LINES.forEach(l=>{const j=String(l.job_no||'').trim();if(!j)return;const m=/^(.*\d)([A-Z])$/.exec(j),b=m?m[1]:j;let g=G.get(b);if(!g){g={seq:[],n:0};G.set(b,g)}g.n++;if(m&&!g.seq.includes(m[2]))g.seq.push(m[2])});
+ const rng=a=>{a.sort();return !a.length?'':a.length>2?` (${a[0]}~${a[a.length-1]})`:` (${a.join('·')})`};
+ sel.innerHTML=`<option value="">전체 (${G.size})</option>`+[...G.keys()].sort((a,b)=>b.localeCompare(a)).map(b=>`<option value="${esc(b)}">${esc(b)}${rng(G.get(b).seq)} · ${G.get(b).n}건</option>`).join('');
+ sel.value=G.has(cur)?cur:''}
 function search(){
- const a=d1.value,b=d2.value,st=st_.value,by=by_.value,vq=(vq_.value||'').trim().toLowerCase(),jq=(jq_.value||'').trim().toUpperCase();
+ const a=d1.value,b=d2.value,st=st_.value,by=by_.value,vq=(vq_.value||'').trim().toLowerCase(),jq=(jq_.value||'').trim().toUpperCase(),bqv=(document.getElementById('bq')||{}).value||'';
  const dateOf=l=>l.confirm_date||l.receipt_date||l.order_date||'';
  const rows=LINES.filter(l=>{
   if(st==='입고확정'&&l.status!=='입고확정')return false;
   if(st==='입고'&&!['입고','입고확정'].includes(l.status))return false;
   const d=String(dateOf(l)).slice(0,10);if(a&&d&&d<a)return false;if(b&&d&&d>b)return false;if((a||b)&&!d)return false;
   if(vq&&!String(l.vendor_name||'').toLowerCase().includes(vq))return false;
+  if(bqv&&baseOf(l.job_no)!==bqv)return false;
   if(jq&&!String(l.job_no||'').toUpperCase().includes(jq))return false;
   return true});
  thKey.textContent=by==='month'?'월':by==='job'?'제번':'';thKey.style.display=by==='vendor'?'none':'';
