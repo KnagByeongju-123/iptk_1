@@ -88,8 +88,8 @@ function render(){
  const S=steps();
  $('head').innerHTML=`<div class="job">${esc(D.job)}<b>${esc(D.part)}</b></div>
   <div class="sub">${esc((D.plan&&D.plan.part_name)||'')}${D.item?' · '+esc(D.item):''} · 공정 ${esc(D.jo)}조${D.plan&&D.plan.qty!=null?' · 수량 '+esc(D.plan.qty):''}</div>
-  <div class="who"><label>작업자<input id="worker" placeholder="이름 또는 업체명" value="${esc(mem.get('worker'))}"></label>
-  ${D.require_pin?`<label>작업 PIN<input id="pin" type="password" inputmode="numeric" placeholder="PIN" value="${esc(mem.get('pin'))}"></label>`:''}</div>
+  <div class="who"><label>작업자 <small id="workerSaved" style="color:#2f7d4f">${mem.get('worker')?'· 이 휴대폰에 기억됨':''}</small><input id="worker" placeholder="이름 또는 업체명" value="${esc(mem.get('worker'))}" oninput="remember(this)" autocomplete="off"></label>
+  ${D.require_pin?`<label>작업 PIN<input id="pin" type="password" inputmode="numeric" placeholder="PIN" value="${esc(mem.get('pin'))}" oninput="remember(this)"></label>`:''}</div>
   <div class="hint">작업자 이름(또는 업체명)을 넣고, 끝낸 공정의 <b>[작업완료]</b> 를 누르세요. 외주 공정은 입고 처리로, 사내 공정은 가공 실적으로 기록됩니다.${D.require_pin?' 작업 PIN 은 관리자에게 받으세요.':''}</div>`;
  const cur=S.find(s=>s.state==='진행'||s.state==='대기');
  $('steps').innerHTML=S.length?S.map(s=>{
@@ -110,6 +110,8 @@ function render(){
   :'<div class="empty">이 부품에 가공계획(공정)이 없습니다. PC 의 사내외가공 발주에서 공정을 먼저 등록하세요.</div>';
  if(cur){const e=$('st_'+cur.i);if(e)setTimeout(()=>e.scrollIntoView({block:'center',behavior:'smooth'}),100)}}
 
+/* 작업자·PIN 은 치는 대로 이 휴대폰(localStorage)에 저장 — 다음 QR 을 읽어도 그대로 채워진다 */
+function remember(el){const v=(el.value||'').trim();mem.set(el.id==='pin'?'pin':'worker',v);const t=$('workerSaved');if(t&&el.id==='worker')t.textContent=v?'· 이 휴대폰에 기억됨':''}
 function who(){const w=($('worker')?.value||'').trim(),p=($('pin')?.value||'').trim();
  if(!w){toast('작업자(이름 또는 업체명)를 넣어 주세요.','ng');$('worker')?.focus();return null}
  if(D.require_pin&&!p){toast('작업 PIN 을 넣어 주세요.','ng');$('pin')?.focus();return null}
