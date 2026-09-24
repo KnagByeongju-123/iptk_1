@@ -30,7 +30,8 @@ tfoot th{position:sticky;bottom:0;background:linear-gradient(#e6eef5,#d3e0ea)}
       <label><input type="checkbox" name="dev" value="사외" checked> 사외</label>
     </div>
     <span class="label">완료일</span><input id="cd1" class="field" type="date"><span>~</span><input id="cd2" class="field" type="date">
-    <span class="label">제번</span><input id="jobQ" class="field" style="width:170px" list="jobDL" autocomplete="off" placeholder="제번 선택/입력"><datalist id="jobDL"></datalist>
+    <span class="label">관리제번</span><select id="q_base" class="field" style="width:180px"><option value="">전체</option></select>
+    <span class="label">제번</span><input id="jobQ" class="field" style="width:140px" list="jobDL" autocomplete="off" placeholder="제번 선택/입력"><datalist id="jobDL"></datalist>
     <span class="label">품번</span><input id="itemQ" class="field" style="width:190px" list="modelDL" autocomplete="off" placeholder="품번 선택/입력"><datalist id="modelDL"></datalist>
     <span class="label">조회 월</span><input id="month" class="field" type="month">
     <button class="btn" onclick="search()">⌕ 조회</button>
@@ -61,17 +62,25 @@ const ALL='모두';
 function fillDL(){jobDL.innerHTML=`<option value="${ALL}">전체 제번</option>`+JOBS.map(r=>`<option value="${esc(r.job_no)}">${esc(r.model||'')}${r.customer_name?' · '+esc(r.customer_name):''}</option>`).join('');
  const ms=[...new Set(JOBS.map(r=>r.model).filter(Boolean))];
  modelDL.innerHTML=`<option value="${ALL}">전체 품번</option>`+ms.map(m=>`<option value="${esc(m)}">${esc(JOBS.filter(r=>r.model===m).map(r=>r.job_no).join(', '))}</option>`).join('')}
-async function loadJobs(){if(!_online())return;try{const rs=await MESDB.table('job_pool').select('select=job_no,model,customer_name&order=row_no');JOBS.length=0;rs.forEach(r=>{JOBS.push(r);MODEL_OF[r.job_no]=r.model||''});fillDL()}catch(e){}}
+/* v196: 관리제번 드롭 — 수주(job_pool) 제번을 관리제번(A~F 공정 묶음)으로 */
+const baseOf=j=>{const m=/^(.*\d)([A-Z])$/.exec(String(j||'').trim());return m?m[1]:String(j||'').trim()};
+function fillBase(){const sel=document.getElementById('q_base');if(!sel)return;const cur=sel.value,G=new Map();
+ JOBS.forEach(r=>{const j=String(r.job_no||'').trim();if(!j)return;const m=/^(.*\d)([A-Z])$/.exec(j),b=m?m[1]:j;let g=G.get(b);if(!g){g={seq:[],m:''};G.set(b,g)}if(m&&!g.seq.includes(m[2]))g.seq.push(m[2]);if(!g.m&&r.model)g.m=r.model});
+ const rng=a=>{a.sort();return !a.length?'':a.length>2?` (${a[0]}~${a[a.length-1]})`:` (${a.join('·')})`};
+ sel.innerHTML=`<option value="">전체 (${G.size})</option>`+[...G.keys()].sort((a,b)=>b.localeCompare(a)).map(b=>`<option value="${esc(b)}">${esc(b)}${rng(G.get(b).seq)}${G.get(b).m?' · '+esc(G.get(b).m):''}</option>`).join('');
+ sel.value=G.has(cur)?cur:''}
+async function loadJobs(){if(!_online())return;try{const rs=await MESDB.table('job_pool').select('select=job_no,model,customer_name&order=row_no');JOBS.length=0;rs.forEach(r=>{JOBS.push(r);MODEL_OF[r.job_no]=r.model||''});fillDL();fillBase()}catch(e){}}
 function onJobPick(){const v=jobQ.value.trim();if(v===ALL){jobQ.value='';itemQ.value='';return}const r=JOBS.find(x=>x.job_no===v);if(r&&r.model!=null)itemQ.value=r.model||''}
 function onModelPick(){const v=itemQ.value.trim();if(v===ALL){jobQ.value='';itemQ.value='';return}if(!v)return;const cur=jobQ.value.trim();if(JOBS.some(x=>x.job_no===cur&&x.model===v))return;const r=JOBS.find(x=>x.model===v);if(r)jobQ.value=r.job_no}
+q_base.addEventListener('change',()=>{jobQ.value='';itemQ.value='';search()});
 jobQ.addEventListener('change',()=>{onJobPick();search()});itemQ.addEventListener('change',()=>{onModelPick();search()});
 [jobQ,itemQ].forEach(el=>el.addEventListener('keydown',e=>{if(e.key==='Enter')search()}));
 const devBoxes=()=>[...document.querySelectorAll('input[name=dev]')];
 devAll.addEventListener('change',()=>{devBoxes().forEach(b=>b.checked=devAll.checked);search()});
 devBoxes().forEach(b=>b.addEventListener('change',()=>{devAll.checked=devBoxes().every(x=>x.checked);search()}));
-function search(){const ds=new Set(devBoxes().filter(b=>b.checked).map(b=>b.value));const j=jobQ.value.trim().toLowerCase(),it=itemQ.value.trim().toLowerCase();
+function search(){const ds=new Set(devBoxes().filter(b=>b.checked).map(b=>b.value));const j=jobQ.value.trim().toLowerCase(),it=itemQ.value.trim().toLowerCase(),bq=q_base.value;
 const devOk=r=>ds.has(r.dev==='사내'?'사내':'사외');
-view=ds.size?rows.filter(r=>devOk(r)&&(!j||r.job.toLowerCase().includes(j))&&(!it||String(r.model||'').toLowerCase().includes(it))&&within(r.cdate,cd1.value,cd2.value)):[];
+view=ds.size?rows.filter(r=>devOk(r)&&(!bq||baseOf(r.job)===bq)&&(!j||r.job.toLowerCase().includes(j))&&(!it||String(r.model||'').toLowerCase().includes(it))&&within(r.cdate,cd1.value,cd2.value)):[];
 render();
 const d=ds.size===2?'전체':[...ds].join('/');
 msg(!ds.size?'개발유형을 하나 이상 선택하세요.':view.length?`${d} 기준 ${view.length}건을 조회했습니다.`
