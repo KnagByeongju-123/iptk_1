@@ -29,6 +29,8 @@ body{font-family:'Malgun Gothic','맑은 고딕',Arial,sans-serif;font-size:12px
 .pbtn .h input{margin:0 3px 0 0;vertical-align:-2px}
 .pbtn .h{font-size:10.5px;color:#8a6d3b;border:1px solid #d9c9a5;background:#fbf4e3;padding:0 4px;border-radius:2px}
 .tools{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.movetip{flex-basis:100%;font-size:11px;color:#5d6e7d}.movetip:empty{display:none}
+@media print{.movetip{display:none}}
 .tools button{height:28px;padding:0 10px;border:1px solid #8b9ba9;background:linear-gradient(#fff,#e9eef2);cursor:pointer;font:inherit;border-radius:3px}
 .tools button.go{font-weight:700;color:#fff;border-color:#2a5d95;background:linear-gradient(#4a8ad0,#2f6fb0)}
 h1{font-size:18px;margin:0 0 6px;letter-spacing:3px;text-align:center}
@@ -107,6 +109,9 @@ body.portrait .sheet{width:198mm}
    <button id="bStd" title="기준정보 › 가공 기준공정관리의 기준공정을 골라 띠 순서로 넣습니다">📋 기준공정 불러오기</button>
    <button id="bPic" title="캐드 캡쳐·이미지·PDF 로 부품 그림을 등록합니다. PartList 부품 그림에도 같이 저장됩니다">📷 그림 등록</button>
    <button id="bImg" title="공정 표시 없이 PartList 에 등록된 이미지만 크게 봅니다">🖼 이미지만 보기</button>
+   <button id="bPrev" title="사내외가공 발주 목록에서 이전 부품을 불러옵니다 (가공계획이 등록된 부품은 등록된 순서, 아니면 띠의 순서 그대로)">◀ 이전 품번</button>
+   <button id="bNext" title="사내외가공 발주 목록에서 다음 부품을 불러옵니다 (가공계획이 등록된 부품은 등록된 순서, 아니면 띠의 순서 그대로)">다음 품번 ▶</button>
+   <div id="moveTip" class="movetip"></div>
    <button id="bApply" class="go" style="background:linear-gradient(#5aa05a,#3d7f3d);border-color:#2f6a2f" title="띠에 표시된 순서를 이 부품의 부품별 가공공정 리스트(가공계획)에 저장합니다">▣ 가공계획 적용</button>
    <button id="bOri" title="도면 방향에 맞춰 자동으로 정해집니다. 눌러서 바꿀 수 있습니다">용지: 가로</button>
    <button class="go" id="bPrint" title="인쇄창에서 대상을 「PDF로 저장」으로 고르면 PDF 파일로 저장됩니다">🖨 인쇄 / PDF 저장</button>
@@ -116,5 +121,5 @@ body.portrait .sheet{width:198mm}
 </div>
 <div class="ov" id="ov"><div class="bar"><b id="ovT">원본 이미지</b><span id="ovS"></span><span class="sp"></span><button id="ovFit">화면 맞춤</button><button id="ovReal">실제 크기</button><button id="ovClose">닫기 (Esc)</button></div><div class="body" id="ovB"></div></div>
 <script src="mes_imgedit.js?v=196"></script>
-<script src="drawboard.js?v=212"></script>
+<script src="drawboard.js?v=213"></script>
 </body></html>

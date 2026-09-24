@@ -1,4 +1,4 @@
-/* drawboard.js (v212: 오른쪽 목록 끌어서 순서·해제 · 기준공정 불러오기 / v211: 공정 목록 — 선택한 공정 위 · 구분선 · 나머지 가나다 / v210: 그림 등록 / v209: 끌어서 순서) — 부품 그림보드 화면 스크립트
+/* drawboard.js (v213: ◀ 이전 · 다음 ▶ 품번 — 가공계획이 등록된 부품은 등록된 순서로, 아니면 띠 공정 그대로 / v212: 오른쪽 목록 끌어서 순서·해제 · 기준공정 불러오기 / v211: 공정 목록 — 선택한 공정 위 · 구분선 · 나머지 가나다 / v210: 그림 등록 / v209: 끌어서 순서) — 부품 그림보드 화면 스크립트
  * 사내외가공 발주(mes_drawboard.js)가 sessionStorage 'mes_drawboard' 에 넣어 준 자료를 읽어 그린다.
  * 문서를 스크립트로 써 넣지 않고(document.write 없음) DOM 만 만든다. */
 (function(){
@@ -8,19 +8,22 @@
  try{o=JSON.parse(sessionStorage.getItem('mes_drawboard')||'{}')||{}}catch(e){o={}}
  if(!o.part){try{o=JSON.parse(decodeURIComponent(location.hash.slice(1))||'{}')}catch(e){}}
  /* v206: 오른쪽 버튼은 공정 마스터 전체. 이 부품의 가공계획에 있는 공정은 "계획 n" 표시를 달고, ▶ 전체 순서대로 는 계획 순서로 넣는다 */
- const PLAN=(o.steps||[]);
+ let PLAN=(o.steps||[]);
  let STEPS=(o.all&&o.all.length?o.all:PLAN).map((s,i)=>({idx:i,code:String(s.code||'').trim(),name:s.name||'',inhouse:false,vendor:'',state:'',plan:[]}));
  PLAN.forEach((ps,k)=>{const c=String(ps.code||'').trim();let t=STEPS.find(x=>x.code===c||x.code.toUpperCase()===c.toUpperCase());
   if(!t){t={idx:STEPS.length,code:c,name:ps.name||c,inhouse:false,vendor:'',state:'',plan:[]};STEPS.push(t)}
   t.plan.push(k+1);if(!t.vendor)t.vendor=ps.vendor||'';if(!t.state)t.state=ps.state||'';if(ps.inhouse)t.inhouse=true;if(!t.name)t.name=ps.name||''});
- const PLANSEQ=[];PLAN.forEach(ps=>{const c=String(ps.code||'').trim();const t=STEPS.find(x=>x.code===c||x.code.toUpperCase()===c.toUpperCase());if(t&&!PLANSEQ.includes(t.idx))PLANSEQ.push(t.idx)});
+ let PLANSEQ=[];PLAN.forEach(ps=>{const c=String(ps.code||'').trim();const t=STEPS.find(x=>x.code===c||x.code.toUpperCase()===c.toUpperCase());if(t&&!PLANSEQ.includes(t.idx))PLANSEQ.push(t.idx)});
  let SEQ=[];
  document.title='부품 그림보드 '+(o.job||'')+' '+(o.part||'');
  /* 머리글 */
  const meta=$('meta');
- [['제번',(o.job||'')+(o.item?' · '+o.item:'')],['품번',o.part||''],['부품명',o.name||''],['소요수량',o.qty==null?'':String(o.qty)],['작성',o.by||''],['일자',new Date().toISOString().slice(0,10)]]
-  .forEach(([k,v])=>{meta.appendChild(el('b',null,k));meta.appendChild(el('span',null,v))});
- $('footL').textContent=(o.job||'')+' · '+(o.part||'')+' '+(o.name||'');
+ function renderMeta(){meta.textContent='';
+  [['제번',(o.job||'')+(o.item?' · '+o.item:'')],['품번',o.part||''],['부품명',o.name||''],['소요수량',o.qty==null?'':String(o.qty)],['작성',o.by||''],['일자',new Date().toISOString().slice(0,10)]]
+   .forEach(([k,v])=>{meta.appendChild(el('b',null,k));meta.appendChild(el('span',null,v))});
+  $('footL').textContent=(o.job||'')+' · '+(o.part||'')+' '+(o.name||'');
+  document.title='부품 그림보드 '+(o.job||'')+' '+(o.part||'')}
+ renderMeta();
  /* 그림 */
  const fig=$('fig');
  function setFig(url){fig.textContent='';
@@ -39,14 +42,20 @@
  $('sideTitle').textContent='가공공정 전체 ('+STEPS.length+') · 계획 '+PLANSEQ.length;
  const btns=$('btns');
  if(!STEPS.length)btns.appendChild(el('div','hint','가공계획에 공정이 없습니다.'));
- STEPS.forEach(s=>{const b=el('button','pbtn');b.dataset.i=s.idx;b.type='button';
+ function makeBtn(s){const b=el('button','pbtn');b.dataset.i=s.idx;b.type='button';
   const n=el('span','n');n.id='n'+s.idx;b.appendChild(n);
   b.appendChild(el('span','k',s.name||s.code||''));
   if(s.plan.length){b.classList.add('plan');b.appendChild(el('span','p','계획 '+s.plan.join(',')))}
   const hl=el('label','h');hl.title='사내가공이면 체크';const hc=el('input');hc.type='checkbox';hc.checked=!!s.inhouse;hc.addEventListener('click',e=>e.stopPropagation());hc.addEventListener('change',()=>{s.inhouse=hc.checked;draw()});hl.appendChild(hc);hl.appendChild(document.createTextNode('사내'));hl.addEventListener('click',e=>e.stopPropagation());b.appendChild(hl);
   b.appendChild(el('span','v',[s.vendor,s.state].filter(Boolean).join(' · ')));
   b.addEventListener('click',()=>{if(SUPPRESS)return;tg(s.idx)});
-  b.addEventListener('pointerdown',e=>{if(e.button||e.target.closest('label'))return;dragStart(e,s.idx,'btn')});btns.appendChild(b)});
+  b.addEventListener('pointerdown',e=>{if(e.button||e.target.closest('label'))return;dragStart(e,s.idx,'btn')});btns.appendChild(b);return b}
+ STEPS.forEach(makeBtn);
+ /* v213: 품번이 바뀌면 「계획 n」 표시 · 업체/상태만 새 부품 기준으로 다시 단다 (띠 순서 · 사내 체크는 그대로) */
+ function planBadges(){STEPS.forEach(s=>{const b=btns.querySelector('.pbtn[data-i="'+s.idx+'"]');if(!b)return;
+  const old=b.querySelector('.p');if(old)old.remove();b.classList.toggle('plan',!!s.plan.length);
+  if(s.plan.length){const p=el('span','p','계획 '+s.plan.join(','));b.querySelector('.k').after(p)}
+  const v=b.querySelector('.v');if(v)v.textContent=[s.vendor,s.state].filter(Boolean).join(' · ')})}
  function draw(){
   const st=$('strip');st.textContent='';st.appendChild(el('span','lab','가공공정 순서'));
   if(!SEQ.length)st.appendChild(el('span','empty','오른쪽 공정 버튼을 누르거나 여기로 끌어 오면 순서대로 표시됩니다.'));
@@ -136,6 +145,37 @@
   $('bApply').textContent='✔ 적용 보냄';setTimeout(()=>{$('bApply').textContent='▣ 가공계획 적용'},2500);
  });
  $('bClose').addEventListener('click',()=>window.close());
+ /* v213: ◀ 이전 품번 · 다음 품번 ▶ — 사내외가공 발주 화면의 부품 순서대로 다음 부품을 불러온다.
+  *   가공계획이 이미 등록된 부품은 등록된 순서·사내 표시로 띠를 바꾸고,
+  *   아직 등록 안 된 부품이면 띠의 가공공정 순서·사내 체크를 그대로 둔다 → 같은 순서를 여러 부품에 [가공계획 적용] 하기 좋다. */
+ let MV_SEQ=0;const MV_WAIT={};
+ window.addEventListener('message',ev=>{const d=ev.data;if(!d||d.type!=='mes_drawboard_move_done'||ev.origin!==location.origin)return;
+  const w=MV_WAIT[d.id];if(!w)return;delete MV_WAIT[d.id];d.ok?w.res(d.data):w.rej(new Error(d.err||'불러오기 실패'))});
+ function askMove(dir){return new Promise((res,rej)=>{const op=window.opener;if(!op||op.closed)return rej(new Error('사내외가공 발주 화면이 닫혀 있어 다른 품번을 불러올 수 없습니다.'));
+  const id=++MV_SEQ;MV_WAIT[id]={res,rej};setTimeout(()=>{if(MV_WAIT[id]){delete MV_WAIT[id];rej(new Error('응답이 없습니다.'))}},10000);
+  op.postMessage({type:'mes_drawboard_move',id,dir,job:o.job||'',part:o.part||'',jo:o.jo==null?null:o.jo,ri:o.ri},location.origin)})}
+ function applyPart(n){
+  o=Object.assign({},o,n,{by:o.by,all:o.all});
+  PLAN=(o.steps||[]);STEPS.forEach(s=>{s.plan=[];s.vendor='';s.state=''});
+  PLAN.forEach((ps,k)=>{const c=String(ps.code||'').trim();let t=STEPS.find(x=>x.code===c||x.code.toUpperCase()===c.toUpperCase());
+   if(!t){t={idx:STEPS.length,code:c,name:ps.name||c,inhouse:!!ps.inhouse,vendor:'',state:'',plan:[]};STEPS.push(t);makeBtn(t)}
+   t.plan.push(k+1);if(!t.vendor)t.vendor=ps.vendor||'';if(!t.state)t.state=ps.state||''});
+  PLANSEQ=[];PLAN.forEach(ps=>{const c=String(ps.code||'').trim();const t=STEPS.find(x=>x.code===c||x.code.toUpperCase()===c.toUpperCase());if(t&&!PLANSEQ.includes(t.idx))PLANSEQ.push(t.idx)});
+  renderMeta();ORI_SET=false;setFig(o.image);ovImg=null;try{$('ovB').querySelectorAll('img').forEach(x=>x.remove())}catch(e){}
+  $('sideTitle').textContent='가공공정 전체 ('+STEPS.length+') · 계획 '+PLANSEQ.length;
+  let kept=true;
+  if(o.saved&&PLAN.length){kept=false;SEQ=PLANSEQ.slice();   /* 등록된 가공계획 → 등록된 순서 · 사내 표시 그대로 */
+   STEPS.forEach(s=>{s.inhouse=false});
+   PLAN.forEach(ps=>{const c=String(ps.code||'').trim();const t=STEPS.find(x=>x.code===c||x.code.toUpperCase()===c.toUpperCase());if(t&&ps.inhouse)t.inhouse=true});
+   btns.querySelectorAll('.pbtn').forEach(bn=>{const s=STEPS[Number(bn.dataset.i)];const hc=bn.querySelector('label.h input');if(s&&hc)hc.checked=!!s.inhouse})}
+  planBadges();draw();try{$('note').textContent=''}catch(e){}
+  const tip=$('moveTip');if(tip)tip.textContent=kept?`${o.part} — 가공계획 미등록 · 띠의 공정 순서를 그대로 두었습니다 ([▣ 가공계획 적용]으로 저장)`:`${o.part} — 등록된 가공계획 순서를 불러왔습니다`;
+  try{sessionStorage.setItem('mes_drawboard',JSON.stringify(o))}catch(e){}}
+ async function movePart(dir){const b=$(dir>0?'bNext':'bPrev');const t0=b?b.textContent:'';if(b){b.disabled=true;b.textContent='불러오는 중…'}
+  try{applyPart(await askMove(dir))}catch(e){alert(e.message)}
+  finally{if(b){b.disabled=false;b.textContent=t0}}}
+ if($('bPrev'))$('bPrev').addEventListener('click',()=>movePart(-1));
+ if($('bNext'))$('bNext').addEventListener('click',()=>movePart(1));
  /* v210: 그림 등록 — 그림 편집기(캡쳐·이미지·PDF)로 만든 그림을 사내외가공 발주 화면(연 창)에 보내
   *   PartList(원재료/구매품)의 이 부품 그림으로 저장한다. 저장이 끝나면 그 그림으로 다시 그린다. */
  let PIC_SEQ=0;const PIC_WAIT={};

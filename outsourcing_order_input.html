@@ -1232,13 +1232,24 @@ function ctxDone(ev,head){
 }
 
 /* v203: 부품 그림보드 — 그림 위에 가공공정 순서를 표시해 인쇄·PDF 저장 (mes_drawboard.js) */
-function drawBoard(ri){
- const r=ROUTES[ri];if(!r)return;const j=jobView[jobIdx]||{};
- if(!window.MESDRAW)return msg('그림보드 모듈(mes_drawboard.js)이 없습니다.');
+function boardData(ri){
+ const r=ROUTES[ri];if(!r)return null;const j=jobView[jobIdx]||{};
  const steps=(r.steps||[]).map((s,i)=>{const c=stepCode(s);if(!c)return null;const o=isHouse(r,i)?{vendor:'',st:''}:stepInfo(r,i);
   return {code:c,name:procName(c),inhouse:isHouse(r,i),vendor:o.vendor||'',state:o.st||''}}).filter(Boolean);
- MESDRAW.open({job:j.job||'',item:j.item||'',part:r.part,name:r.name||'',qty:r.qty,image:PIMG[r.part]||'',steps,all:PROCLIST,by:OWNER,ri,jo:r.jo??null});
+ return {job:j.job||'',item:j.item||'',part:r.part,name:r.name||'',qty:r.qty,image:PIMG[r.part]||'',steps,all:PROCLIST,by:OWNER,ri,jo:r.jo??null,saved:!!r.saved};   /* v213: saved = 가공계획에 저장된 부품 */
 }
+function drawBoard(ri){
+ if(!window.MESDRAW)return msg('그림보드 모듈(mes_drawboard.js)이 없습니다.');
+ const d=boardData(ri);if(d)MESDRAW.open(d);
+}
+/* v213: 그림보드 [◀ 이전 품번 / 다음 품번 ▶] — 이 화면의 부품 목록 순서대로 앞·뒤 부품 자료를 보낸다 */
+window.addEventListener('message',ev=>{const d=ev.data;if(!d||d.type!=='mes_drawboard_move'||ev.origin!==location.origin)return;
+ const reply=(ok,x)=>{try{ev.source.postMessage({type:'mes_drawboard_move_done',id:d.id,ok,...(ok?{data:x}:{err:String(x)})},location.origin)}catch(e){}};
+ const j=jobView[jobIdx]||{};if(!j.job||j.job!==d.job)return reply(false,'사내외가공 발주 화면의 제번('+(j.job||'-')+')이 그림보드 제번('+d.job+')과 다릅니다. 그 제번을 다시 고른 뒤 사용하세요.');
+ let cur=ROUTES.findIndex(x=>x.part===d.part&&String(x.jo??'')===String(d.jo??''));if(cur<0)cur=Number(d.ri);
+ const nx=cur+(d.dir<0?-1:1);
+ if(nx<0)return reply(false,'첫 번째 품번입니다.');if(nx>=ROUTES.length)return reply(false,'마지막 품번입니다.');
+ reply(true,boardData(nx))});
 /* v207: 그림보드에서 고른 공정 순서를 이 부품의 가공계획(machining_plan_parts)에 적용 — 공정편집의 [가공계획 적용]과 같은 규칙 */
 /* v212: 그림보드 [기준공정 불러오기] — 가공 기준공정관리 목록을 읽어 보낸다 */
 window.addEventListener('message',ev=>{const d=ev.data;if(!d||d.type!=='mes_drawboard_std'||ev.origin!==location.origin)return;
@@ -1341,7 +1352,7 @@ window.MESLOOK_RELOAD_VENDORS=async()=>{MESLOOK.invalidate('vendor_outsourcing')
  if(typeof renderRoutes==='function')renderRoutes();};
 </script>
 <script src="mes_price.js?v=162"></script>
-<script src="mes_mail.js?v=175"></script><script src="mes_drawboard.js?v=212"></script>
+<script src="mes_mail.js?v=175"></script><script src="mes_drawboard.js?v=213"></script>
 <script src="mes_route_edit.js?v=196"></script>
 <script src="mes_vendorcheck.js?v=196"></script>
 <script>
