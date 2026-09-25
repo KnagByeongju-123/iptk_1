@@ -19,9 +19,9 @@
  /* 머리글 */
  const meta=$('meta');
  function renderMeta(){meta.textContent='';
-  [['제번',(o.job||'')+(o.item?' · '+o.item:'')],['품번',o.part||''],['부품명',o.name||''],['소요수량',o.qty==null?'':String(o.qty)],['작성',o.by||''],['일자',new Date().toISOString().slice(0,10)]]
+  [['제번',(o.job||'')+(o.item?' · '+o.item:'')],['품번',(o.part||'')+((Number(o.cyc)||1)>1||o.cycEnded?' ('+(Number(o.cyc)||1)+'차'+(o.cycEnded?' 종료':'')+')':'')],['부품명',o.name||''],['소요수량',o.qty==null?'':String(o.qty)],['작성',o.by||''],['일자',new Date().toISOString().slice(0,10)]]
    .forEach(([k,v])=>{meta.appendChild(el('b',null,k));meta.appendChild(el('span',null,v))});
-  $('footL').textContent=(o.job||'')+' · '+(o.part||'')+' '+(o.name||'');
+  $('footL').textContent=(o.job||'')+' · '+(o.part||'')+((Number(o.cyc)||1)>1?' '+(Number(o.cyc)||1)+'차':'')+' '+(o.name||'');
   document.title='부품 그림보드 '+(o.job||'')+' '+(o.part||'')}
  renderMeta();
  /* 그림 */
@@ -75,7 +75,8 @@
   if(s.plan.length){const p=el('span','p','계획 '+s.plan.join(','));b.querySelector('.k').after(p)}
   const v=b.querySelector('.v');if(v)v.textContent=[s.vendor,s.state].filter(Boolean).join(' · ')})}
  /* v215: QR — 제번_공정(조)_품번 을 담은 현장용 링크(qr_work.html · 로그인 없음). 휴대폰 카메라로 읽으면 이 부품의 공정 목록이 열려 작업완료(외주=입고 처리 · 사내=가공 실적)를 할 수 있다 */
- function qrKey(){return [o.job||'',String(o.jo??'1').replace(/조$/,'')||'1',o.part||''].join('_')}
+ /* v228: QR 키 = 제번_조_품번~차수 — 차수마다 QR 이 다르다 (옛 QR(차수 없음)은 현재 차수로 본다) */
+ function qrKey(){return [o.job||'',String(o.jo??'1').replace(/조$/,'')||'1',o.part||''].join('_')+'~'+(Number(o.cyc)||1)}
  function qrUrl(){const base=location.href.replace(/[^/]*$/,'');return base+'qr_work.html?key='+encodeURIComponent(qrKey())}
  function qrBox(){const box=el('div','qr');
   try{if(window.qrcode){const q=qrcode(0,'M');q.addData(qrUrl());q.make();box.innerHTML=q.createSvgTag({cellSize:2,margin:0,scalable:true})}}catch(e){}
