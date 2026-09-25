@@ -62,6 +62,7 @@ input.cell.wtman{background:#fffbe6;border-color:#d4ad3f;font-weight:700}
   <section class="filters">
     <span class="label">제번</span><input id="jobQ" class="field" style="width:220px" placeholder="제번 입력/선택" autocomplete="off">
     <span class="label">품번</span><input id="modelQ" class="field" style="width:260px" placeholder="품번 입력/선택" list="modelDL" autocomplete="off"><datalist id="modelDL"></datalist>
+    <span class="label">최종완료</span><select id="doneF" class="field" onchange="renderBom()" title="전량 입고확정된 줄(이전 차수 포함)을 숨기거나 보입니다"><option value="x">제외</option><option value="i">포함</option></select>
     <button class="btn" onclick="search()">⌕ 조회</button>
     <button class="btn" onclick="cycOpen()" title="이미 진행 중인 품번을 처음부터 다시 구매 — 기존 발주·입고 이력은 이전 차수로 남고 새 차수(빈 상태)로 시작합니다. 자재표에서 품번을 체크하면 그 품번만 고릅니다" style="color:#7a4a12;font-weight:700">↻ 신규진행</button>
   </section>
@@ -109,7 +110,7 @@ function venFind(){const q=(venQ.value||'').trim().toLowerCase();
  venIdx=-1;renderVendors();
  msg(q?`협력업체 ${venView.length}건 검색`:`협력업체 ${venView.length}건`)}
 function renderVendors(){venBody.innerHTML=venView.map((v,i)=>`<tr class="${i===venIdx?'sel':''}" onclick="pickVendor(${i})"><td>${v}</td></tr>`).join('')}
-function renderBom(){const b=jobView[jobIdx]?.bom||[];bomBody.innerHTML=b.length?b.map((r,i)=>`<tr><td class="c"><input type="checkbox" checked data-i="${i}"></td><td>${r.part}${window.MESCYCLE?MESCYCLE.badge(MESCYCLE.cur(r.part),r.part):''}</td><td>${r.name}</td><td class="c">${r.mat}${r.shape?`<span style="color:#7a4a12;font-size:10px"> ${r.shape}</span>`:''}</td><td>${r.spec}</td><td class="r">${r.qty}</td><td class="c">${r.att}</td></tr>`).join(''):'<tr><td colspan="9" class="c" style="color:#8b98a4">자재표가 없습니다.</td></tr>';
+function renderBom(){const b=jobView[jobIdx]?.bom||[];bomBody.innerHTML=b.length?b.map((r,i)=>`<tr><td class="c"><input type="checkbox" checked data-i="${i}"></td><td>${r.part}${window.MESCYCLE?MESCYCLE.badge(r.cyc||MESCYCLE.cur(r.part),r.part,null,r.old):''}${r.old?'<span class="cycold-tag">이전</span>':''}</td><td>${r.name}</td><td class="c">${r.mat}${r.shape?`<span style="color:#7a4a12;font-size:10px"> ${r.shape}</span>`:''}</td><td>${r.spec}</td><td class="r">${r.qty}</td><td class="c">${r.att}</td></tr>`).join(''):'<tr><td colspan="9" class="c" style="color:#8b98a4">자재표가 없습니다.</td></tr>';
  if(typeof syncBomAll==='function')syncBomAll()}
 /* v115: 구매요청 리스트 전체선택 — 제목행 체크박스로 전체선택/해제 */
 function reqChks(){return [...reqBody.querySelectorAll('input[type=checkbox]')]}
@@ -138,7 +139,7 @@ document.addEventListener('change',e=>{
 function renderReq(){
  /* v115: 재렌더 시 체크 상태 유지 — 입고요구일 일괄 적용 후 체크가 풀리던 문제 */
  const _on=new Set([...reqBody.querySelectorAll('input[type=checkbox]:checked')].map(c=>c.dataset.no));
- reqBody.innerHTML=REQ.map((r,i)=>`<tr onclick="this.classList.toggle('sel')"><td class="c">${i+1}</td><td class="c"><input type="checkbox" data-no="${r.no}"></td><td>${r.vendor}</td><td>${r.job}</td><td class="c">${r.proc}</td><td>${r.part}${window.MESCYCLE?MESCYCLE.badge(MESCYCLE.cur(r.part),r.part):''}</td><td>${r.name}</td><td class="c">${r.mat}</td><td>${r.design}</td><td class="r">${n(r.th)}</td><td class="r">${n(r.w)}</td><td class="r">${n(r.l)}</td><td class="r">${r.qty??''}</td><td class="r"><input class="cell ordin" value="${r.ord??''}" onclick="event.stopPropagation()" onfocus="this.select()" onchange="setOrd(${r.no},this.value)" title="발주수량 — 자재표 수량보다 적게 발주하면 나머지는 나중에 추가발주할 수 있습니다" style="text-align:right"></td><td class="r"><input class="cell${r.wtManual?' wtman':''}" value="${r.wt==null||r.wt===''?'':Number(r.wt).toFixed(2)}" onclick="event.stopPropagation()" onfocus="this.select()" onchange="setWt(${r.no},this.value)" title="총중량(kg) — 설계치수로 자동 계산되지만 직접 고칠 수 있습니다. 비우면 다시 자동 계산" style="text-align:right"></td><td class="r">${money(r.stdPrice)}</td><td class="r"><input class="cell" value="${r.buyPrice??0}" onclick="event.stopPropagation()" onchange="setBuy(${r.no},this.value)" title="매입단가를 고치면 매입금액이 다시 계산됩니다"></td><td class="r">${money(r.amount)}</td><td class="c">${r.odate}</td><td class="c"><input class="cell" type="date" value="${r.rdate||''}" onclick="event.stopPropagation()" onchange="setRdate(${r.no},this.value)" title="이 행의 입고요구일을 수정합니다"></td><td class="c">${r.att}</td></tr>`).join(''); _on.forEach(no=>{const c=reqBody.querySelector(`input[data-no="${no}"]`);if(c)c.checked=true});
+ reqBody.innerHTML=REQ.map((r,i)=>`<tr onclick="this.classList.toggle('sel')"><td class="c">${i+1}</td><td class="c"><input type="checkbox" data-no="${r.no}"></td><td>${r.vendor}</td><td>${r.job}</td><td class="c">${r.proc}</td><td>${r.part}${window.MESCYCLE?MESCYCLE.badge(r.cyc||MESCYCLE.cur(r.part),r.part,null,r.old):''}${r.old?'<span class="cycold-tag">이전</span>':''}</td><td>${r.name}</td><td class="c">${r.mat}</td><td>${r.design}</td><td class="r">${n(r.th)}</td><td class="r">${n(r.w)}</td><td class="r">${n(r.l)}</td><td class="r">${r.qty??''}</td><td class="r"><input class="cell ordin" value="${r.ord??''}" onclick="event.stopPropagation()" onfocus="this.select()" onchange="setOrd(${r.no},this.value)" title="발주수량 — 자재표 수량보다 적게 발주하면 나머지는 나중에 추가발주할 수 있습니다" style="text-align:right"></td><td class="r"><input class="cell${r.wtManual?' wtman':''}" value="${r.wt==null||r.wt===''?'':Number(r.wt).toFixed(2)}" onclick="event.stopPropagation()" onfocus="this.select()" onchange="setWt(${r.no},this.value)" title="총중량(kg) — 설계치수로 자동 계산되지만 직접 고칠 수 있습니다. 비우면 다시 자동 계산" style="text-align:right"></td><td class="r">${money(r.stdPrice)}</td><td class="r"><input class="cell" value="${r.buyPrice??0}" onclick="event.stopPropagation()" onchange="setBuy(${r.no},this.value)" title="매입단가를 고치면 매입금액이 다시 계산됩니다"></td><td class="r">${money(r.amount)}</td><td class="c">${r.odate}</td><td class="c"><input class="cell" type="date" value="${r.rdate||''}" onclick="event.stopPropagation()" onchange="setRdate(${r.no},this.value)" title="이 행의 입고요구일을 수정합니다"></td><td class="c">${r.att}</td></tr>`).join(''); _on.forEach(no=>{const c=reqBody.querySelector(`input[data-no="${no}"]`);if(c)c.checked=true});
  if(typeof syncReqAll==='function')syncReqAll();
  sumQty.textContent=REQ.reduce((a,r)=>a+(r.qty||0),0);sumOrd.textContent=REQ.reduce((a,r)=>a+(r.ord||0),0);
  sumWt.textContent=REQ.reduce((a,r)=>a+(Number(r.wt)||0),0).toFixed(2);
@@ -214,7 +215,7 @@ function applyFilter(){const j=jobQ.value.trim().toLowerCase(),md=modelQ.value.t
 /* [⌕ 조회] — DB에서 제번을 다시 읽은 뒤 거른다 */
 function search(){applyFilter();
  if(typeof loadJobs==='function'){try{loadJobs(true)}catch(e){}}}
-async function pushDown(){const j=jobView[jobIdx];if(!j)return;const picks=[...bomBody.querySelectorAll('input:checked')].map(x=>j.bom[Number(x.dataset.i)]).filter(b=>!(b.oq>0&&!(b.rem>0)));if(!picks.length)return msg('자재표에서 발주할 품번을 선택하세요. (발주완료 품번은 제외됩니다)');const vens=pickedVendors();
+async function pushDown(){const j=jobView[jobIdx];if(!j)return;const picks0=[...bomBody.querySelectorAll('input:checked')].map(x=>j.bom[Number(x.dataset.i)]);const oldP=picks0.filter(b=>b&&b.old);if(oldP.length)msg(`이전 차수 줄은 발주할 수 없습니다: ${[...new Set(oldP.map(b=>b.part+' '+b.cyc+'차'))].join(', ')} — 아래 현재 차수 줄에서 하세요.`);const picks=picks0.filter(b=>b&&!b.old).filter(b=>!(b.oq>0&&!(b.rem>0)));if(!picks.length)return msg('자재표에서 발주할 품번을 선택하세요. (발주완료 품번은 제외됩니다)');const vens=pickedVendors();
  if(!vens.length)return msg('협력업체리스트에서 발주할 업체를 선택하세요.');
  const d=reqDate.value||new Date().toISOString().slice(0,10);
  const combos=[];for(const v of vens)for(const b of picks)combos.push({v,b});
@@ -228,7 +229,7 @@ async function pushDown(){const j=jobView[jobIdx];if(!j)return;const picks=[...b
   if(have.has(k)){dup.unshift(combos[i].b.part);combos.splice(i,1)}else have.add(k);
  }
  if(!combos.length){renderReq();return msg(`이미 요청 리스트에 있어 추가하지 않았습니다: ${[...new Set(dup)].join(', ')} — 아래 구매요청 리스트에서 수량·입고요구일을 수정하거나 [요청삭제] 후 다시 추가하세요.`)};
- combos.forEach(({v,b})=>{const dims=String(b.spec).split(/[*xX×]/).map(Number);REQ.push({no:REQ.length?Math.max(...REQ.map(r=>r.no))+1:1,vendor:v,job:j.job,proc:j.proc,part:b.part,name:b.name,mat:b.mat,shape:b.shape||'',design:b.spec,th:dims[0]||null,w:dims[1]||null,l:dims[2]||null,qty:b.qty,ord:(b.rem!=null&&b.rem>0?b.rem:b.qty),wt:null,stdPrice:0,buyPrice:0,price:0,amount:0,odate:new Date().toISOString().slice(0,10),rdate:d,att:b.att,remark:''})});
+ combos.forEach(({v,b})=>{const dims=String(b.spec).split(/[*xX×]/).map(Number);REQ.push({no:REQ.length?Math.max(...REQ.map(r=>r.no))+1:1,vendor:v,job:j.job,proc:j.proc,part:b.part,cyc:bomCyc(b),name:b.name,mat:b.mat,shape:b.shape||'',design:b.spec,th:dims[0]||null,w:dims[1]||null,l:dims[2]||null,qty:b.qty,ord:(b.rem!=null&&b.rem>0?b.rem:b.qty),wt:null,stdPrice:0,buyPrice:0,price:0,amount:0,odate:new Date().toISOString().slice(0,10),rdate:d,att:b.att,remark:''})});
  /* v39: 중량(설계치수 기준)과 자재 단가를 자동 산출해 발주금액을 채운다.
     금액이 없으면 입고확정을 해도 제조원가에 원재료비가 0으로 잡힌다. */
  if(window.MESPRICE){
@@ -255,9 +256,9 @@ function pullUp(){const ids=[...reqBody.querySelectorAll('input:checked')].map(x
 async function dupCheck(cat,job,rows){
  const ex0=await MESDB.table('order_lines').select(`select=line_id,part_no,vendor_name,machining_process_code,status,remark&category=eq.${encodeURIComponent(cat)}&job_no=eq.${encodeURIComponent(job)}&order=line_id`);
  const ex=oqActiveRows(ex0||[],false).filter(e=>String(e.status||'')==='발주');
- const key=(p,v,m)=>[p||'',v||'',cat==='외주가공'?(m||''):''].join('|');
- const have=new Set(ex.map(e=>key(e.part_no,e.vendor_name,e.machining_process_code)));
- return rows.filter(r=>have.has(key(r.part,r.vendor,r.mp)));
+ const key=(p,v,m,c)=>[p||'',v||'',cat==='외주가공'?(m||''):'',Number(c)||1].join('|');
+ const have=new Set(ex.map(e=>key(e.part_no,e.vendor_name,e.machining_process_code,e.cycle_no)));
+ return rows.filter(r=>have.has(key(r.part,r.vendor,r.mp,r.cyc)));
 }
 /* v112: 같은 제번·같은 품번이 '다른 업체'로 이미 발주(미입고)돼 있으면 경고한다.
    분할발주·견적비교를 막지 않기 위해 차단이 아니라 확인 후 진행. */
@@ -266,7 +267,7 @@ async function dupOtherVendor(cat,job,rows){
  const ex=oqActiveRows(ex0||[],false).filter(e=>String(e.status||'')==='발주');
  const out=[];
  for(const r of rows){
-  const hit=ex.filter(e=>(e.part_no||'')===(r.part||'')&&(e.vendor_name||'')!==(r.vendor||''));
+  const hit=ex.filter(e=>(e.part_no||'')===(r.part||'')&&(Number(e.cycle_no)||1)===(Number(r.cyc)||1)&&(e.vendor_name||'')!==(r.vendor||''));
   for(const h of hit)out.push({part:r.part,name:r.name||h.part_name||'',now:r.vendor,prev:h.vendor_name||'(업체미지정)',qty:h.order_qty,date:String(h.order_date||'').slice(0,10)});
  }
  return out;
@@ -290,7 +291,7 @@ async function save(){if(!REQ.length)return msg('저장할 구매요청이 없�
    return;
   }
  }
- await MESDB.newLines(REQ.map(r=>({category:'원재료',status:'발주',vendor_name:r.vendor,job_no:r.job,item_name:j.item||null,process_code:r.proc,part_no:r.part,part_name:r.name,material:r.mat,shape:r.shape||null,spec:r.design,order_qty:Number(r.ord)||null,order_weight:Number(r.wt)||null,unit_price:Number(r.buyPrice||r.price)||null,quote_price:Number(r.amount)||null,confirm_price:Number(r.amount)||null,order_date:r.odate||null,required_date:r.rdate||null,remark:oqCycleRemark(r.remark),cycle_no:(window.MESCYCLE?MESCYCLE.cur(r.part):1),cycle_reason:(window.MESCYCLE?(MESCYCLE.reason(r.part)||null):null),reorder_reason:r.reorder?(r.reason||'기타'):null})));const n=REQ.length;REQ.length=0;renderReq();/* v112: [저장] 클릭 0.4초 뒤 자동저장이 발주 완료보다 먼저 돌아 옛 요청이 page_state 에 남았다 → 비운 뒤 한 번 더 저장 트리거 */try{document.dispatchEvent(new Event('change'))}catch(e){}msg(`원재료 발주 ${n}건을 DB에 등록했습니다. 발주현황/입고등록 화면에서 확인하세요.`)}catch(e){msg('DB 등록 실패: '+e.message.slice(0,120))}}
+ await MESDB.newLines(REQ.map(r=>({category:'원재료',status:'발주',vendor_name:r.vendor,job_no:r.job,item_name:j.item||null,process_code:r.proc,part_no:r.part,part_name:r.name,material:r.mat,shape:r.shape||null,spec:r.design,order_qty:Number(r.ord)||null,order_weight:Number(r.wt)||null,unit_price:Number(r.buyPrice||r.price)||null,quote_price:Number(r.amount)||null,confirm_price:Number(r.amount)||null,order_date:r.odate||null,required_date:r.rdate||null,remark:oqCycleRemark(r.remark),cycle_no:Number(r.cyc)||(window.MESCYCLE?MESCYCLE.cur(r.part):1),cycle_reason:(window.MESCYCLE&&(Number(r.cyc)||MESCYCLE.cur(r.part))===MESCYCLE.cur(r.part)?(MESCYCLE.reason(r.part)||null):null),reorder_reason:r.reorder?(r.reason||'기타'):null})));const n=REQ.length;REQ.length=0;renderReq();/* v112: [저장] 클릭 0.4초 뒤 자동저장이 발주 완료보다 먼저 돌아 옛 요청이 page_state 에 남았다 → 비운 뒤 한 번 더 저장 트리거 */try{document.dispatchEvent(new Event('change'))}catch(e){}msg(`원재료 발주 ${n}건을 DB에 등록했습니다. 발주현황/입고등록 화면에서 확인하세요.`)}catch(e){msg('DB 등록 실패: '+e.message.slice(0,120))}}
 
 /* v116 발주서 A4 페이지 구성: 데이터 행을 넣다 넘치면 다음 장, 마지막 장은 빈 행으로 채움 */
 function a4Build(host,o){
@@ -372,9 +373,10 @@ async function loadBom(){
      (규격(spec) 칸이 비어 있으면 중량이 0 이 되어 원재료비가 단가×수량으로만 잡히던 문제) */
   const dim=r=>{const a=[r.thickness_dia,r.length,r.width].map(v=>Number(v)).filter(v=>v>0);
     return a.length===3?a.join('*'):''};
-  j.bom=rs.map(r=>({part:r.part_no,name:r.part_name,mat:r.material||'',shape:r.shape||'',image:r.image_url||'',
+  j.bom0=rs.map(r=>({part:r.part_no,name:r.part_name,mat:r.material||'',shape:r.shape||'',image:r.image_url||'',
     spec:(r.spec&&/\d+\s*[*xX×]\s*\d+\s*[*xX×]\s*\d+/.test(r.spec))?r.spec:(dim(r)||r.spec||''),
     qty:r.qty??1,att:r.attachment||''}));
+  j.bom=j.bom0.map(b=>Object.assign({},b,{cyc:1,old:false}));if(window.MESCYCLE&&MESCYCLE.job===j.job)expandBom(j);
   if(rs.length)j.proc=rs[0].process_code||j.proc;
   renderBom();
  }catch(e){}
@@ -418,31 +420,37 @@ function sampleFill(){
 <script>
 /* v116: 자재표에 '발주수량'(이 제번·품번으로 이미 나간 원재료 발주 합계) 표시.
    발주수량 ≥ 수량이면 행을 연회색으로 두고 체크 불가. 첫 진입은 전부 미선택. 요청추가 시 기본 발주수량 = 잔량 */
-let RQ={};const OQ_원재료='원재료';let OQ={},OQ_JOB='',OQ_CYCLE={};
+let RQ={};const OQ_원재료='원재료';let OQ={},OQ_JOB='',OQ_CYCLE={},OQ_DONE={};
 /* v225: 발주 차수(신규진행) — part_cycles 의 현재 차수(MESCYCLE.cur) 에 속한 order_lines 만 현재 발주수량/잔량으로 집계한다.
    과거 차수는 order_lines 이력으로 보존. (예전 [신규발주:ID] 비고 표식은 sql_v225 에서 cycle_no 로 변환됨) */
-function oqActiveRows(rows,remember=false){
- const a=(rows||[]).slice().sort((x,y)=>(Number(x.line_id)||0)-(Number(y.line_id)||0));
- if(!window.MESCYCLE)return a;
- return a.filter(r=>MESCYCLE.lineNo(r)===MESCYCLE.cur(r.part_no))
+function oqActiveRows(rows,remember=false){   /* v226: 차수별 행이 따로 있으므로 전 차수를 그대로 돌려주고, 비교는 품번|차수 로 한다 */
+ return (rows||[]).slice().sort((x,y)=>(Number(x.line_id)||0)-(Number(y.line_id)||0));
 }
+const oqKey=(p,c)=>String(p||'')+'|'+(Number(c)||1);
+const bomCyc=b=>Number(b&&b.cyc)||(window.MESCYCLE?MESCYCLE.cur(b&&b.part):1);
+/* v226: 자재표를 차수별 줄로 늘린다 — 품번마다 1차 … 현재차수 순서(1차 위, 새 차수 아래). 이전 차수 줄은 old 표시 */
+function expandBom(j){if(!j||!Array.isArray(j.bom0))return;const cur=p=>window.MESCYCLE?MESCYCLE.cur(p):1;
+ const out=[];j.bom0.forEach(b=>{const n=cur(b.part);for(let c=1;c<=n;c++)out.push(Object.assign({},b,{cyc:c,old:c<n}))});j.bom=out}
+/* v226: 상단 「최종완료 제외/포함」 — 전량 입고확정된 줄(이전 차수 포함)을 숨기거나 보인다 */
+window.applyDoneFilter=function(tr){const f=document.getElementById('doneF');if(!tr||!f)return;tr.style.display=(f.value==='x'&&tr.dataset.done==='1')?'none':''};
 const oqCycleRemark=(remark)=>{const r=String(remark||'').trim();return r||null};
 async function loadOrdQ(job){
  if(!job||!(window.MESDB&&MESDB.table))return;
  try{const _q=c=>`select=line_id,part_no,order_qty,status,reorder_reason,remark${c?',cycle_no':''}&category=eq.${encodeURIComponent(OQ_원재료)}&job_no=eq.${encodeURIComponent(job)}&order=line_id`;
   let rs;try{rs=await MESDB.table('order_lines').select(_q(1),{fresh:true})}catch(e){rs=await MESDB.table('order_lines').select(_q(0),{fresh:true})}   /* v225: sql_v225 미실행(컬럼 없음)이어도 화면은 돈다 */
   if(window.MESCYCLE)await MESCYCLE.load(job,OQ_원재료);
-  const m={},rq={};oqActiveRows(rs||[],true).forEach(r=>{if(/취소/.test(r.status||''))return;const k=r.part_no||'';const t=r.reorder_reason?rq:m;t[k]=(t[k]||0)+(Number(r.order_qty)||0)});
-  OQ=m;RQ=rq;OQ_JOB=job}catch(e){}
+  const m={},rq={},dn={};oqActiveRows(rs||[],true).forEach(r=>{if(/취소/.test(r.status||''))return;const k=oqKey(r.part_no,r.cycle_no);const t=r.reorder_reason?rq:m;t[k]=(t[k]||0)+(Number(r.order_qty)||0);dn[k]=(dn[k]==null?true:dn[k])&&String(r.status||'')==='입고확정'});
+  OQ=m;RQ=rq;OQ_DONE=dn;OQ_JOB=job;const j=jobView[jobIdx];if(j&&j.job===job)expandBom(j)}catch(e){}
 }
 function decorateBom(){
  const j=jobView[jobIdx];if(!j||!j.bom)return;const m=OQ_JOB===j.job?OQ:{};
  bomBody.querySelectorAll('input[type=checkbox][data-i]').forEach(cb=>{
   const b=j.bom[Number(cb.dataset.i)];if(!b)return;const tr=cb.closest('tr');
-  const q=Number(b.qty)||0,oq=m[b.part]||0;b.oq=oq;b.rem=Math.max(0,q-oq);
+  const q=Number(b.qty)||0,oq=m[oqKey(b.part,b.cyc)]||0;b.oq=oq;b.rem=Math.max(0,q-oq);
+  tr.classList.toggle('cycold',!!b.old);tr.dataset.done=(OQ_JOB===j.job&&OQ_DONE[oqKey(b.part,b.cyc)])?'1':'';window.applyDoneFilter(tr);
   if(!tr.querySelector('td.oq')){const td=document.createElement('td');td.className='r oq';
    const ref=tr.cells[tr.cells.length-1];tr.insertBefore(td,ref)}
-  {const rq=(OQ_JOB===j.job?RQ[b.part]:0)||0;const td=tr.querySelector('td.oq');td.textContent=oq?oq:'';if(rq){const e=document.createElement('span');e.className='rq';e.textContent=' +재'+rq;e.title='재발주(실수·불량·예비품 등) 수량 — 자재표 수량 집계에서 제외';td.appendChild(e)}}
+  {const rq=(OQ_JOB===j.job?RQ[oqKey(b.part,b.cyc)]:0)||0;const td=tr.querySelector('td.oq');td.textContent=oq?oq:'';if(rq){const e=document.createElement('span');e.className='rq';e.textContent=' +재'+rq;e.title='재발주(실수·불량·예비품 등) 수량 — 자재표 수량 집계에서 제외';td.appendChild(e)}}
   const full=q>0&&oq>=q;
   cb.checked=false;cb.disabled=false;tr.classList.toggle('bom-done',full);   /* v169: 발주완료 품번도 체크 가능 (일괄 입고·입고확정용) */
   tr.title=full?`발주완료 — 수량 ${q} / 발주 ${oq}`:(oq?`부분발주 — 잔량 ${q-oq}`:'');
@@ -455,7 +463,7 @@ function decorateBom(){
  const _lb=window.loadBom;window.loadBom=async function(){const r=await _lb.apply(this,arguments);const j=jobView[jobIdx];if(j){await loadOrdQ(j.job);window.renderBom()}return r};
  const _sv=window.save;window.save=async function(){const r=await _sv.apply(this,arguments);try{const j=jobView[jobIdx];if(j){await loadOrdQ(j.job);window.renderBom()}}catch(e){}return r};
  if(window.MES){if(MES.save)MES.save=window.save}
- const st=document.createElement('style');st.textContent='#bomBody tr.bom-done td{color:#b4bcc3!important}#bomBody tr.bom-part td.oq{color:#c77700;font-weight:700}';
+ const st=document.createElement('style');st.textContent='#bomBody tr.bom-done td{color:#b4bcc3!important}#bomBody tr.bom-part td.oq{color:#c77700;font-weight:700}#bomBody tr.cycold td{background:#f4f1ea!important;color:#8a8073}#bomBody tr.cycold td:first-child{box-shadow:inset 3px 0 0 #c9b485}.cycold-tag{margin-left:3px;font-size:10px;color:#9a8b6a}';
  document.head.appendChild(st);
  try{window.renderBom()}catch(e){}
  /* 첫 조회가 이 스크립트보다 먼저 끝났을 수 있으므로 한 번 더 발주수량을 읽는다 */
@@ -476,7 +484,7 @@ function decorateBom(){
 <script>
 /* v116 재발주: 발주 후 실수·불량·예비품 등으로 추가 발주. order_lines.reorder_reason 에 사유 저장, 비고에 [재발주:사유] 기록 */
 function reOpen(){const j=jobView[jobIdx];if(!j||!(j.bom||[]).length)return msg('제번을 선택해 자재표를 먼저 조회하세요.');
- reBody.innerHTML=j.bom.map((b,i)=>`<tr><td class="c"><input type="checkbox" data-i="${i}"></td><td>${b.part}</td><td>${b.name||''}</td><td class="r">${b.qty??''}</td><td class="r">${b.oq||''}</td><td class="r">${((OQ_JOB===j.job?RQ[b.part]:0)||'')}</td><td><input class="cell" data-q="${i}" value="1" style="width:100%;text-align:right" onfocus="this.select()" oninput="this.closest('tr').querySelector('input[type=checkbox]').checked=true"></td></tr>`).join('');
+ reBody.innerHTML=j.bom.map((b,i)=>b.old?'':`<tr><td class="c"><input type="checkbox" data-i="${i}"></td><td>${b.part}</td><td>${b.name||''}</td><td class="r">${b.qty??''}</td><td class="r">${b.oq||''}</td><td class="r">${((OQ_JOB===j.job?RQ[oqKey(b.part,b.cyc)]:0)||'')}</td><td><input class="cell" data-q="${i}" value="1" style="width:100%;text-align:right" onfocus="this.select()" oninput="this.closest('tr').querySelector('input[type=checkbox]').checked=true"></td></tr>`).join('');
  reMemo.value='';reDlg.classList.add('on')}
 async function reAdd(){const j=jobView[jobIdx];if(!j)return;
  const picks=[...reBody.querySelectorAll('input[type=checkbox]:checked')].map(c=>{const i=Number(c.dataset.i);const q=Math.trunc(Number(reBody.querySelector(`input[data-q="${i}"]`).value)||0);return {i,q}}).filter(x=>x.q>0);
@@ -510,17 +518,17 @@ try{MESJOB.attach("jobQ",{onPick:()=>{try{onJobPick()}catch(e){}}})}catch(e){}
 });
 </script>
 <script src="mes_mail.js?v=174"></script>
-<script src="mes_cycle.js?v=225"></script><script src="mes_ordctx.js?v=225"></script>
+<script src="mes_cycle.js?v=226"></script><script src="mes_ordctx.js?v=226"></script>
 <script>
 /* v225: 신규진행 — 자재표에서 체크한 품번(없으면 전체 목록)의 새 차수를 시작한다. 현재 차수에 발주가 없는 품번은 시작할 수 없다 */
 async function cycOpen(){const j=jobView[jobIdx];if(!j||!(j.bom||[]).length)return msg('제번을 선택해 자재표를 먼저 조회하세요.');
  if(!window.MESCYCLE)return msg('차수 모듈(mes_cycle.js)이 없습니다.');if(!(window.MESDB&&MESDB.online))return msg('DB 미연결 — 신규진행은 DB 연결 상태에서만 됩니다.');
  try{await loadOrdQ(j.job)}catch(e){}
  const chk=new Set([...bomBody.querySelectorAll('input[type=checkbox][data-i]:checked')].map(c=>Number(c.dataset.i)));
- const parts=j.bom.map((b,i)=>{const oq=(OQ_JOB===j.job?OQ[b.part]:0)||0,rq=(OQ_JOB===j.job?RQ[b.part]:0)||0;let st='';try{st=(MESORDCTX.partState(b.part)||{}).label||''}catch(e){}
+ const parts=j.bom.map((b,i)=>{if(b.old)return null;const oq=(OQ_JOB===j.job?OQ[oqKey(b.part,b.cyc)]:0)||0,rq=(OQ_JOB===j.job?RQ[oqKey(b.part,b.cyc)]:0)||0;let st='';try{st=(MESORDCTX.partState(b)||{}).label||''}catch(e){}
   const has=oq>0||rq>0;return {part:b.part,name:b.name||'',info:has?`${st} · 발주 ${oq}${rq?' +재'+rq:''} / 수량 ${b.qty??''}`:'미발주',can:has,why:'현재 차수에 발주가 없어 신규진행할 것이 없습니다 (그냥 [요청추가]로 발주하세요)',_i:i}});
- const list=chk.size?parts.filter(p=>chk.has(p._i)):parts;
- MESCYCLE.start({job:j.job,category:OQ_원재료,parts:list,by:OWNER,onDone:async(ps,why)=>{try{await MESORDCTX.loadLines(j.job)}catch(e){}await loadOrdQ(j.job);window.renderBom();try{MESORDCTX.refresh()}catch(e){}msg(`${ps.join(', ')} 신규진행 시작 (사유: ${why}) — 자재표 기발주가 새 차수 기준(0)으로 바뀌었습니다. [요청추가]로 다시 발주하세요.`)}})}
+ const list=(chk.size?parts.filter(p=>p&&chk.has(p._i)):parts).filter(Boolean);
+ MESCYCLE.start({job:j.job,category:OQ_원재료,parts:list,by:OWNER,onDone:async(ps,why)=>{try{await MESORDCTX.loadLines(j.job)}catch(e){}await loadOrdQ(j.job);window.renderBom();try{MESORDCTX.refresh()}catch(e){}msg(`${ps.join(', ')} 신규진행 시작 (사유: ${why}) — 이전 차수 줄 아래에 새 차수 줄이 생겼습니다. 새 줄을 체크해 [요청추가]로 다시 발주하세요.`)}})}
 </script>
 <script>/* v142: 자재표 리스트 우클릭 → 발주 · 입고 · 입고확정 · 취소 (외주가공 발주와 같은 방식) */
 try{MESORDCTX.init({category:'원재료',useWeight:true,bySize:true,priceKey:b=>b.mat||b.part})}catch(e){}

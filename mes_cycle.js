@@ -35,7 +35,7 @@ const reason=p=>{const a=hist(p),n=cur(p);const h=a.find(x=>x.no===n);return h?h
 const lineNo=r=>Number(r&&r.cycle_no)||1;
 function rowsOf(rows,part){return (rows||[]).filter(r=>lineNo(r)===cur(part!=null?part:r.part_no))}
 function title(p){const a=hist(p);if(!a.length)return '';return a.map(x=>`${x.no}차 — ${x.reason||''}${x.memo?' ('+x.memo+')':''}${x.at?' · '+x.at:''}${x.by?' '+x.by:''}`).join('\n')}
-function badge(no,part,why){no=Number(no)||1;if(no<=1)return '';const t=part!=null?title(part):'';return `<span class="cycb" title="${esc(t||(no+'차 진행'+(why?' — '+why:'')))}">${no}차</span>`}
+function badge(no,part,why,force){no=Number(no)||1;if(no<=1&&!force)return '';const t=part!=null?title(part):'';return `<span class="cycb" title="${esc(t||(no+'차 진행'+(why?' — '+why:'')))}">${no}차</span>`}
 
 /* ── 신규진행 대화상자 ── */
 function css(){if(document.getElementById('mesCycleCss'))return;const s=document.createElement('style');s.id='mesCycleCss';s.textContent=`

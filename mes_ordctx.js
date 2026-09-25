@@ -1,4 +1,4 @@
-/* mes_ordctx.js — v225  (v225 발주 차수 cycle_no · v157 신규발주 차수 + v154 중량 수동입력 병합)
+/* mes_ordctx.js — v226 (차수별 자재표 행) · v225  (v225 발주 차수 cycle_no · v157 신규발주 차수 + v154 중량 수동입력 병합)
  * ─────────────────────────────────────────────────────────────────────────
  * 원재료 발주 · 구매품 발주 화면에서 「자재표 리스트」 한 줄만 가지고
  * 발주 → 입고 → 입고확정 까지 그 자리에서 끝낸다.
@@ -104,15 +104,20 @@ async function loadLines(job) {
       `select=*&category=eq.${encodeURIComponent(CFG.category)}` +
       `&job_no=eq.${encodeURIComponent(job)}&order=line_id`, { fresh: true });
     if (window.MESCYCLE && !(MESCYCLE.job === job && MESCYCLE.category === CFG.category)) { try { await MESCYCLE.load(job, CFG.category); } catch (e) {} }
-    activeCycleRows(rs || [], true).forEach(r => {
-      const k = r.part_no || '';
+    /* v226: 차수별 행 — 품번|차수 로 묶는다. 자재표에는 차수마다 한 줄(1차 위, 2차 아래)이 있다 */
+    (rs || []).slice().sort((x,y)=>(Number(x.line_id)||0)-(Number(y.line_id)||0)).forEach(r => {
+      const k = lkey(r.part_no, r.cycle_no);
       const a = out.get(k) || []; a.push(r); out.set(k, a);
     });
   } catch (e) { return; }              /* 조회 실패는 화면을 막지 않는다 (직전 내역 유지) */
   if (my !== _seq) return;             /* 더 최근 조회가 시작됐으면 이번 결과는 버린다 */
   LINES.clear(); out.forEach((v, k) => LINES.set(k, v)); LINES_JOB = job;
 }
-const linesOf = p => LINES.get(p) || [];
+const lkey = (p, c) => String(p || '') + '|' + (Number(c) || 1);
+/* b : 자재표 행 {part,cyc} 또는 품번 문자열(현재 차수) */
+const linesOf = b => LINES.get(typeof b === 'object' && b ? lkey(b.part, b.cyc || cycNo(b.part)) : lkey(b, cycNo(b))) || [];
+const bCyc = b => (typeof b === 'object' && b && b.cyc) ? Number(b.cyc) : cycNo(typeof b === 'object' && b ? b.part : b);
+const isOldCycle = b => bCyc(b) < cycNo(typeof b === 'object' && b ? b.part : b);
 const curJob  = () => (GV('jobView') || [])[GV('jobIdx')] || null;
 const vendorList = () => GV('VENDORS') || [];
 
@@ -132,7 +137,7 @@ function ordered(p) {
   return linesOf(p).filter(r => !r.reorder_reason)
     .reduce((s, r) => s + (Number(r.order_qty) || 0), 0);
 }
-function remain(b) { return Math.max(0, (Number(b.qty) || 0) - ordered(b.part)); }
+function remain(b) { return Math.max(0, (Number(b.qty) || 0) - ordered(b)); }
 /* v169: 자재표에서 체크된(활성) 품번 목록 */
 function checkedBoms() {
   const j = curJob(); if (!j || !j.bom) return [];
@@ -144,7 +149,7 @@ function checkedBoms() {
 function batchFor(status) {
   const bt = (CTX && CTX.batch) || [];
   return bt.map(x => {
-    const ls = linesOf(x.b.part).filter(l => !status || String(l.status || '') === status);
+    const ls = linesOf(x.b).filter(l => !status || String(l.status || '') === status);
     return { b: x.b, lines: ls };
   });
 }
@@ -317,7 +322,7 @@ function openPart(ev, idx) {
   CTX = { b, i: idx, job: j };
   /* v169: 체크한 다른 품번도 함께 처리 (가공계획 적용과 같은 방식) — 우클릭한 줄 + 체크된 줄 */
   CTX.batch = checkedBoms().filter(x => x.i !== idx); CTX.extraLines = null;
-  const a = linesOf(b.part);
+  const a = linesOf(b);
   if (!a.length) return formOrder(ev);
   if (a.length === 1) return formLine(ev, a[0]);
   return listLines(ev);
@@ -325,7 +330,7 @@ function openPart(ev, idx) {
 
 const headHtml = () => {
   const { b, job } = CTX;
-  const fresh = !!(CTX && CTX.newCycle), oq = fresh ? 0 : ordered(b.part), rem = fresh ? (Number(b.qty)||0) : remain(b);
+  const fresh = !!(CTX && CTX.newCycle), oq = fresh ? 0 : ordered(b), rem = fresh ? (Number(b.qty)||0) : remain(b);
   return `<div class="sub"><b>${_esc(job.job)}</b> · ${_esc(b.part)} ${_esc(b.name || '')}` +
          `${b.mat ? ' · ' + _esc(b.mat) : ''}${b.spec ? ' · ' + _esc(b.spec) : ''}` +
          ` · 자재표 수량 <b>${Number(b.qty) || 0}</b> / 현재차수 기발주 ${oq} / 잔량 <b>${rem}</b></div>`;
@@ -334,7 +339,7 @@ const headHtml = () => {
 /* v156: 현재 차수가 모두 입고확정된 품번만 신규발주 가능. 기존 이력은 남고 새 차수는 소요수량 전체에서 다시 시작한다. */
 function startNewCycle(ev) {
   if (!CTX || !CTX.b) return false;
-  const { b } = CTX, a = linesOf(b.part).filter(l => ['발주','입고','입고확정'].includes(String(l.status||'')));
+  const { b } = CTX, a = linesOf(b).filter(l => ['발주','입고','입고확정'].includes(String(l.status||'')));
   if (!a.length) { say(`${b.part} 기존 발주 이력이 없습니다. 일반 발주를 이용하세요.`); return false; }
   const openRows = a.filter(l => String(l.status||'') !== '입고확정');
   if (openRows.length) {
@@ -357,7 +362,7 @@ function startNewCycle(ev) {
 /* ── 발주가 여러 건인 품번 : 내역 목록 ─────────────────────── */
 function listLines(ev) {
   const { b } = CTX;
-  const a = linesOf(b.part);
+  const a = linesOf(b);
   const bd = { 발주: 'b-out', 입고: 'b-in', 입고확정: 'b-done' };
   const nm = { 발주: '발주', 입고: '입고', 입고확정: '확정' };
   const rows = a.map((l, k) => `<tr data-k="${k}">
@@ -450,6 +455,7 @@ function bindBatch() {
 /* ── ① 발주 ────────────────────────────────────────────────── */
 function formOrder(ev) {
   const { b, job } = CTX;
+  if (isOldCycle(b)) { say(`${b.part} ${bCyc(b)}차는 이전 차수입니다 — 새 발주는 아래 ${cycNo(b.part)}차 줄에서 하세요.`); return false; }
   const vs = vendorList();
   const rem = (CTX && CTX.newCycle) ? (Number(b.qty) || 1) : (remain(b) || Number(b.qty) || 1);
   const rd = (() => { try { return $('reqDate').value || T0(); } catch (e) { return T0(); } })();
@@ -471,7 +477,7 @@ function formOrder(ev) {
     <label>비고</label><input id="oxRemark" placeholder="선택">
    </div>
    ${(CTX && CTX.newCycle) ? `<div class="note" style="border-color:#e5ad62;background:#fff7ea;color:#8a4f08"><b>신규발주</b> — 기존 이력은 이전 차수로 그대로 남고, 이 발주부터 소요수량 전체를 기준으로 새 차수가 시작됩니다.</div>` : ''}
-   ${(() => { const bt = (CTX.newCycle ? [] : batchFor()); const ok = bt.filter(x => remain(x.b) > 0), skip = bt.filter(x => !(remain(x.b) > 0)).map(x => x.b.part);
+   ${(() => { const bt = (CTX.newCycle ? [] : batchFor()); const ok = bt.filter(x => remain(x.b) > 0 && !isOldCycle(x.b)), skip = bt.filter(x => !(remain(x.b) > 0) || isOldCycle(x.b)).map(x => x.b.part + (isOldCycle(x.b) ? '(이전차수)' : ''));
       CTX.batchOrder = ok; return batchNote(ok.length, '발주 — 아래 표에서 품번별 수량·단가·금액을 각각 고칠 수 있습니다', skip) + batchTable(ok); })()}
    <div class="note" id="oxNote">업체를 고르면 단가변동등록에서 발주일 기준 단가를 자동 조회합니다. 이력이 없으면 직접 입력하세요.</div>
    ${CFG.useWeight ? '<div class="note">중량(kg)은 설계치수로 자동 계산되지만 <b>직접 입력</b>할 수 있습니다. 손으로 넣은 중량은 노랗게 표시되며 발주금액(단가×중량)에 그대로 쓰입니다. [자동]을 누르면 계산값으로 돌아갑니다.</div>' : ''}`,
@@ -553,13 +559,13 @@ async function doOrder() {
   const fresh = !!(CTX && CTX.newCycle), rem = fresh ? (Number(b.qty)||0) : remain(b);
 
   if (!fresh && !re && rem > 0 && qty > rem &&
-      !confirm(`${b.part} 잔량 ${rem} 을(를) 넘는 발주입니다. (자재표 ${Number(b.qty) || 0} / 기발주 ${ordered(b.part)})\n\n그래도 발주할까요?`))
+      !confirm(`${b.part} 잔량 ${rem} 을(를) 넘는 발주입니다. (자재표 ${Number(b.qty) || 0} / 기발주 ${ordered(b)})\n\n그래도 발주할까요?`))
     return say('발주를 취소했습니다. 발주수량을 확인하세요.');
   if (!price &&
       !confirm('단가가 입력되지 않았습니다.\n\n발주금액 0원으로 등록되어 제조원가에 반영되지 않습니다.\n그래도 발주할까요?'))
     return say('단가를 입력한 뒤 다시 발주하세요.');
   /* 같은 품번이 다른 업체로 미입고 발주돼 있으면 중복구매 경고 */
-  const other = fresh ? [] : linesOf(b.part).filter(l => l.status === '발주' && (l.vendor_name || '') !== vendor);
+  const other = fresh ? [] : linesOf(b).filter(l => l.status === '발주' && (l.vendor_name || '') !== vendor);
   if (other.length &&
       !confirm(`${b.part} 은(는) 아래 업체로 이미 발주(미입고)돼 있습니다.\n\n` +
                other.slice(0, 5).map(l => ` · ${l.vendor_name || '(업체미지정)'} ${_dt(l.order_date)} ${Number(l.order_qty) || 0}개`).join('\n') +
@@ -587,7 +593,7 @@ async function doOrder() {
       order_date: _v('oxOdate') || T0(), required_date: _v('oxRdate') || null,
       owner_name: OWNER,
       remark: withCycleRemark((re ? `[재발주:${re}]` + (remark0 ? ' ' + remark0 : '') : (remark0 || null)), cycleIdFor(eb.part)),
-      cycle_no: cycNo(eb.part), cycle_reason: cycReason(eb.part),
+      cycle_no: bCyc(eb), cycle_reason: bCyc(eb) === cycNo(eb.part) ? cycReason(eb.part) : null,
       reorder_reason: re || null } });
   }
   if (noPrice.length && !confirm(`단가 이력이 없어 0원으로 발주되는 품번이 있습니다:\n${noPrice.join(', ')}\n\n(발주 뒤 입고 창에서 입고단가를 넣을 수 있습니다) 계속할까요?`)) {
@@ -608,7 +614,7 @@ async function doOrder() {
       required_date: _v('oxRdate') || null,
       owner_name  : OWNER,
       remark      : withCycleRemark((re ? `[재발주:${re}]` + (remark0 ? ' ' + remark0 : '') : (remark0 || null)), fresh ? CTX.cycleId : cycleIdFor(b.part)),
-      cycle_no    : cycNo(b.part), cycle_reason: cycReason(b.part),
+      cycle_no    : bCyc(b), cycle_reason: bCyc(b) === cycNo(b.part) ? cycReason(b.part) : null,
       reorder_reason: re || null
     }, ...extra.map(x => x.row)]);
     /* v170: 발주서 메일 창 — 방금 발주한 라인 + PartList 그림 */
@@ -900,9 +906,12 @@ function decorate() {
     let td = tr.querySelector('td.ox');
     if (!td) { td = document.createElement('td'); td.className = 'ox'; tr.insertBefore(td, tr.cells[tr.cells.length - 1]); }
     if (!ready) { td.className = 'ox'; td.textContent = '…'; td.title = '발주 내역을 불러오는 중'; return; }
-    const s = partState(b.part), a = linesOf(b.part);
+    const s = partState(b), a = linesOf(b);
     td.className = 'ox ' + s.cls;
     td.innerHTML = _esc(s.label) + (a.length > 1 ? `<span class="st">${a.length}건</span>` : '');
+    tr.classList.toggle('cycold', isOldCycle(b));                       /* v226: 이전 차수 줄 */
+    tr.dataset.done = (a.length && s.code === '입고확정') ? '1' : '';    /* v226: 최종완료(전량 입고확정) */
+    try { if (typeof window.applyDoneFilter === 'function') window.applyDoneFilter(tr); } catch (e) {}
     td.title = (s.code === ''
       ? '우클릭 → 발주 (업체·수량·단가를 넣고 즉시 등록)'
       : `${a.length}건 · ` + a.map(l => `${l.vendor_name || ''} ${Number(l.order_qty) || 0}개 ${l.status}`).join(' / ')) +
