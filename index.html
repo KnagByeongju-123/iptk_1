@@ -784,12 +784,12 @@ $('#btnPw').onclick=()=>{closeDd();document.getElementById('pwchg')?.click()};
 $('#btnLogout').onclick=()=>{closeDd();const b=document.getElementById('lgout');if(b)b.click();else{try{localStorage.removeItem('ipmes.session')}catch(e){}location.reload()}};
 
 /* ---------- v230: 🔔 알림 (mes_alerts · sql_v230_alerts.sql) ----------
- * 1분마다 최근 알림을 읽어 안 읽은 수를 종에 표시. 받는 사람이 정해진 알림은 그 사람에게만.
+ * 20초마다 최근 알림을 읽어 안 읽은 수를 종에 표시. 받는 사람이 정해진 알림은 그 사람에게만.
  * pg_net 이 없는 DB 면 ntfy 를 이 화면이 대신 보낸다(fn_alert_ntfy_claim — 여러 PC 중 한 곳만).
  * 하루 한 번 제작계획 지연 점검(fn_alert_plan_check)도 여기서 부른다 (pg_cron 이 없어도 돌도록). */
 window.MESBELL=(function(){
   const URL_='https://ipggvrzxfcryzryileuv.supabase.co',KEY='sb_publishable_CHO-dAOU00HNwno52255mg_H3C1_vew';
-  let LIST=[],timer=null,busy=false;
+  let LIST=[],timer=null,busy=false,lastId=0;
   const me=()=>String(window.MES_AUTH?.name||'').trim();
   const H=()=>({apikey:KEY,Authorization:'Bearer '+(window.MES_AUTH?.token||KEY),'Content-Type':'application/json'});
   const api=async(p,o)=>{const r=await fetch(URL_+'/rest/v1/'+p,Object.assign({headers:H()},o||{}));if(!r.ok)throw new Error(r.status);const t=await r.text();return t?JSON.parse(t):null};
@@ -813,14 +813,19 @@ window.MESBELL=(function(){
     if(last===d)return;try{await api('rpc/fn_alert_plan_check',{method:'POST',body:'{}'});localStorage.setItem('mesbell.plan',d)}catch(e){}}
   async function poll(){if(busy||!window.MES_AUTH?.token)return;busy=true;
     try{const since=new Date(Date.now()-14*864e5).toISOString();
-      const rs=await api(`mes_alerts?select=id,kind,title,message,recipients,read_by,created_at&created_at=gte.${encodeURIComponent(since)}&order=id.desc&limit=60`);
+      const rs=await api(`mes_alerts?select=id,kind,title,message,job_no,recipients,read_by,created_at&created_at=gte.${encodeURIComponent(since)}&order=id.desc&limit=60`);
+      /* v231: 새 QR 작업완료가 있으면 열려 있는 사내외가공 발주 화면을 새로 읽힌다 (받는 사람과 무관) */
+      const maxId=Math.max(0,...(rs||[]).map(a=>Number(a.id)||0));
+      if(lastId){const qj=[...new Set((rs||[]).filter(a=>a.kind==='qr_receive'&&Number(a.id)>lastId).map(a=>a.job_no).filter(Boolean))];
+        if(qj.length)try{const w=document.getElementById('view_outsourcing_order_input')?.contentWindow;if(w&&typeof w.qrRefresh==='function')w.qrRefresh(qj)}catch(e){}}
+      lastId=Math.max(lastId,maxId);
       const prev=new Set(LIST.map(a=>a.id));LIST=(rs||[]).filter(mine).slice(0,40);render();
       const fresh=LIST.filter(a=>unread(a)&&!prev.has(a.id));
       if(prev.size&&fresh.length){const b=document.querySelector('#ddBell .icon-btn');if(b){b.animate([{transform:'rotate(0)'},{transform:'rotate(-18deg)'},{transform:'rotate(18deg)'},{transform:'rotate(0)'}],{duration:500,iterations:2})}}
       await ntfyRelay();
     }catch(e){/* 표(mes_alerts)가 없으면 조용히 */}
     finally{busy=false}}
-  function start(){if(timer)return;poll();daily();timer=setInterval(()=>{if(document.visibilityState!=='hidden')poll()},60000);
+  function start(){if(timer)return;poll();daily();timer=setInterval(()=>{if(document.visibilityState!=='hidden')poll()},20000);   /* v231: 20초 */
     document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')poll()})}
   window.addEventListener('mes-auth-ready',()=>setTimeout(start,800));
   if(window.MES_AUTH?.token)setTimeout(start,800);

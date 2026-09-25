@@ -574,6 +574,19 @@ async function emptyWhy(j,my){
 }
 /* v112: [새로고침] — 다른 화면에서 발주·입고한 내용을 반영해 부품별 가공공정 상태를 다시 그린다.
    RPC·직접 fetch 는 조회 캐시를 거치지 않으므로 dropCache 로 비운 뒤 다시 읽는다. 선택한 제번은 유지. */
+/* v231: QR 작업완료 알림이 오면(index 🔔) 이 화면을 새로 읽는다.
+   보고 있는 제번(또는 같은 관리제번)이 아니면 할 일 없음. 발주 창이 열려 있거나 부품을 체크해 둔 중이면 끝날 때까지 기다렸다가 한다. */
+let _qrWait=null;
+window.qrRefresh=async function(jobs){
+ const j=jobView[jobIdx];if(!j)return false;
+ const base=x=>{const m=/^(.*\d)([A-Z])$/.exec(String(x||'').trim());return m?m[1]:String(x||'').trim()};
+ const hit=(jobs||[]).some(x=>x===j.job||base(x)===base(j.job));if(!hit)return false;
+ if(CTX||PICK.size){                     /* 작업 중 — 끝나면 */
+  msg('📦 QR 작업완료가 들어왔습니다 — 지금 창을 닫으면 자동으로 새로 읽습니다.');
+  clearTimeout(_qrWait);_qrWait=setTimeout(()=>window.qrRefresh(jobs),4000);return false}
+ ['order_lines','design_results','outsourcing_moves'].forEach(t=>{try{MESDB.dropCache&&MESDB.dropCache(t)}catch(e){}});
+ await loadRoutes();msg(`📦 QR 작업완료가 들어와 ${j.job} 공정 칸을 새로 읽었습니다. (${new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})})`);
+ return true};
 async function refreshAll(){
  const b=document.getElementById('btnRefresh');
  const keep=(jobView[jobIdx]||{}).job||'';
