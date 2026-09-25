@@ -1,4 +1,4 @@
-/* mes_ordctx.js — v158  (v157 신규발주 차수 + v154 중량 수동입력 병합)
+/* mes_ordctx.js — v225  (v225 발주 차수 cycle_no · v157 신규발주 차수 + v154 중량 수동입력 병합)
  * ─────────────────────────────────────────────────────────────────────────
  * 원재료 발주 · 구매품 발주 화면에서 「자재표 리스트」 한 줄만 가지고
  * 발주 → 입고 → 입고확정 까지 그 자리에서 끝낸다.
@@ -76,17 +76,19 @@ const CYCLE_RE = /\[신규발주:([^\]]+)\]/;
 const cycleKey = p => String(p || '');
 const cycleOf = l => { const m = String(l && l.remark || '').match(CYCLE_RE); return m ? m[1] : ''; };
 const newCycleId = () => { const d=new Date(), z=n=>String(n).padStart(2,'0'); return `N${d.getFullYear()}${z(d.getMonth()+1)}${z(d.getDate())}${z(d.getHours())}${z(d.getMinutes())}${z(d.getSeconds())}-${String(Date.now()).slice(-4)}`; };
-function withCycleRemark(remark, id) {
-  let r = String(remark || '').trim().replace(CYCLE_RE, '').trim();
-  return id ? `[신규발주:${id}]${r ? ' ' + r : ''}` : (r || null);
+function withCycleRemark(remark, id) {   /* v225: 비고에 차수 표식을 더 이상 넣지 않는다 (cycle_no 컬럼) */
+  const r = String(remark || '').trim().replace(CYCLE_RE, '').trim();
+  return r || null;
 }
+/* v225: 차수는 part_cycles(MESCYCLE) 의 현재 차수 번호로 본다. order_lines.cycle_no 가 현재 차수인 행만 진행으로 남긴다.
+   (mes_cycle.js 가 없으면 전부 현재 진행으로 본다 — 예전 비고 표식은 sql_v225 에서 cycle_no 로 변환됨) */
 function activeCycleRows(rows, remember=true) {
   const a = (rows || []).slice().sort((x,y)=>(Number(x.line_id)||0)-(Number(y.line_id)||0));
-  const latest = new Map();
-  a.forEach(l => { const id=cycleOf(l); if(id) latest.set(cycleKey(l.part_no), id); });
-  if (remember) { CYCLE.clear(); latest.forEach((id,k)=>CYCLE.set(k,id)); }
-  return a.filter(l => { const id=latest.get(cycleKey(l.part_no)); return !id || cycleOf(l)===id; });
+  if (!window.MESCYCLE) return a;
+  return a.filter(l => MESCYCLE.lineNo(l) === MESCYCLE.cur(l.part_no));
 }
+const cycNo     = p => window.MESCYCLE ? MESCYCLE.cur(p) : 1;
+const cycReason = p => window.MESCYCLE ? (MESCYCLE.reason(p) || null) : null;
 const cycleIdFor = p => CYCLE.get(cycleKey(p)) || '';
 const cleanCycleRemark = remark => String(remark || '').replace(CYCLE_RE, '').trim();
 
@@ -101,6 +103,7 @@ async function loadLines(job) {
     const rs = await MESDB.table('order_lines').select(
       `select=*&category=eq.${encodeURIComponent(CFG.category)}` +
       `&job_no=eq.${encodeURIComponent(job)}&order=line_id`, { fresh: true });
+    if (window.MESCYCLE && !(MESCYCLE.job === job && MESCYCLE.category === CFG.category)) { try { await MESCYCLE.load(job, CFG.category); } catch (e) {} }
     activeCycleRows(rs || [], true).forEach(r => {
       const k = r.part_no || '';
       const a = out.get(k) || []; a.push(r); out.set(k, a);
@@ -584,6 +587,7 @@ async function doOrder() {
       order_date: _v('oxOdate') || T0(), required_date: _v('oxRdate') || null,
       owner_name: OWNER,
       remark: withCycleRemark((re ? `[재발주:${re}]` + (remark0 ? ' ' + remark0 : '') : (remark0 || null)), cycleIdFor(eb.part)),
+      cycle_no: cycNo(eb.part), cycle_reason: cycReason(eb.part),
       reorder_reason: re || null } });
   }
   if (noPrice.length && !confirm(`단가 이력이 없어 0원으로 발주되는 품번이 있습니다:\n${noPrice.join(', ')}\n\n(발주 뒤 입고 창에서 입고단가를 넣을 수 있습니다) 계속할까요?`)) {
@@ -604,6 +608,7 @@ async function doOrder() {
       required_date: _v('oxRdate') || null,
       owner_name  : OWNER,
       remark      : withCycleRemark((re ? `[재발주:${re}]` + (remark0 ? ' ' + remark0 : '') : (remark0 || null)), fresh ? CTX.cycleId : cycleIdFor(b.part)),
+      cycle_no    : cycNo(b.part), cycle_reason: cycReason(b.part),
       reorder_reason: re || null
     }, ...extra.map(x => x.row)]);
     /* v170: 발주서 메일 창 — 방금 발주한 라인 + PartList 그림 */
