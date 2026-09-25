@@ -86,6 +86,15 @@ input,select{font:inherit}
 .dd{position:relative}
 .dd-menu{position:absolute;top:calc(100% + 6px);right:0;min-width:200px;background:var(--white);color:var(--ink);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:6px;display:none;z-index:90}
 .dd.open .dd-menu{display:block}
+/* v230: 🔔 알림 */
+.bell-n{position:absolute;top:1px;right:0;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#e53935;color:#fff;font-size:10px;font-weight:700;line-height:16px;text-align:center}
+.bell-menu{width:min(380px,92vw);max-height:70vh;overflow:auto;padding:0!important}
+.bell-menu .bh{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line);font-weight:700;position:sticky;top:0;background:var(--white)}
+.bell-menu .bh{white-space:nowrap}.bell-menu .bh button{width:auto!important;flex:0 0 auto;display:inline-block!important;margin-left:auto;font-size:12px;color:var(--steel-3,#456);border:1px solid var(--line);border-radius:3px;padding:2px 8px;background:none;cursor:pointer}
+.bell-menu .bi{display:block;width:100%;text-align:left;padding:8px 10px;border:0;border-bottom:1px solid #eef1f4;background:none;cursor:pointer;line-height:1.45}
+.bell-menu .bi:hover{background:#f3f7fb}.bell-menu .bi.un{background:#fff8e6}.bell-menu .bi.un b{color:#0f3d6e}
+.bell-menu .bi small{display:block;color:#7b8794;font-size:11px}.bell-menu .bi span{display:block;color:#445;font-size:12px}
+.bell-menu .none{padding:24px 10px;text-align:center;color:#8a97a2}
 .dd-menu button,.dd-menu a{display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border-radius:4px;text-align:left;text-decoration:none;color:var(--ink)}
 .dd-menu button:hover,.dd-menu a:hover{background:#eef2f8}
 .dd-menu hr{border:0;border-top:1px solid var(--line);margin:6px 0}
@@ -172,6 +181,10 @@ a.menu-off,a.menu-off:hover{color:#9aa5ae!important;opacity:.55;cursor:not-allow
 
     <div class="top-actions">
       <button class="icon-btn txt" id="btnReq" title="수정요청게시판">✎<span>수정요청</span></button>
+      <div class="dd" id="ddBell">
+        <button class="icon-btn" title="알림">🔔<span class="bell-n" id="bellN" hidden>0</span></button>
+        <div class="dd-menu bell-menu" id="bellMenu"></div>
+      </div>
       <div class="dd" id="ddFav">
         <button class="icon-btn" title="즐겨찾기">★</button>
         <div class="dd-menu" id="favMenu"></div>
@@ -350,7 +363,8 @@ const APP={
         {name:'공지사항',items:['공지사항 등록']},
         {name:'시스템',items:['DB 동기화','에러로그']},
         {name:'인사',items:['부서정보','직급정보']},
-        {name:'단가관리',items:['자재단가변동등록','자재단가변동현황','공정단가변동등록','공정단가변동현황','작업단가']}
+        {name:'단가관리',items:['자재단가변동등록','자재단가변동현황','공정단가변동등록','공정단가변동현황','작업단가']},
+        {name:'알림',items:['알림등록']}   /* v230 */
       ]
     }
   }
@@ -372,6 +386,7 @@ const pageRegistry={
 '아이템 관리':{id:'item_management',file:'item_management.html',title:'아이템 관리'},
 '공정카테고리':{id:'process_category_management',file:'process_category_management.html',title:'공정카테고리'},
 '작업단가':{id:'labor_rate_management',file:'labor_rate_management.html',title:'작업단가'},
+'알림등록':{id:'alert_settings',file:'alert_settings.html',title:'알림등록'},
 '경비사유':{id:'expense_reason_registration',file:'expense_reason_registration.html',title:'경비사유 등록'},
 '금형타입관리':{id:'mold_type_management',file:'mold_type_management.html',title:'금형타입 관리'},
 '기계사양관리':{id:'machine_spec_management',file:'machine_spec_management.html',title:'기계사양 관리'},
@@ -767,6 +782,50 @@ function syncUser(){
 }
 $('#btnPw').onclick=()=>{closeDd();document.getElementById('pwchg')?.click()};
 $('#btnLogout').onclick=()=>{closeDd();const b=document.getElementById('lgout');if(b)b.click();else{try{localStorage.removeItem('ipmes.session')}catch(e){}location.reload()}};
+
+/* ---------- v230: 🔔 알림 (mes_alerts · sql_v230_alerts.sql) ----------
+ * 1분마다 최근 알림을 읽어 안 읽은 수를 종에 표시. 받는 사람이 정해진 알림은 그 사람에게만.
+ * pg_net 이 없는 DB 면 ntfy 를 이 화면이 대신 보낸다(fn_alert_ntfy_claim — 여러 PC 중 한 곳만).
+ * 하루 한 번 제작계획 지연 점검(fn_alert_plan_check)도 여기서 부른다 (pg_cron 이 없어도 돌도록). */
+window.MESBELL=(function(){
+  const URL_='https://ipggvrzxfcryzryileuv.supabase.co',KEY='sb_publishable_CHO-dAOU00HNwno52255mg_H3C1_vew';
+  let LIST=[],timer=null,busy=false;
+  const me=()=>String(window.MES_AUTH?.name||'').trim();
+  const H=()=>({apikey:KEY,Authorization:'Bearer '+(window.MES_AUTH?.token||KEY),'Content-Type':'application/json'});
+  const api=async(p,o)=>{const r=await fetch(URL_+'/rest/v1/'+p,Object.assign({headers:H()},o||{}));if(!r.ok)throw new Error(r.status);const t=await r.text();return t?JSON.parse(t):null};
+  const mine=a=>{const r=String(a.recipients||'').trim();if(r==='__none__')return false;if(!r)return true;return r.split(/[,\s]+/).filter(Boolean).includes(me())};
+  const unread=a=>!(a.read_by||[]).includes(me());
+  const when=t=>{const d=new Date(t),m=Math.round((Date.now()-d)/60000);return m<1?'방금':m<60?m+'분 전':m<1440?Math.round(m/60)+'시간 전':d.toLocaleDateString('ko-KR',{month:'2-digit',day:'2-digit'})};
+  function render(){
+    const n=LIST.filter(unread).length,b=document.getElementById('bellN');if(b){b.hidden=!n;b.textContent=n>99?'99+':n}
+    const m=document.getElementById('bellMenu');if(!m)return;
+    m.innerHTML=`<div class="bh"><span>알림</span> ${n?`<span style="color:#e53935">${n}</span>`:''}<button id="bellAll">모두 읽음</button><button id="bellSet" style="margin-left:0">설정</button></div>`+
+      (LIST.length?LIST.map(a=>`<button class="bi${unread(a)?' un':''}" data-id="${a.id}" data-k="${esc(a.kind)}"><small>${a.kind==='qr_receive'?'QR 등록':'제작계획 지연'} · ${esc(when(a.created_at))}</small><b>${esc(a.title)}</b><span>${esc(a.message||'')}</span></button>`).join(''):'<div class="none">최근 2주 알림이 없습니다.</div>');
+    m.querySelector('#bellAll').onclick=e=>{e.stopPropagation();read(LIST.filter(unread).map(a=>a.id))};
+    m.querySelector('#bellSet').onclick=e=>{e.stopPropagation();closeDd();openByName('알림등록')};
+    m.querySelectorAll('.bi').forEach(x=>x.onclick=()=>{read([Number(x.dataset.id)]);closeDd();openByName(x.dataset.k==='qr_receive'?'사내외가공 발주':'제작계획등록')});
+  }
+  async function read(ids){if(!ids.length||!me())return;LIST.forEach(a=>{if(ids.includes(a.id)&&unread(a))(a.read_by=a.read_by||[]).push(me())});render();
+    try{await api('rpc/fn_alert_read',{method:'POST',body:JSON.stringify({p_ids:ids,p_name:me()})})}catch(e){}}
+  async function ntfyRelay(){try{const rs=await api('rpc/fn_alert_ntfy_claim',{method:'POST',body:'{}'});
+    for(const a of rs||[])try{await fetch(String(a.ntfy_server||'https://ntfy.sh').replace(/\/+$/,''),{method:'POST',body:JSON.stringify({topic:a.ntfy_topic,title:a.title,message:a.message||'',tags:[a.kind==='qr_receive'?'package':'warning']})})}catch(e){}}catch(e){}}
+  async function daily(){const d=new Date().toLocaleDateString('sv-SE');let last='';try{last=localStorage.getItem('mesbell.plan')||''}catch(e){}
+    if(last===d)return;try{await api('rpc/fn_alert_plan_check',{method:'POST',body:'{}'});localStorage.setItem('mesbell.plan',d)}catch(e){}}
+  async function poll(){if(busy||!window.MES_AUTH?.token)return;busy=true;
+    try{const since=new Date(Date.now()-14*864e5).toISOString();
+      const rs=await api(`mes_alerts?select=id,kind,title,message,recipients,read_by,created_at&created_at=gte.${encodeURIComponent(since)}&order=id.desc&limit=60`);
+      const prev=new Set(LIST.map(a=>a.id));LIST=(rs||[]).filter(mine).slice(0,40);render();
+      const fresh=LIST.filter(a=>unread(a)&&!prev.has(a.id));
+      if(prev.size&&fresh.length){const b=document.querySelector('#ddBell .icon-btn');if(b){b.animate([{transform:'rotate(0)'},{transform:'rotate(-18deg)'},{transform:'rotate(18deg)'},{transform:'rotate(0)'}],{duration:500,iterations:2})}}
+      await ntfyRelay();
+    }catch(e){/* 표(mes_alerts)가 없으면 조용히 */}
+    finally{busy=false}}
+  function start(){if(timer)return;poll();daily();timer=setInterval(()=>{if(document.visibilityState!=='hidden')poll()},60000);
+    document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')poll()})}
+  window.addEventListener('mes-auth-ready',()=>setTimeout(start,800));
+  if(window.MES_AUTH?.token)setTimeout(start,800);
+  return {poll,read,get list(){return LIST}};
+})();
 
 /* ---------- 선반입 ---------- */
 const _pf=new Set();

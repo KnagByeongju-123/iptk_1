@@ -99,8 +99,9 @@ function render(){
    :(s.line?`${esc(s.line.vendor_name||'업체 미지정')} · 발주 ${n0(s.line.order_qty)||1} · 기입고 ${n0(s.line.receipt_qty)}${s.line.required_date?' · 납기 '+esc(s.line.required_date):''}${s.line.receipt_date?' · 입고 '+esc(s.line.receipt_date):''}`:'외주 공정 — 아직 발주 전');
   let act='';
   if(D.cycle_ended){act='<div class="lock">종료된 차수</div>'}
+  else if(s.house&&done){const r0=s.res[s.res.length-1]||{};act=`<div class="lock">작업완료 등록됨${r0.work_date?' · '+esc(r0.work_date):''}${r0.worker_name?' · '+esc(r0.worker_name):''} — 다시 등록할 수 없습니다. 고칠 것은 사무실(PC)에 말씀해 주세요.</div>`}   /* v230: 사내도 한 번 등록하면 버튼 잠금 (헷갈림 방지) */
   else if(s.house){act=`<div class="row"><label>가공시간(분)</label><input type="number" inputmode="numeric" id="min_${s.i}" placeholder="분"></div>
-    <div class="act"><button class="abtn house" onclick="doneIn(${s.i})">✅ 작업완료 (사내 가공 실적)</button></div>`+(done?'<div class="lock">이미 실적이 있습니다 — 추가 작업이면 다시 눌러도 됩니다.</div>':'')}
+    <div class="act"><button class="abtn house" onclick="doneIn(${s.i})">✅ 작업완료 (사내 가공 실적)</button></div>`}
   else if(s.line&&!done&&s.state==='진행'){const rem=Math.max((n0(s.line.order_qty)||1)-n0(s.line.receipt_qty),0);
    act=`<div class="row"><label>입고수량</label><input type="number" inputmode="numeric" id="qty_${s.i}" value="${rem}" min="1" max="${rem}"><span class="det">잔량 ${rem}</span></div>
     <div class="act"><button class="abtn" onclick="doneOut(${s.i})">✅ 작업완료 (입고 처리)</button></div>`}
@@ -125,7 +126,7 @@ async function doneOut(i){if(BUSY)return;const s=steps()[i];if(!s||!s.line)retur
  BUSY=true;try{const r=await rpc('fn_qr_done_c',{p_key:KEY,p_pin:u.p,p_kind:'out',p_line_id:Number(s.line.line_id),p_qty:q,p_worker:u.w});
   if(!r||!r.ok)throw new Error((r&&r.err)||'처리 실패');toast(`${s.name} 작업완료 — 입고 ${q}개 처리`,'ok');await load()}
  catch(e){toast('실패: '+String(e.message||e).slice(0,90),'ng')}finally{BUSY=false}}
-async function doneIn(i){if(BUSY)return;const s=steps()[i];if(!s)return;const u=who();if(!u)return;
+async function doneIn(i){if(BUSY)return;const s=steps()[i];if(!s)return;if(s.state==='완료')return toast('이미 작업완료가 등록된 공정입니다.','ng');const u=who();if(!u)return;
  const m=Math.max(0,Number($('min_'+i)?.value)||0);
  if(!confirm(`${s.name} 사내 가공 작업완료로 기록할까요?${m?' ('+m+'분)':' (시간 미입력)'}`))return;
  BUSY=true;try{const r=await rpc('fn_qr_done_c',{p_key:KEY,p_pin:u.p,p_kind:'in',p_proc:s.code,p_minutes:m,p_worker:u.w});
