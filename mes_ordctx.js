@@ -456,6 +456,7 @@ function bindBatch() {
 function formOrder(ev) {
   const { b, job } = CTX;
   if (isOldCycle(b)) { say(`${b.part} ${bCyc(b)}차는 이전 차수입니다 — 새 발주는 아래 ${cycNo(b.part)}차 줄에서 하세요.`); return false; }
+  if (window.MESCYCLE && MESCYCLE.isEnded(b.part, bCyc(b))) { say(`${b.part} ${bCyc(b)}차는 종료된 차수입니다 — 다시 하려면 [신규진행]으로 새 차수를 시작하세요.`); return false; }
   const vs = vendorList();
   const rem = (CTX && CTX.newCycle) ? (Number(b.qty) || 1) : (remain(b) || Number(b.qty) || 1);
   const rd = (() => { try { return $('reqDate').value || T0(); } catch (e) { return T0(); } })();
@@ -910,7 +911,7 @@ function decorate() {
     td.className = 'ox ' + s.cls;
     td.innerHTML = _esc(s.label) + (a.length > 1 ? `<span class="st">${a.length}건</span>` : '');
     tr.classList.toggle('cycold', isOldCycle(b));                       /* v226: 이전 차수 줄 */
-    tr.dataset.done = (a.length && s.code === '입고확정') ? '1' : '';    /* v226: 최종완료(전량 입고확정) */
+    tr.dataset.done = ((a.length && s.code === '입고확정') || (window.MESCYCLE && MESCYCLE.isEnded(b.part, bCyc(b)))) ? '1' : '';    /* v226: 최종완료(전량 입고확정) */
     try { if (typeof window.applyDoneFilter === 'function') window.applyDoneFilter(tr); } catch (e) {}
     td.title = (s.code === ''
       ? '우클릭 → 발주 (업체·수량·단가를 넣고 즉시 등록)'

@@ -144,7 +144,7 @@ tr.rdone td{color:#8b98a3}
     <span class="label">업체</span><input id="venF" class="field" style="width:130px" placeholder="업체 입력/선택" list="venDL" autocomplete="off"><datalist id="venDL"></datalist>
     <span class="label">최종완료</span><select id="doneF" class="field" onchange="renderRoutes()" title="전 공정이 입고된 줄(이전 차수 포함)을 숨기거나 보입니다"><option value="x">제외</option><option value="i">포함</option></select>
     <button class="btn" onclick="search()">⌕ 조회</button>
-    <button class="btn" id="btnRefresh" onclick="refreshAll()" title="DB에서 제번·부품별 가공공정을 다시 불러옵니다 (다른 화면의 발주·입고 반영)">⟳ 새로고침</button><button class="btn" onclick="cycOpen()" title="이미 가공 진행 중인 부품을 공정1부터 다시 — 기존 발주·입고 이력은 이전 차수로 남고 새 차수(빈 공정 칸)로 시작합니다. 부품 행을 체크하면 그 부품만 고릅니다" style="color:#7a4a12;font-weight:700">↻ 신규진행</button><span class="ctxhint" title="공정 칸에서 마우스 오른쪽 버튼을 누르면 상태에 맞는 처리 창이 열립니다 (더블클릭도 같은 창).&#10;입고·완료 칸에서는 회차별 입고취소 · 입고 전체취소 · 확정취소, 같은 업체 발주건 함께 입고(다중입고)가 됩니다.&#10;연속 공정을 한 업체에 맡길 때는 마지막 공정 칸을 우클릭하면 그 사이 공정이 한꺼번에 발주됩니다.&#10;부품 그림 칸을 누르면 그림보드가 열려 공정 순서 끌어 바꾸기, 기준공정 불러오기, 가공계획 적용을 할 수 있습니다.">※ <b style="color:#7a4a12">외주 칸</b> 우클릭 → 발주 · 입고 · 확정 · 묶음 · <b>취소</b> <b>|</b> <b style="color:#8a6d3b">사내 칸</b> 우클릭 → <b>가공완료 등록</b> <b>|</b> 부품 행(그림·부품코드·부품명) 우클릭 또는 그림 클릭 → <b>그림보드(공정 순서·기준공정·QR)</b></span>
+    <button class="btn" id="btnRefresh" onclick="refreshAll()" title="DB에서 제번·부품별 가공공정을 다시 불러옵니다 (다른 화면의 발주·입고 반영)">⟳ 새로고침</button><button class="btn" onclick="cycOpen()" title="이미 가공 진행 중인 부품을 공정1부터 다시 — 기존 발주·입고 이력은 이전 차수로 남고 새 차수(빈 공정 칸)로 시작합니다. 부품 행을 체크하면 그 부품만 고릅니다" style="color:#7a4a12;font-weight:700">↻ 신규진행</button><button class="btn" onclick="cycManage()" title="차수 되돌리기(잘못 누른 신규진행 취소) · 차수 종료(미입고 발주를 지우고 닫기)">⚙ 차수 관리</button><span class="ctxhint" title="공정 칸에서 마우스 오른쪽 버튼을 누르면 상태에 맞는 처리 창이 열립니다 (더블클릭도 같은 창).&#10;입고·완료 칸에서는 회차별 입고취소 · 입고 전체취소 · 확정취소, 같은 업체 발주건 함께 입고(다중입고)가 됩니다.&#10;연속 공정을 한 업체에 맡길 때는 마지막 공정 칸을 우클릭하면 그 사이 공정이 한꺼번에 발주됩니다.&#10;부품 그림 칸을 누르면 그림보드가 열려 공정 순서 끌어 바꾸기, 기준공정 불러오기, 가공계획 적용을 할 수 있습니다.">※ <b style="color:#7a4a12">외주 칸</b> 우클릭 → 발주 · 입고 · 확정 · 묶음 · <b>취소</b> <b>|</b> <b style="color:#8a6d3b">사내 칸</b> 우클릭 → <b>가공완료 등록</b> <b>|</b> 부품 행(그림·부품코드·부품명) 우클릭 또는 그림 클릭 → <b>그림보드(공정 순서·기준공정·QR)</b></span>
   </section>
   <section class="panes">
     <div class="box"><div class="box-title">제번리스트</div><div class="tablewrap"><table id="jobListTable">
@@ -285,7 +285,7 @@ function houseTodoBefore(r,i){for(let k=0;k<i;k++)if(isHouse(r,k)&&!houseDone(r,
 function prevOut(r,i){for(let k=i-1;k>=0;k--)if(!isHouse(r,k))return k;return -1}
 /* 다음 발주 가능 공정 index (없으면 -1). 직전 외주 공정이 출고/요청이면 대기(-2) */
 function nextStep(r){
- if(r&&r.old)return -1;   /* v226: 이전 차수 줄은 새 발주 없음 */
+ if(r&&(r.old||(window.MESCYCLE&&MESCYCLE.isEnded(r.part,rowCyc(r)))))return -1;   /* v227: 종료 차수도 새 발주 없음 */   /* v226: 이전 차수 줄은 새 발주 없음 */
  const n=(r.steps||[]).map(stepCode).filter(Boolean).length;
  for(let i=0;i<n;i++){
   if(isHouse(r,i))continue;
@@ -338,7 +338,8 @@ function renderRoutes(){
   const unfix=codes.filter((c,i)=>stepState(r,i)==='입고').length;
   const fixTag=unfix?`<span class="tagd" style="background:#dbeaf8;color:#1a4f7a" title="현품은 입고됐지만 입고확정(전표)이 남아 있습니다. 그 칸을 우클릭해 확정하세요.">확정대기 ${unfix}</span>`:'';
   const cyc=(window.MESCYCLE?MESCYCLE.badge(rowCyc(r),r.part,null,r.old):'')+(r.old?'<span class="cycold-tag">이전</span>':'');
-  const hideDone=(document.getElementById('doneF')||{}).value==='x'&&allDone;   /* v226: 최종완료 제외 */
+  const ended=!!(window.MESCYCLE&&MESCYCLE.isEnded(r.part,rowCyc(r)));
+  const hideDone=(document.getElementById('doneF')||{}).value==='x'&&(allDone||ended);   /* v226: 최종완료 제외 */
   const tag=cyc+(n===0?'':allDone?'<span class="tagd">전공정 완료</span>':wait?`<span class="tagd">공정${wp+1} ${wp>=0?stepState(r,wp):''} 대기</span>`:nx>0?`<span class="tagd">${nx}/${n} 진행</span>`:'')+fixTag;
   const tip=allDone?'모든 가공공정이 입고되었습니다':wait?'직전 공정이 아직 입고되지 않아 다음 공정을 발주할 수 없습니다 (직전 공정 칸 우클릭 → 입고 처리)':'';
   return `<tr class="${dis&&n?'rdone':''}${r.old?' cycold':''}"${hideDone?' style="display:none"':''}${tip?` title="${_esc(tip)}"`:''} oncontextmenu="return rowCtx(event,${ri})">`+
@@ -650,6 +651,7 @@ function ctxMenu(ev,ri,i){
  CTX={ri,i,r,c,o,st,job:j};
  if(isHouse(r,i))return ctxHouse(ev,ri,i);   /* v147: 사내가공 칸 */
  if(r.old&&st===''){msg(`${r.part} ${rowCyc(r)}차는 이전 차수입니다 — 새 발주는 아래 ${MESCYCLE.cur(r.part)}차 줄에서 하세요.`);return false}
+ if(st===''&&window.MESCYCLE&&MESCYCLE.isEnded(r.part,rowCyc(r))){msg(`${r.part} ${rowCyc(r)}차는 종료된 차수입니다 — 다시 하려면 [신규진행]으로 새 차수를 시작하세요.`);return false}
  const qsum=(Number(o.orderQty)||Number(o.receiptQty))?` · 발주 <b>${Number(o.orderQty)||0}</b> / 입고 <b>${Number(o.receiptQty)||0}</b>${Number(o.remainQty)?` / 미입고 <b>${Number(o.remainQty)}</b>`:''}`:'';
  const head=`<div class="sub"><b>${_esc(j.job||'')}</b> · ${_esc(r.part)} ${_esc(r.name||'')} · <b>공정${i+1}</b> ${_esc(procName(c))}${o.vendor?` · ${_esc(o.vendor)}`:''}${qsum}</div>`;
  if(st===''){
@@ -1411,8 +1413,14 @@ window.MESLOOK_RELOAD_VENDORS=async()=>{MESLOOK.invalidate('vendor_outsourcing')
  if(typeof renderRoutes==='function')renderRoutes();};
 </script>
 <script src="mes_price.js?v=162"></script>
-<script src="mes_mail.js?v=175"></script><script src="mes_drawboard.js?v=221"></script><script src="mes_cycle.js?v=226"></script>
+<script src="mes_mail.js?v=175"></script><script src="mes_drawboard.js?v=221"></script><script src="mes_cycle.js?v=227"></script>
 <script>
+/* v227: 차수 관리 — 체크한 부품(없으면 전체)의 차수 취소·종료 */
+async function cycManage(){const j=jobView[jobIdx];if(!j)return msg('제번을 먼저 선택하세요.');
+ if(!window.MESCYCLE)return msg('차수 모듈(mes_cycle.js)이 없습니다.');if(!(window.MESDB&&MESDB.online))return msg('DB 미연결 — 차수 관리는 DB 연결 상태에서만 됩니다.');
+ const chk=new Set([...document.querySelectorAll('#routeBody input[data-i]:checked')].map(c=>(ROUTES[Number(c.dataset.i)]||{}).part));
+ const seen=new Set(),parts=[];ROUTES.forEach(r=>{if(seen.has(r.part)||(chk.size&&!chk.has(r.part)))return;seen.add(r.part);parts.push({part:r.part,name:r.name||''})});
+ await MESCYCLE.manageFor({job:j.job,category:'외주가공',parts,by:OWNER,onDone:async(kind,part,no)=>{PICK.clear();await loadRoutes();msg(kind==='cancel'?`${part} ${no}차를 되돌렸습니다 — ${no-1}차가 현재 차수입니다.`:`${part} ${no}차를 종료했습니다 (미입고 발주 삭제). 「최종완료 포함」으로 바꾸면 보입니다.`)}})}
 /* v225: 신규진행 — 부품별 가공공정 리스트에서 체크한 부품(없으면 전체)의 새 가공 차수를 시작한다.
    현재 차수에 외주 발주가 하나도 없는 부품은 시작할 것이 없으므로 고를 수 없다. 사내가공 실적은 차수와 무관하게 남는다. */
 async function cycOpen(){const j=jobView[jobIdx];if(!j)return msg('제번을 먼저 선택하세요.');

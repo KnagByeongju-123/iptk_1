@@ -63,7 +63,7 @@ input.cell,tr.sel input.cell,tr:hover input.cell{color:#22303a;background:#fff;-
     <span class="label">품번</span><input id="modelQ" class="field" style="width:280px" placeholder="품번 입력/선택" list="modelDL" autocomplete="off"><datalist id="modelDL"></datalist>
     <span class="label">최종완료</span><select id="doneF" class="field" onchange="renderBom()" title="전량 입고확정된 줄(이전 차수 포함)을 숨기거나 보입니다"><option value="x">제외</option><option value="i">포함</option></select>
     <button class="btn" onclick="search()">⌕ 조회</button>
-    <button class="btn" onclick="cycOpen()" title="이미 진행 중인 품번을 처음부터 다시 구매 — 기존 발주·입고 이력은 이전 차수로 남고 새 차수(빈 상태)로 시작합니다. 자재표에서 품번을 체크하면 그 품번만 고릅니다" style="color:#7a4a12;font-weight:700">↻ 신규진행</button>
+    <button class="btn" onclick="cycOpen()" title="이미 진행 중인 품번을 처음부터 다시 구매 — 기존 발주·입고 이력은 이전 차수로 남고 새 차수(빈 상태)로 시작합니다. 자재표에서 품번을 체크하면 그 품번만 고릅니다" style="color:#7a4a12;font-weight:700">↻ 신규진행</button><button class="btn" onclick="cycManage()" title="차수 되돌리기(잘못 누른 신규진행 취소) · 차수 종료(미입고 발주를 지우고 닫기)">⚙ 차수 관리</button>
   </section>
   <section class="panes">
     <div class="box"><div class="box-title">제번리스트</div><div class="tablewrap"><table>
@@ -195,7 +195,7 @@ function applyFilter(){const j=jobQ.value.trim().toLowerCase(),md=modelQ.value.t
 /* [⌕ 조회] — DB에서 제번을 다시 읽은 뒤 거른다 */
 function search(){applyFilter();
  if(typeof loadJobs==='function'){try{loadJobs(true)}catch(e){}}}
-async function pushDown(){const j=jobView[jobIdx];if(!j)return;const picks0=[...bomBody.querySelectorAll('input:checked')].map(x=>j.bom[Number(x.dataset.i)]);const oldP=picks0.filter(b=>b&&b.old);if(oldP.length)msg(`이전 차수 줄은 발주할 수 없습니다: ${[...new Set(oldP.map(b=>b.part+' '+b.cyc+'차'))].join(', ')} — 아래 현재 차수 줄에서 하세요.`);const picks=picks0.filter(b=>b&&!b.old).filter(b=>!(b.oq>0&&!(b.rem>0)));if(!picks.length)return msg('자재표에서 발주할 품번을 선택하세요. (발주완료 품번은 제외됩니다)');const vens=pickedVendors();
+async function pushDown(){const j=jobView[jobIdx];if(!j)return;const picks0=[...bomBody.querySelectorAll('input:checked')].map(x=>j.bom[Number(x.dataset.i)]);const oldP=picks0.filter(b=>b&&b.old);if(oldP.length)msg(`이전 차수 줄은 발주할 수 없습니다: ${[...new Set(oldP.map(b=>b.part+' '+b.cyc+'차'))].join(', ')} — 아래 현재 차수 줄에서 하세요.`);const endP=picks0.filter(b=>b&&!b.old&&window.MESCYCLE&&MESCYCLE.isEnded(b.part,b.cyc));if(endP.length)msg(`종료된 차수는 발주할 수 없습니다: ${[...new Set(endP.map(b=>b.part+' '+b.cyc+'차'))].join(', ')} — 다시 하려면 [신규진행]으로 새 차수를 시작하세요.`);const picks=picks0.filter(b=>b&&!b.old&&!(window.MESCYCLE&&MESCYCLE.isEnded(b.part,b.cyc))).filter(b=>!(b.oq>0&&!(b.rem>0)));if(!picks.length)return msg('자재표에서 발주할 품번을 선택하세요. (발주완료 품번은 제외됩니다)');const vens=pickedVendors();
  if(!vens.length)return msg('협력업체리스트에서 발주할 업체를 선택하세요.');
  const d=reqDate.value||new Date().toISOString().slice(0,10);
  const combos=[];for(const v of vens)for(const b of picks)combos.push({v,b});
@@ -414,7 +414,7 @@ function decorateBom(){
  bomBody.querySelectorAll('input[type=checkbox][data-i]').forEach(cb=>{
   const b=j.bom[Number(cb.dataset.i)];if(!b)return;const tr=cb.closest('tr');
   const q=Number(b.qty)||0,oq=m[oqKey(b.part,b.cyc)]||0;b.oq=oq;b.rem=Math.max(0,q-oq);
-  tr.classList.toggle('cycold',!!b.old);tr.dataset.done=(OQ_JOB===j.job&&OQ_DONE[oqKey(b.part,b.cyc)])?'1':'';window.applyDoneFilter(tr);
+  tr.classList.toggle('cycold',!!b.old);tr.dataset.done=((OQ_JOB===j.job&&OQ_DONE[oqKey(b.part,b.cyc)])||(window.MESCYCLE&&MESCYCLE.isEnded(b.part,b.cyc)))?'1':'';window.applyDoneFilter(tr);
   if(!tr.querySelector('td.oq')){const td=document.createElement('td');td.className='r oq';
    const ref=tr.cells[tr.cells.length-1];tr.insertBefore(td,ref)}
   {const rq=(OQ_JOB===j.job?RQ[oqKey(b.part,b.cyc)]:0)||0;const td=tr.querySelector('td.oq');td.textContent=oq?oq:'';if(rq){const e=document.createElement('span');e.className='rq';e.textContent=' +재'+rq;e.title='재발주(실수·불량·예비품 등) 수량 — 자재표 수량 집계에서 제외';td.appendChild(e)}}
@@ -485,8 +485,14 @@ try{MESJOB.attach("jobQ",{onPick:()=>{try{onJobPick()}catch(e){}}})}catch(e){}
 });
 </script>
 <script src="mes_mail.js?v=174"></script>
-<script src="mes_cycle.js?v=226"></script><script src="mes_ordctx.js?v=226"></script>
+<script src="mes_cycle.js?v=227"></script><script src="mes_ordctx.js?v=227"></script>
 <script>
+/* v227: 차수 관리 — 체크한 품번(없으면 전체)의 차수 취소·종료 */
+async function cycManage(){const j=jobView[jobIdx];if(!j||!(j.bom0||[]).length)return msg('제번을 선택해 자재표를 먼저 조회하세요.');
+ if(!window.MESCYCLE)return msg('차수 모듈(mes_cycle.js)이 없습니다.');if(!(window.MESDB&&MESDB.online))return msg('DB 미연결 — 차수 관리는 DB 연결 상태에서만 됩니다.');
+ const chk=new Set([...bomBody.querySelectorAll('input[type=checkbox][data-i]:checked')].map(c=>(j.bom[Number(c.dataset.i)]||{}).part));
+ const parts=j.bom0.filter(b=>!chk.size||chk.has(b.part)).map(b=>({part:b.part,name:b.name||''}));
+ await MESCYCLE.manageFor({job:j.job,category:OQ_구매품,parts,by:OWNER,onDone:async(kind,part,no)=>{try{await MESORDCTX.loadLines(j.job)}catch(e){}await loadOrdQ(j.job);window.renderBom();try{MESORDCTX.refresh()}catch(e){}msg(kind==='cancel'?`${part} ${no}차를 되돌렸습니다 — ${no-1}차가 현재 차수입니다.`:`${part} ${no}차를 종료했습니다 (미입고 발주 삭제). 「최종완료 포함」으로 바꾸면 보입니다.`)}})}
 /* v225: 신규진행 — 자재표에서 체크한 품번(없으면 전체 목록)의 새 차수를 시작한다. 현재 차수에 발주가 없는 품번은 시작할 수 없다 */
 async function cycOpen(){const j=jobView[jobIdx];if(!j||!(j.bom||[]).length)return msg('제번을 선택해 자재표를 먼저 조회하세요.');
  if(!window.MESCYCLE)return msg('차수 모듈(mes_cycle.js)이 없습니다.');if(!(window.MESDB&&MESDB.online))return msg('DB 미연결 — 신규진행은 DB 연결 상태에서만 됩니다.');
